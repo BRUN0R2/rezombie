@@ -124,6 +124,7 @@
 - [x] Bloquear menus padrao de time e personagem do CS.
 - [x] Admitir jogador sem time em CT sem depender do menu padrao.
 - [x] Finalizar estado interno de join ao bloquear menu padrao do CS.
+- [x] Resetar camera/view padrao do CS ao concluir admissao controlada.
 - [x] Respawnar admissao automatica apenas enquanto o round aceita humanos.
 - [x] Bloquear runtime de classe e itens em jogador sem spawn real.
 - [x] Manter `ApiPlayers` como unico dono de runtime pos-spawn.

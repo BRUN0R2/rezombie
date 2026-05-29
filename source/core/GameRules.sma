@@ -15,10 +15,13 @@ const GAME_RULES_FREEZE_SECONDS = 0;
 const GAME_RULES_LIMIT_TEAMS = 0;
 const GAME_RULES_AUTO_TEAM_BALANCE = 0;
 const GAME_RULES_HOOK_FALSE = 0;
+const GAME_RULES_NO_ENTITY = 0;
+const GAME_RULES_NO_OBSERVER_TARGET = 0;
 const TeamName:GAME_RULES_DEFAULT_JOIN_TEAM = TEAM_CT;
 const Float:GAME_RULES_WAIT_CHECK_INTERVAL = 1.0;
 const Float:GAME_RULES_WIN_CHECK_INTERVAL = 1.0;
 const Float:GAME_RULES_ROUND_END_DELAY = 5.0;
+const Float:GAME_RULES_NO_INTRO_CAMERA_TIME = 0.0;
 
 new const GAME_RULES_DEFAULT_HUMAN_CLASS[] = "human";
 new const GAME_RULES_ROUND_VAR_STATE[] = "state";
@@ -45,12 +48,14 @@ public plugin_precache()
 public plugin_init()
 {
 	CreateRoundForwards();
-	register_clcmd("chooseteam", "CommandBlockDefaultTeamMenu");
-	register_clcmd("jointeam", "CommandBlockDefaultTeamMenu");
+	register_clcmd("chooseteam", "CommandBlockDefaultJoinFlow");
+	register_clcmd("jointeam", "CommandBlockDefaultJoinFlow");
+	register_clcmd("joinclass", "CommandBlockDefaultJoinFlow");
 	RegisterHookChain(RG_HandleMenu_ChooseTeam, "OnChooseTeamPre", false);
 	RegisterHookChain(RG_HandleMenu_ChooseAppearance, "OnChooseAppearancePre", false);
 	RegisterHookChain(RG_ShowVGUIMenu, "OnShowVguiMenuPre", false);
 	RegisterHookChain(RG_ShowMenu, "OnShowMenuPre", false);
+	RegisterHookChain(RG_CBasePlayer_JoiningThink, "OnPlayerJoiningThinkPre", false);
 	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawnPre", false);
 	RegisterHookChain(RG_CSGameRules_FPlayerCanRespawn, "OnPlayerCanRespawnPre", false);
 	RegisterHookChain(RG_CSGameRules_RestartRound, "OnRestartRoundPre", false);
@@ -67,7 +72,7 @@ public plugin_cfg()
 	SyncRoundVars(0.0);
 }
 
-public CommandBlockDefaultTeamMenu(id)
+public CommandBlockDefaultJoinFlow(id)
 {
 	if (is_user_connected(id))
 		AdmitPlayerToDefaultTeam(id);
@@ -193,6 +198,15 @@ public OnShowMenuPre(id, bitsSlots, displayTime, needMore, menuText[])
 	}
 
 	return HC_CONTINUE;
+}
+
+public OnPlayerJoiningThinkPre(id)
+{
+	if (!is_user_connected(id))
+		return HC_CONTINUE;
+
+	AdmitPlayerToDefaultTeam(id);
+	return HC_SUPERCEDE;
 }
 
 public OnPlayerSpawnPre(id)
@@ -619,9 +633,25 @@ stock AdmitPlayerToDefaultTeam(id)
 
 stock CompletePlayerAdmission(id)
 {
+	CompletePlayerJoinState(id);
+	ResetPlayerJoinCamera(id);
+}
+
+stock CompletePlayerJoinState(id)
+{
 	set_member(id, m_iJoiningState, JOINED);
 	set_member(id, m_iMenu, Menu_OFF);
 	set_member(id, m_bJustConnected, false);
+}
+
+stock ResetPlayerJoinCamera(id)
+{
+	set_member(id, m_pIntroCamera, GAME_RULES_NO_ENTITY);
+	set_member(id, m_fIntroCamTime, GAME_RULES_NO_INTRO_CAMERA_TIME);
+	set_entvar(id, var_iuser1, OBS_NONE);
+	set_entvar(id, var_iuser2, GAME_RULES_NO_OBSERVER_TARGET);
+	set_entvar(id, var_iuser3, GAME_RULES_NO_OBSERVER_TARGET);
+	engset_view(id, id);
 }
 
 stock ForceSpawnedPlayerToHumanTeam(id)
