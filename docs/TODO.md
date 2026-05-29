@@ -75,6 +75,8 @@
 - [x] Evitar contagem duplicada ao iniciar novo round.
 - [x] Evitar entrega duplicada de armas no prepare do modo.
 - [x] Manter delay de fim de round separado do freeze inicial.
+- [x] Estudar controle de join, respawn e death think no ReZombie C++.
+- [x] Estudar spawn humano antes do round no Zombie Plague Next.
 
 ## APIs Modulares
 
@@ -107,6 +109,14 @@
 - [x] Expor eventos de prepare, start e end do round.
 - [x] Expor leitura segura de estado, modo e tempo restante do round.
 - [x] Tratar freeze do CS como estado explicito antes do prepare.
+- [x] Forcar cvars essenciais do round no core.
+- [x] Forcar humano/CT para jogador que nasce antes da infeccao.
+- [x] Bloquear respawn automatico durante round em jogo ou finalizando.
+- [x] Corrigir retorno ReAPI do bloqueio de respawn.
+- [x] Forcar escolha jogavel de time para CT antes da infeccao.
+- [x] Bloquear escolha jogavel de time durante round em jogo ou finalizando.
+- [ ] Criar politica explicita de respawn por modo.
+- [ ] Criar API publica de respawn quando a politica estiver definida.
 
 ## Arquitetura e Visual
 
@@ -136,9 +146,13 @@
 - [x] Validar subclass zombie `fleshpound` em runtime.
 - [x] Validar modelo proprio `rz_fleshpound` da subclass `fleshpound` em runtime.
 - [x] Validar comandos do runtime dev em servidor local.
+- [x] Criar comando dev generico para simular `jointeam`.
 - [x] Validar restart de round sem manter skin zombie antiga.
 - [x] Validar fluxo runtime completo pelo `rz_dev_validate_round_flow`.
 - [x] Validar itens padrao de humano e zombie em runtime.
 - [x] Validar carregamento runtime do feedback visual de round.
 - [x] Validar `get_round_var` em runtime.
+- [x] Validar tentativa de escolher Terrorist antes da infeccao mantendo CT.
+- [x] Validar tentativa de trocar para Terrorist sem matar jogador CT.
 - [ ] Confirmar visualmente novo round sem armas duplicadas no HUD.
+- [ ] Confirmar jogador entrando durante `RoundStatePlaying` sem respawn automatico.

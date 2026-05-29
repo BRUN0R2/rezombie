@@ -12,6 +12,10 @@ const GAME_RULES_FORWARD_INVALID = -1;
 const GAME_RULES_MIN_ALIVE_PLAYERS = 2;
 const GAME_RULES_PREPARE_SECONDS = 10;
 const GAME_RULES_FREEZE_SECONDS = 0;
+const GAME_RULES_LIMIT_TEAMS = 0;
+const GAME_RULES_AUTO_TEAM_BALANCE = 0;
+const GAME_RULES_HOOK_FALSE = 0;
+const GAME_RULES_CHOOSE_TEAM_SLOT_ARG = 2;
 const Float:GAME_RULES_WAIT_CHECK_INTERVAL = 1.0;
 const Float:GAME_RULES_WIN_CHECK_INTERVAL = 1.0;
 const Float:GAME_RULES_ROUND_END_DELAY = 5.0;
@@ -45,6 +49,10 @@ public plugin_precache()
 public plugin_init()
 {
 	CreateRoundForwards();
+	RegisterHookChain(RG_HandleMenu_ChooseTeam, "OnChooseTeamPre", false);
+	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawnPre", false);
+	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawnPost", true);
+	RegisterHookChain(RG_CSGameRules_FPlayerCanRespawn, "OnPlayerCanRespawnPre", false);
 	RegisterHookChain(RG_CSGameRules_RestartRound, "OnRestartRoundPre", false);
 	RegisterHookChain(RG_CSGameRules_RestartRound, "OnRestartRoundPost", true);
 	RegisterHookChain(RG_CSGameRules_OnRoundFreezeEnd, "OnRoundFreezeEndPost", true);
@@ -55,7 +63,7 @@ public plugin_init()
 
 public plugin_cfg()
 {
-	set_cvar_num("mp_freezetime", GAME_RULES_FREEZE_SECONDS);
+	EnforceGameRuleCvars();
 }
 
 public plugin_end()
@@ -65,6 +73,7 @@ public plugin_end()
 
 public OnRestartRoundPre()
 {
+	EnforceGameRuleCvars();
 	EnterFreezingRound();
 	ResetPlayablePlayersToHumans();
 }
@@ -112,6 +121,73 @@ public OnRoundEndPre(WinStatus:status, ScenarioEventEndRound:event, Float:delay)
 			SetHookChainReturn(ATYPE_BOOL, false);
 			return HC_SUPERCEDE;
 		}
+	}
+
+	return HC_CONTINUE;
+}
+
+public OnChooseTeamPre(id, MenuChooseTeam:slot)
+{
+	if (!is_user_connected(id))
+		return HC_CONTINUE;
+
+	if (slot == MenuChoose_Spec)
+		return HC_CONTINUE;
+
+	if (IsRoundAcceptingHumans())
+	{
+		if (get_member(id, m_iTeam) == TEAM_CT)
+		{
+			SetHookChainReturn(ATYPE_INTEGER, GAME_RULES_HOOK_FALSE);
+			return HC_SUPERCEDE;
+		}
+
+		if (slot != MenuChoose_CT && !SetHookChainArg(GAME_RULES_CHOOSE_TEAM_SLOT_ARG, ATYPE_INTEGER, MenuChoose_CT))
+			set_fail_state("GameRules could not force team choice to CT.");
+
+		return HC_CONTINUE;
+	}
+
+	if (IsRoundBlockingAdmission())
+	{
+		SetHookChainReturn(ATYPE_INTEGER, GAME_RULES_HOOK_FALSE);
+		return HC_SUPERCEDE;
+	}
+
+	return HC_CONTINUE;
+}
+
+public OnPlayerSpawnPre(id)
+{
+	if (!is_user_connected(id))
+		return HC_CONTINUE;
+
+	if (IsRoundAcceptingHumans() && IsPlayerOnPlayableGameTeam(id) && get_member(id, m_iTeam) != TEAM_CT)
+		ForceSpawnedPlayerToHumanTeam(id);
+
+	return HC_CONTINUE;
+}
+
+public OnPlayerSpawnPost(id)
+{
+	if (!is_user_connected(id) || !is_user_alive(id))
+		return;
+
+	if (!IsRoundAcceptingHumans() || !IsPlayerOnPlayableGameTeam(id))
+		return;
+
+	ResetPlayerToHuman(id, RequireClass(GAME_RULES_DEFAULT_HUMAN_CLASS));
+}
+
+public OnPlayerCanRespawnPre(id)
+{
+	if (!is_user_connected(id))
+		return HC_CONTINUE;
+
+	if (CurrentRoundState == RoundStatePlaying || CurrentRoundState == RoundStateEnding)
+	{
+		SetHookChainReturn(ATYPE_INTEGER, GAME_RULES_HOOK_FALSE);
+		return HC_SUPERCEDE;
 	}
 
 	return HC_CONTINUE;
@@ -438,6 +514,13 @@ stock ScheduleWaitCheck(Float:now)
 	NextWaitCheckAt = now + GAME_RULES_WAIT_CHECK_INTERVAL;
 }
 
+stock EnforceGameRuleCvars()
+{
+	set_cvar_num("mp_freezetime", GAME_RULES_FREEZE_SECONDS);
+	set_cvar_num("mp_limitteams", GAME_RULES_LIMIT_TEAMS);
+	set_cvar_num("mp_autoteambalance", GAME_RULES_AUTO_TEAM_BALANCE);
+}
+
 stock ResetPlayablePlayersToHumans()
 {
 	new Class:class = RequireClass(GAME_RULES_DEFAULT_HUMAN_CLASS);
@@ -447,12 +530,47 @@ stock ResetPlayablePlayersToHumans()
 		if (!is_user_connected(id) || !IsPlayerOnPlayableGameTeam(id))
 			continue;
 
-		if (IsHuman(id) && get_player_class(id) == class && get_player_subclass(id) == Invalid_Subclass)
-			continue;
-
-		if (!change_player_class(id, class))
-			set_fail_state("GameRules could not reset player %d to human.", id);
+		ResetPlayerToHuman(id, class);
 	}
+}
+
+stock ResetPlayerToHuman(id, Class:class)
+{
+	if (IsHuman(id) && get_player_class(id) == class && get_player_subclass(id) == Invalid_Subclass && get_member(id, m_iTeam) == TEAM_CT)
+		return;
+
+	if (!change_player_class(id, class))
+		set_fail_state("GameRules could not reset player %d to human.", id);
+}
+
+stock bool:IsRoundAcceptingHumans()
+{
+	switch (CurrentRoundState)
+	{
+		case RoundStateFreezing, RoundStateWaiting, RoundStatePreparing:
+			return true;
+	}
+
+	return false;
+}
+
+stock bool:IsRoundBlockingAdmission()
+{
+	switch (CurrentRoundState)
+	{
+		case RoundStatePlaying, RoundStateEnding:
+			return true;
+	}
+
+	return false;
+}
+
+stock ForceSpawnedPlayerToHumanTeam(id)
+{
+	rg_set_user_team(id, TEAM_CT, MODEL_AUTO, true, false);
+
+	if (get_member(id, m_iTeam) != TEAM_CT)
+		set_fail_state("GameRules could not force player %d to CT.", id);
 }
 
 stock bool:IsPlayerOnPlayableGameTeam(id)

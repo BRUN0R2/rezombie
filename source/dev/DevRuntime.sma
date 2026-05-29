@@ -15,6 +15,9 @@ const Float:DEV_ROUND_FLOW_WAIT_TIMEOUT = 20.0;
 const Float:DEV_ROUND_FLOW_RESTART_WAIT = 1.0;
 const Float:DEV_ROUND_FLOW_RESTART_DELAY = 1.0;
 const DEV_MAX_PLAYER_WEAPONS = 32;
+const DEV_MIN_JOIN_TEAM_SLOT = 1;
+const DEV_MAX_JOIN_TEAM_SLOT = 6;
+const DEV_JOIN_TEAM_SLOT_TEXT_LENGTH = 4;
 
 new const DEV_PREFIX[] = "[ReZombie Dev]";
 new const DEV_DEFAULT_HUMAN_CLASS[] = "human";
@@ -55,6 +58,7 @@ public plugin_init()
 	register_srvcmd("rz_dev_change_class", "CommandChangeClass");
 	register_srvcmd("rz_dev_validate_player", "CommandValidatePlayer");
 	register_srvcmd("rz_dev_dump_player", "CommandDumpPlayer");
+	register_srvcmd("rz_dev_join_team", "CommandJoinTeam");
 	register_srvcmd("rz_dev_restart_round", "CommandRestartRound");
 	register_srvcmd("rz_dev_validate_round_flow", "CommandValidateRoundFlow");
 	register_srvcmd("rz_dev_validate_forward_returns", "CommandValidateForwardReturns");
@@ -219,6 +223,38 @@ public CommandDumpPlayer()
 	if (!RequireConnectedPlayer(id))
 		return;
 
+	DumpPlayer(id);
+}
+
+public CommandJoinTeam()
+{
+	enum
+	{
+		JoinTeamArgPlayer = 1,
+		JoinTeamArgSlot
+	};
+
+	if (!RequireArgumentCount(JoinTeamArgSlot + 1, "Usage: rz_dev_join_team <id> <slot>"))
+		return;
+
+	new id = read_argv_int(JoinTeamArgPlayer);
+	if (!RequireConnectedPlayer(id))
+		return;
+
+	new slot = read_argv_int(JoinTeamArgSlot);
+	if (slot < DEV_MIN_JOIN_TEAM_SLOT || slot > DEV_MAX_JOIN_TEAM_SLOT)
+	{
+		DevError("Join team slot must be between %d and %d.", DEV_MIN_JOIN_TEAM_SLOT, DEV_MAX_JOIN_TEAM_SLOT);
+		return;
+	}
+
+	new slotText[DEV_JOIN_TEAM_SLOT_TEXT_LENGTH];
+	num_to_str(slot, slotText, charsmax(slotText));
+
+	engclient_cmd(id, "jointeam", slotText);
+	server_exec();
+
+	DevInfo("Player %d attempted jointeam slot %d.", id, slot);
 	DumpPlayer(id);
 }
 
@@ -566,6 +602,9 @@ stock bool:ValidatePlayer(id)
 	if (bool:get_player_var(id, "zombie") != IsZombie(id))
 		return DevError("Player %d get_player_var zombie mismatch.", id);
 
+	if (!ValidatePlayerTeam(id))
+		return false;
+
 	if (subclass != Invalid_Subclass)
 	{
 		new Class:parentClass = Class:get_subclass_var(subclass, "class");
@@ -589,6 +628,24 @@ stock bool:ValidatePlayer(id)
 
 	if (is_user_alive(id) && !ValidatePlayerDefaultItems(id))
 		return false;
+
+	return true;
+}
+
+stock bool:ValidatePlayerTeam(id)
+{
+	new TeamName:team = get_member(id, m_iTeam);
+
+	if (IsZombie(id))
+	{
+		if (team != TEAM_TERRORIST)
+			return DevError("Player %d is zombie outside Terrorist team.", id);
+
+		return true;
+	}
+
+	if (team != TEAM_CT)
+		return DevError("Player %d is human outside CT team.", id);
 
 	return true;
 }
@@ -672,6 +729,7 @@ stock DumpPlayer(id)
 	new Subclass:subclass = get_player_subclass(id);
 	new Props:props = GetRuntimeProps(class, subclass);
 	new Model:model = GetRuntimeModel(class, subclass);
+	new TeamName:team = get_member(id, m_iTeam);
 
 	new classHandle[RZ_MAX_HANDLE_LENGTH];
 	GetClassHandle(class, classHandle, charsmax(classHandle));
@@ -699,10 +757,11 @@ stock DumpPlayer(id)
 		gravity = get_props_var(props, "gravity");
 	}
 
-	DevInfo("Player %d '%s': alive=%d zombie=%d class=%s subclass=%s model=%s entity_model=%s health=%d speed=%d gravity=%.2f.",
+	DevInfo("Player %d '%s': alive=%d team=%d zombie=%d class=%s subclass=%s model=%s entity_model=%s health=%d speed=%d gravity=%.2f.",
 		id,
 		name,
 		is_user_alive(id),
+		_:team,
 		IsZombie(id),
 		classHandle,
 		subclassHandle,
@@ -777,6 +836,9 @@ stock bool:ValidateRoundFlowHuman(id, const stage[])
 	if (!IsHuman(id))
 		return DevError("Round flow %s expected player %d human.", stage, id);
 
+	if (get_member(id, m_iTeam) != TEAM_CT)
+		return DevError("Round flow %s expected human player %d on CT team.", stage, id);
+
 	if (get_player_class(id) != class)
 		return DevError("Round flow %s expected player %d class human.", stage, id);
 
@@ -806,6 +868,9 @@ stock bool:ValidateRoundFlowZombie(id)
 
 	if (!IsZombie(id))
 		return DevError("Round flow expected infected player %d zombie.", id);
+
+	if (get_member(id, m_iTeam) != TEAM_TERRORIST)
+		return DevError("Round flow expected infected player %d on Terrorist team.", id);
 
 	if (get_player_class(id) != class)
 		return DevError("Round flow expected infected player %d class zombie.", id);

@@ -48,6 +48,11 @@ As bases estudadas servem apenas como referencia:
 - O core usa estado explícito de freeze para não iniciar contagem durante `mp_freezetime`.
 - `mp_freezetime` deve ficar em `0` para o fluxo do mod começar direto.
 - O delay de fim de round continua separado do freeze inicial.
+- `mp_limitteams` e `mp_autoteambalance` ficam em `0` para o CS padrão não quebrar times do mod.
+- Antes da infecção, qualquer jogador jogável que nascer deve ser humano/CT.
+- Antes da infecção, qualquer escolha jogável no menu de time deve entrar como CT.
+- Durante `RoundStatePlaying` e `RoundStateEnding`, respawn automático fica bloqueado.
+- Durante `RoundStatePlaying` e `RoundStateEnding`, escolha jogável de time fica bloqueada.
 
 ## Tags e Tipagem
 
