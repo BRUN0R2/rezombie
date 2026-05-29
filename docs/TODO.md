@@ -12,6 +12,7 @@
 - [x] Definir que modos devem ser finos e o round deve ficar no core.
 - [x] Corrigir APIs modulares para plugins `.sma` em `source/api`.
 - [x] Separar `ApiClasses`, `ApiSubclasses` e `ApiProps`.
+- [x] Documentar a ordem inicial de carregamento dos plugins.
 
 ## Proxima Meta
 
@@ -19,7 +20,7 @@
 - [ ] Manter a primeira versao focada em jogador, round e infeccao.
 - [ ] Reimplementar somente o que fizer sentido para este projeto novo.
 - [x] Separar API de classes e API de modos por responsabilidade.
-- [ ] Criar um core de round centralizado antes de recriar o modo Infection.
+- [x] Criar um core de round centralizado antes de recriar o modo Infection.
 - [ ] Recriar Infection como modo fino, sem responsabilidades de round.
 
 ## Base Inicial
@@ -48,6 +49,7 @@
 - [x] Mover registro e variaveis de props para `ApiProps`.
 - [x] Criar API modular de modos para `Mode:`.
 - [x] Criar API/registro de modos com `create_mode`, `get_mode_var`, `set_mode_var` e `launch_mode`.
+- [x] Criar leitura de modos registrados com `get_modes_count` e `get_mode`.
 - [ ] Recriar o primeiro modo de jogo: infeccao.
 - [ ] Precachear apenas os recursos usados pela primeira versao.
 
@@ -65,15 +67,15 @@
 
 - [x] Usar a logica simples do Zombie Plague Next como referencia principal.
 - [x] Usar o ReZombie C++ como referencia de separacao entre GameRules e Mode.
-- [ ] Criar `source/core/GameRules.sma` como dono do ciclo do round.
-- [ ] Controlar estados do round: aguardando, preparando, jogando e finalizando.
-- [ ] Usar `server_frame()` com `get_gametime()` e deadlines absolutos.
-- [ ] Evitar `set_task` para countdown, inicio de round e infeccao.
-- [ ] Aguardar jogadores suficientes antes de iniciar o round.
-- [ ] Iniciar uma contagem curta antes da infeccao.
-- [ ] Selecionar e lancar o modo atual pelo core.
+- [x] Criar `source/core/GameRules.sma` como dono do ciclo do round.
+- [x] Controlar estados do round: aguardando, preparando, jogando e finalizando.
+- [x] Usar `server_frame()` com `get_gametime()` e deadlines absolutos.
+- [x] Evitar `set_task` para countdown, inicio de round e infeccao.
+- [x] Aguardar jogadores suficientes antes de iniciar o round.
+- [x] Iniciar uma contagem curta antes da infeccao.
+- [x] Selecionar e lancar o modo atual pelo core.
 - [ ] Deixar Infection responsavel apenas por escolher/aplicar o primeiro zombie.
-- [ ] Finalizar o round quando humanos ou zombies vencerem.
+- [x] Finalizar o round quando humanos ou zombies vencerem.
 
 ## Arquitetura e Visual
 
@@ -87,6 +89,7 @@
 
 - [x] Compilar API e classes iniciais sem erros.
 - [x] Compilar APIs modulares e classes sem erros.
+- [x] Compilar GameRules inicial sem erros.
 - [ ] Compilar GameRules e Infection sem erros.
 - [ ] Validar servidor com ReHLDS, ReGameDLL e ReAPI atualizados.
 - [ ] Validar carregamento sem erros no servidor.

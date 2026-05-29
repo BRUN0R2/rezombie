@@ -32,6 +32,8 @@ public plugin_natives()
 
 	register_native("create_mode", "NativeCreateMode");
 	register_native("FindMode", "NativeFindMode");
+	register_native("get_modes_count", "NativeGetModesCount");
+	register_native("get_mode", "NativeGetMode");
 	register_native("get_mode_var", "NativeGetModeVar");
 	register_native("set_mode_var", "NativeSetModeVar");
 	register_native("launch_mode", "NativeLaunchMode");
@@ -122,6 +124,32 @@ public Mode:NativeFindMode(plugin, params)
 		return Invalid_Mode;
 
 	return FindModeByHandle(handle);
+}
+
+public NativeGetModesCount(plugin, params)
+{
+	#pragma unused plugin
+	#pragma unused params
+
+	return ArraySize(Modes);
+}
+
+public Mode:NativeGetMode(plugin, params)
+{
+	enum
+	{
+		GetModeParamIndex = 1
+	};
+
+	if (params < GetModeParamIndex)
+		return Mode:ReportNativeError("get_mode requires index.");
+
+	new index = get_param(GetModeParamIndex);
+
+	if (!IsValidModeIndex(index))
+		return Mode:ReportNativeError("Invalid mode index %d.", index);
+
+	return MakeModeHandle(index);
 }
 
 public any:NativeGetModeVar(plugin, params)

@@ -58,3 +58,18 @@ set_props_var(props, "health", 700);
 set_props_var(props, "speed", 260);
 set_props_var(props, "gravity", 1.0);
 ```
+
+## Ordem de Carregamento
+
+Ordem inicial esperada dos plugins:
+
+1. `ApiProps.amxx`
+2. `ApiClasses.amxx`
+3. `ApiSubclasses.amxx`
+4. `ApiModes.amxx`
+5. `ApiPlayers.amxx`
+6. Classes em `source/classes`
+7. Modos em `source/gamemodes`
+8. Core de round em `source/core`
+
+As APIs devem carregar antes de qualquer classe, modo ou core que use suas natives.

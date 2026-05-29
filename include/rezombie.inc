@@ -209,6 +209,23 @@ native Mode:create_mode(const handle[], const launchForward[]);
 native Mode:FindMode(const handle[]);
 
 /**
+ * Gets the registered mode count.
+ *
+ * @return               Registered mode count
+ */
+native get_modes_count();
+
+/**
+ * Gets a registered mode by index.
+ *
+ * @param index          Mode index
+ *
+ * @return               Mode handle
+ * @error                Fails on invalid index
+ */
+native Mode:get_mode(index);
+
+/**
  * Requires a game mode by handle.
  *
  * @param handle         Mode handle
