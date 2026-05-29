@@ -42,6 +42,9 @@ As bases estudadas servem apenas como referencia:
 - `set_player_var` deve usar o fluxo oficial para aplicar classe/subclasse.
 - `connected`, `alive` e `zombie` são variáveis de jogador somente leitura.
 - Troca de classe aplica props, modelo, time e itens padrão.
+- `get_round_var` expõe somente leitura do estado real do round.
+- O estado do round pertence ao `GameRules`; a native apenas expõe leitura.
+- Variáveis iniciais de round: `"state"`, `"mode"` e `"time_left"`.
 
 ## Tags e Tipagem
 
@@ -130,6 +133,7 @@ rz_dev_dump_player <id>
 rz_dev_restart_round [delay]
 rz_dev_validate_round_flow [subclass] [required_players]
 rz_dev_validate_forward_returns [player] [subclass]
+rz_dev_validate_round_state
 ```
 
 ## Feedback Visual

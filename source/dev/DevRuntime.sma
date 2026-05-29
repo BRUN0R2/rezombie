@@ -58,6 +58,7 @@ public plugin_init()
 	register_srvcmd("rz_dev_restart_round", "CommandRestartRound");
 	register_srvcmd("rz_dev_validate_round_flow", "CommandValidateRoundFlow");
 	register_srvcmd("rz_dev_validate_forward_returns", "CommandValidateForwardReturns");
+	register_srvcmd("rz_dev_validate_round_state", "CommandValidateRoundState");
 	register_forward(FM_StartFrame, "OnDevServerFrame");
 }
 
@@ -314,9 +315,20 @@ public CommandValidateForwardReturns()
 		ValidateForwardReturnsArgSubclass
 	};
 
-	new id = FindFirstAlivePlayablePlayer();
+	new id;
 	if (read_argc() > ValidateForwardReturnsArgPlayer)
+	{
 		id = read_argv_int(ValidateForwardReturnsArgPlayer);
+	}
+	else
+	{
+		id = FindFirstAlivePlayablePlayer();
+		if (!id)
+		{
+			DevError("No alive playable player found for forward return validation.");
+			return;
+		}
+	}
 
 	if (!RequireAlivePlayer(id))
 		return;
@@ -366,6 +378,14 @@ public CommandValidateForwardReturns()
 		return;
 
 	DevInfo("Forward return validation passed for player %d.", id);
+}
+
+public CommandValidateRoundState()
+{
+	if (!ValidateRoundState())
+		return;
+
+	DevInfo("Round state validation passed.");
 }
 
 RzReturn:@change_class_pre(id, Class:class, Subclass:subclass)
@@ -571,6 +591,41 @@ stock bool:ValidatePlayer(id)
 		return false;
 
 	return true;
+}
+
+stock bool:ValidateRoundState()
+{
+	new RoundState:roundState = get_round_var("state");
+	if (!IsValidRoundState(roundState))
+		return DevError("Round state native returned invalid state %d.", _:roundState);
+
+	new Mode:mode = get_round_var("mode");
+	new Float:timeLeft = get_round_var("time_left");
+
+	if (timeLeft < 0.0)
+		return DevError("Round state native returned negative time_left %.2f.", timeLeft);
+
+	switch (roundState)
+	{
+		case RoundStatePreparing, RoundStatePlaying:
+		{
+			if (mode == Invalid_Mode)
+				return DevError("Round state native returned invalid mode while active.");
+		}
+	}
+
+	return true;
+}
+
+stock bool:IsValidRoundState(RoundState:roundState)
+{
+	switch (roundState)
+	{
+		case RoundStateWaiting, RoundStatePreparing, RoundStatePlaying, RoundStateEnding:
+			return true;
+	}
+
+	return false;
 }
 
 stock bool:ValidatePlayerDefaultItems(id)

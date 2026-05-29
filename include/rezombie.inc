@@ -7,6 +7,7 @@
 #define _rezombie_included
 
 #include <rezombie_const>
+#include <rezombie/core/RoundState>
 
 #if AMXX_VERSION_NUM >= 175
 	#pragma reqlib rezombie
@@ -331,6 +332,20 @@ native bool:set_mode_var(Mode:mode, const var[], any:...);
  * @error                Fails on invalid mode or failed launch forward
  */
 native bool:launch_mode(Mode:mode, target = 0);
+
+/**
+ * Round natives.
+ */
+
+/**
+ * Gets a round property.
+ *
+ * @param var       Property name
+ *
+ * @return          Property value
+ * @error           Fails on invalid property
+ */
+native any:get_round_var(const var[], any:...);
 
 /**
  * Player natives.

@@ -71,6 +71,7 @@
 - [x] Validar bloqueio de forwards `pre` com `RZ_SUPERCEDE`.
 - [x] Aplicar itens padrao ao trocar classe.
 - [x] Criar modulo visual minimo para feedback de round.
+- [x] Criar `get_round_var` para estado publico de round.
 
 ## APIs Modulares
 
@@ -101,6 +102,7 @@
 - [x] Finalizar o round quando humanos ou zombies vencerem.
 - [x] Resetar jogadores para humano no restart sem atraso visual de modelo.
 - [x] Expor eventos de prepare, start e end do round.
+- [x] Expor leitura segura de estado, modo e tempo restante do round.
 
 ## Arquitetura e Visual
 
@@ -134,3 +136,4 @@
 - [x] Validar fluxo runtime completo pelo `rz_dev_validate_round_flow`.
 - [x] Validar itens padrao de humano e zombie em runtime.
 - [x] Validar carregamento runtime do feedback visual de round.
+- [x] Validar `get_round_var` em runtime.

@@ -2,6 +2,7 @@
 #include <fakemeta>
 #include <reapi>
 #include <rezombie>
+#include <rezombie_stock>
 #include <rezombie/core/RoundState>
 
 #pragma semicolon 1
@@ -27,6 +28,13 @@ new bool:GameRulesEndingRound;
 new RoundPrepareForward = GAME_RULES_FORWARD_INVALID;
 new RoundStartForward = GAME_RULES_FORWARD_INVALID;
 new RoundEndForward = GAME_RULES_FORWARD_INVALID;
+
+public plugin_natives()
+{
+	register_library("rezombie");
+
+	register_native("get_round_var", "NativeGetRoundVar");
+}
 
 public plugin_precache()
 {
@@ -129,6 +137,31 @@ public OnServerFrame()
 	}
 
 	return FMRES_IGNORED;
+}
+
+public any:NativeGetRoundVar(plugin, params)
+{
+	enum
+	{
+		GetRoundVarParamKey = 1
+	};
+
+	if (params < GetRoundVarParamKey)
+		return ReportNativeError("get_round_var requires property name.");
+
+	new key[RZ_MAX_HANDLE_LENGTH];
+	get_string(GetRoundVarParamKey, key, charsmax(key));
+
+	if (equal(key, "state"))
+		return CurrentRoundState;
+
+	if (equal(key, "mode"))
+		return CurrentMode;
+
+	if (equal(key, "time_left"))
+		return GetCurrentRoundTimeLeft();
+
+	return ReportNativeError("Invalid round property '%s'.", key);
 }
 
 stock ResetRoundState(Float:now)
@@ -414,4 +447,27 @@ stock ReportMissingModes()
 
 	MissingModesReported = true;
 	log_amx("GameRules is waiting for at least one registered mode.");
+}
+
+stock Float:GetCurrentRoundTimeLeft()
+{
+	switch (CurrentRoundState)
+	{
+		case RoundStatePreparing:
+			return GetTimeLeft(PrepareEndsAt);
+		case RoundStatePlaying:
+			return GetTimeLeft(RoundEndsAt);
+	}
+
+	return 0.0;
+}
+
+stock Float:GetTimeLeft(Float:deadline)
+{
+	new Float:timeLeft = deadline - get_gametime();
+
+	if (timeLeft < 0.0)
+		return 0.0;
+
+	return timeLeft;
 }
