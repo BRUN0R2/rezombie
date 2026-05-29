@@ -15,6 +15,13 @@
 - Evitar duplicacao, codigo morto e comentarios obsoletos.
 - Preferir contratos explicitos e falhas visiveis.
 
+## Erros
+
+- Todo erro deve ser explicito, claro e rastreavel.
+- Nenhum erro invisivel.
+- Nenhum fallback silencioso.
+- Falhas de inicializacao devem parar o fluxo com uma mensagem clara.
+
 ## Evolucao
 
 - Implementar somente o necessario para o proximo passo real.
