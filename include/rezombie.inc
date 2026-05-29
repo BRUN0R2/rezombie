@@ -377,11 +377,12 @@ native bool:change_player_class(id, Class:class, Subclass:subclass = Invalid_Sub
  *
  * @param id        Player index
  * @param attacker  Optional attacker index
+ * @param subclass  Optional zombie subclass handle
  *
  * @return          true on success, false otherwise
- * @error           Fails on invalid player, attacker or missing zombie class
+ * @error           Fails on invalid player, attacker, subclass or missing zombie class
  */
-native bool:infect_player(id, attacker = 0);
+native bool:infect_player(id, attacker = 0, Subclass:subclass = Invalid_Subclass);
 
 /**
  * Checks whether a player is currently a zombie.

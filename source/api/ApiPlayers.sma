@@ -168,7 +168,8 @@ public bool:NativeInfectPlayer(plugin, params)
 	enum
 	{
 		InfectPlayerParamPlayer = 1,
-		InfectPlayerParamAttacker
+		InfectPlayerParamAttacker,
+		InfectPlayerParamSubclass
 	};
 
 	if (params < InfectPlayerParamPlayer)
@@ -189,7 +190,11 @@ public bool:NativeInfectPlayer(plugin, params)
 	if (class == Invalid_Class)
 		return bool:ReportNativeError("Required class 'zombie' was not registered.");
 
-	return ChangePlayerClass(id, class, Invalid_Subclass);
+	new Subclass:subclass = Invalid_Subclass;
+	if (params >= InfectPlayerParamSubclass)
+		subclass = Subclass:get_param(InfectPlayerParamSubclass);
+
+	return ChangePlayerClass(id, class, subclass);
 }
 
 stock ApplyDefaultHumanClass(id)
@@ -271,7 +276,13 @@ stock ApplyPlayerModel(id, Class:class, Subclass:subclass)
 
 	if (model == Invalid_Model)
 	{
-		rg_reset_user_model(id, true);
+		if (GetClassTeamValue(class) == TEAM_HUMAN)
+		{
+			rg_reset_user_model(id, true);
+			return;
+		}
+
+		ReportNativeError("Missing runtime model for player %d, class %d, subclass %d.", id, _:class, _:subclass);
 		return;
 	}
 

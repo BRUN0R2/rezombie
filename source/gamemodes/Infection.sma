@@ -5,17 +5,20 @@
 #pragma compress 1
 
 const INFECTION_NO_TARGET = 0;
+const INFECTION_NO_ATTACKER = 0;
 const INFECTION_MIN_PLAYERS = 2;
 const Float:INFECTION_ROUND_TIME = 180.0;
 
 new Mode:InfectionMode = Invalid_Mode;
 new Class:ZombieClass = Invalid_Class;
+new Subclass:ZombieSubclass = Invalid_Subclass;
 
 public plugin_precache()
 {
 	register_plugin("Mode: Infection", "0.1.0", "BRUN0");
 
 	ZombieClass = RequireClass("zombie");
+	ZombieSubclass = RequireSubclass("zombie_swarm");
 
 	InfectionMode = create_mode("infection", "@LaunchInfection");
 	set_mode_var(InfectionMode, "name", "Infection");
@@ -32,11 +35,14 @@ public plugin_precache()
 	if (ZombieClass == Invalid_Class)
 		return false;
 
+	if (ZombieSubclass == Invalid_Subclass)
+		return false;
+
 	new player = SelectFirstZombie(target);
 	if (player == INFECTION_NO_TARGET)
 		return false;
 
-	return infect_player(player);
+	return infect_player(player, INFECTION_NO_ATTACKER, ZombieSubclass);
 }
 
 stock SelectFirstZombie(target)

@@ -52,7 +52,7 @@ Exemplo esperado:
 
 ```pawn
 new Class:class = RequireClass("zombie");
-new Model:model = create_model("rz_default");
+new Model:model = create_model("rz_source");
 set_class_var(class, "model", model);
 
 new Subclass:subclass = create_subclass("zombie_swarm", class);
@@ -62,6 +62,14 @@ set_props_var(props, "health", 700);
 set_props_var(props, "speed", 260);
 set_props_var(props, "gravity", 1.0);
 ```
+
+## Modelos
+
+- `rz_source` e o modelo zombie padrao da primeira base.
+- Subclasses podem configurar um modelo proprio quando necessario.
+- Subclasses sem modelo proprio usam o modelo da classe pai.
+- A classe zombie deve configurar modelo de forma explicita.
+- A classe humana pode usar o modelo padrao do CS enquanto nao existir modelo humano proprio.
 
 ## Ordem de Carregamento
 

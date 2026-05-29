@@ -60,6 +60,8 @@
 - [x] Criar leitura de modos registrados com `get_modes_count` e `get_mode`.
 - [x] Recriar o primeiro modo de jogo: infeccao.
 - [x] Precachear apenas os recursos usados pela primeira versao.
+- [x] Usar `rz_source` como modelo zombie padrao.
+- [x] Evitar fallback silencioso quando zombie estiver sem modelo runtime.
 
 ## APIs Modulares
 
@@ -111,4 +113,5 @@
 - [x] Validar infeccao do primeiro zombie.
 - [x] Validar fim de round com vitoria zombie.
 - [x] Validar fim de round com vitoria humana.
-- [x] Validar modelo zombie `rz_default` em runtime.
+- [x] Validar modelo zombie `rz_source` em runtime.
+- [x] Validar subclass zombie `zombie_swarm` em runtime.
