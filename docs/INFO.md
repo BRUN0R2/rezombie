@@ -10,6 +10,17 @@ ReZombie e um mod zombie novo para CS 1.6.
 - Priorizar ambiente moderno baseado em ReHLDS, ReGameDLL e ReAPI.
 - Evitar depender de comportamento legado do HLDS original quando existir alternativa moderna.
 
+## Validacao do Ambiente
+
+- Ambiente runtime atual validado com ReHLDS `3.15.0.896-dev`.
+- ReGameDLL atual validado como `5.30.0.814-dev`.
+- ReAPI atual validado como `5.29.0.359-dev`.
+- AMX Mod X atual validado como `1.10.0.5476`.
+- O aviso `GameConfig CRC mismatch` vem do gamedata CRC-aware do AMXX.
+- Esse aviso nao indica falha do ReZombie quando todos os modulos e plugins carregam corretamente.
+- Nao editar gamedata padrao do AMXX para esconder esse aviso.
+- Usar `data/gamedata/custom` somente se surgir uma falha real de gamedata.
+
 As bases estudadas servem apenas como referencia:
 
 - Zombie Plague Next: logica simples de round, infeccao, classes e modos.

@@ -108,7 +108,7 @@
 - [x] Compilar GameRules e Infection sem erros.
 - [x] Validar servidor com ReHLDS, ReGameDLL e ReAPI atualizados.
 - [x] Validar carregamento dos plugins ReZombie sem falhas.
-- [ ] Revisar aviso `GameConfig CRC mismatch` do ambiente ReAPI/ReGameDLL.
+- [x] Revisar aviso `GameConfig CRC mismatch` do ambiente AMXX/ReHLDS.
 - [x] Validar compilacao automatizada pelo `build.bat`.
 - [x] Validar carregamento runtime das APIs, classes, modo e props com smoke temporario.
 - [x] Validar entrada de jogador humano.
