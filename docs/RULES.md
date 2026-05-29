@@ -14,6 +14,8 @@
 - Usar nomes claros e sem abreviacoes desnecessarias.
 - Evitar duplicacao, codigo morto e comentarios obsoletos.
 - Preferir contratos explicitos e falhas visiveis.
+- Evitar numeros magicos, principalmente em parametros posicionais de natives.
+- Parametros posicionais de natives devem usar nomes semanticos via `enum`.
 
 ## API
 
@@ -36,6 +38,9 @@
 - Todo handle publico deve possuir tag Pawn explicita.
 - `null` deve ser tipado como `any:null = 0`.
 - `0` nao deve ser usado diretamente como handle invalido.
+- Retornos `any:` devem preservar tags Pawn quando o valor original for tipado.
+- Nao usar `_:` em retornos `any:` apenas para remover warnings ou simplificar.
+- Usar `_:` somente em fronteiras internas que exigem celula crua, como logs formatados ou indice derivado de handle.
 - Funcoes `Require*` devem falhar de forma explicita quando o recurso nao existir.
 - Funcoes `Find*` podem retornar `null` para buscas opcionais.
 

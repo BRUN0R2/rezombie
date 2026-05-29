@@ -7,6 +7,7 @@
 - [x] Inicializar o repositorio Git local.
 - [x] Criar regras iniciais do projeto.
 - [x] Criar `source/api` para APIs modulares.
+- [x] Validar compilacao inicial da API e classes sem erros.
 
 ## Proxima Meta
 
@@ -16,18 +17,18 @@
 
 ## Base Inicial
 
-- [ ] Definir a estrutura minima dos modulos em `source`.
-- [ ] Implementar APIs modulares em `source/api`.
+- [x] Definir a estrutura minima dos modulos em `source`.
+- [x] Implementar APIs modulares em `source/api`.
 - [ ] Criar o nucleo de estado do jogador: humano, zombie, vivo e conectado.
-- [ ] Criar a API publica minima em `include/rezombie.inc`.
-- [ ] Criar handles tipados para `Class:`, `Subclass:`, `Props:` e `Mode:`.
-- [ ] Criar `new const any:null = 0` como nulo tipado da API.
-- [ ] Criar `FindClass` e `RequireClass`.
-- [ ] Organizar natives por categoria no include publico.
-- [ ] Documentar natives em ingles no padrao AMXX/CS 1.6.
-- [ ] Criar `get_class_var` e `set_class_var`.
-- [ ] Criar `get_subclass_var` e `set_subclass_var`.
-- [ ] Criar `get_props_var` e `set_props_var`.
+- [x] Criar a API publica minima em `include/rezombie.inc`.
+- [x] Criar handles tipados para `Class:`, `Subclass:`, `Props:` e `Mode:`.
+- [x] Criar `new const any:null = 0` como nulo tipado da API.
+- [x] Criar `FindClass` e `RequireClass`.
+- [x] Organizar natives por categoria no include publico.
+- [x] Documentar natives em ingles no padrao AMXX/CS 1.6.
+- [x] Criar `get_class_var` e `set_class_var`.
+- [x] Criar `get_subclass_var` e `set_subclass_var`.
+- [x] Criar `get_props_var` e `set_props_var`.
 - [ ] Criar o primeiro modo de jogo: infeccao.
 - [ ] Criar o fluxo basico de round: preparar, iniciar, infectar e finalizar.
 - [ ] Precachear apenas os recursos usados pela primeira versao.
@@ -50,6 +51,7 @@
 
 ## Validacao
 
+- [x] Compilar API e classes iniciais sem erros.
 - [ ] Validar carregamento sem erros no servidor.
 - [ ] Validar entrada de jogador humano.
 - [ ] Validar infeccao do primeiro zombie.

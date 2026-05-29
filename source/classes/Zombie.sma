@@ -1,0 +1,15 @@
+#include <amxmodx>
+#include <rezombie>
+
+public plugin_precache()
+{
+	register_plugin("Class: Zombie", "0.1.0", "ReZombie");
+
+	new Class:class = create_class("zombie", TEAM_ZOMBIE);
+	set_class_var(class, "name", "Zombie");
+
+	new Props:props = get_class_var(class, "props");
+	set_props_var(props, "health", 500);
+	set_props_var(props, "speed", 250);
+	set_props_var(props, "gravity", 0.8);
+}

@@ -4,6 +4,24 @@
 
 #define _rezombie_const_included
 
+new const any:null = 0;
+#pragma unused null
+
+const RZ_MAX_HANDLE_LENGTH = 32;
+const RZ_MAX_NAME_LENGTH = 64;
+
+const Class:Invalid_Class = Class:0;
+const Subclass:Invalid_Subclass = Subclass:0;
+const Props:Invalid_Props = Props:0;
+const Mode:Invalid_Mode = Mode:0;
+
+enum Team
+{
+	TEAM_NONE = 0,
+	TEAM_HUMAN,
+	TEAM_ZOMBIE
+}
+
 #define IsAlive(%1) (1 <= %1 <= MaxClients && is_user_alive(%1) && is_user_connected(%1))
 #define IsPlayerConnected(%1) (1 <= %1 <= MaxClients && is_user_connected(%1))
 #define IsInvalidArray(%0) (%0 == Invalid_Array || !ArraySize(%0))
