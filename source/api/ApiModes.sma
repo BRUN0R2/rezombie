@@ -23,12 +23,17 @@ enum _:ModeData
 };
 
 new Array:Modes;
+new Trie:ModesByHandle;
 
 public plugin_natives()
 {
 	register_library("rezombie");
 
 	Modes = ArrayCreate(ModeData);
+	ModesByHandle = TrieCreate();
+
+	if (Modes == Invalid_Array || ModesByHandle == Invalid_Trie)
+		set_fail_state("Modes API storage was not initialized.");
 
 	register_native("create_mode", "NativeCreateMode");
 	register_native("FindMode", "NativeFindMode");
@@ -46,20 +51,23 @@ public plugin_precache()
 
 public plugin_end()
 {
-	if (Modes == Invalid_Array)
-		return;
-
-	new data[ModeData];
-	for (new index = 0; index < ArraySize(Modes); index++)
+	if (Modes != Invalid_Array)
 	{
-		ArrayGetArray(Modes, index, data);
+		new data[ModeData];
+		for (new index = 0; index < ArraySize(Modes); index++)
+		{
+			ArrayGetArray(Modes, index, data);
 
-		if (data[ModeLaunchForward] != MODE_FORWARD_INVALID)
-			DestroyForward(data[ModeLaunchForward]);
+			if (data[ModeLaunchForward] != MODE_FORWARD_INVALID)
+				DestroyForward(data[ModeLaunchForward]);
+		}
+
+		ArrayDestroy(Modes);
+		Modes = Invalid_Array;
 	}
 
-	ArrayDestroy(Modes);
-	Modes = Invalid_Array;
+	if (ModesByHandle != Invalid_Trie)
+		TrieDestroy(ModesByHandle);
 }
 
 public Mode:NativeCreateMode(plugin, params)
@@ -102,9 +110,16 @@ public Mode:NativeCreateMode(plugin, params)
 	data[ModeChance] = MODE_DEFAULT_CHANCE;
 	data[ModeRoundTime] = MODE_DEFAULT_ROUND_TIME;
 
+	new index = ArraySize(Modes);
+	if (!TrieSetCell(ModesByHandle, handle, index, false))
+	{
+		DestroyForward(launchForwardId);
+		return Mode:ReportNativeError("Mode '%s' handle index was not registered.", handle);
+	}
+
 	ArrayPushArray(Modes, data);
 
-	return MakeModeHandle(ArraySize(Modes) - 1);
+	return MakeModeHandle(index);
 }
 
 public Mode:NativeFindMode(plugin, params)
@@ -337,15 +352,9 @@ stock bool:LaunchMode(Mode:mode, target)
 
 stock Mode:FindModeByHandle(const handle[])
 {
-	new data[ModeData];
-
-	for (new index = 0; index < ArraySize(Modes); index++)
-	{
-		ArrayGetArray(Modes, index, data);
-
-		if (equal(data[ModeHandle], handle))
-			return MakeModeHandle(index);
-	}
+	new index;
+	if (TrieGetCell(ModesByHandle, handle, index))
+		return MakeModeHandle(index);
 
 	return Invalid_Mode;
 }

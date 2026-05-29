@@ -16,12 +16,17 @@ enum _:ClassData
 };
 
 new Array:Classes;
+new Trie:ClassesByHandle;
 
 public plugin_natives()
 {
 	register_library("rezombie");
 
 	Classes = ArrayCreate(ClassData);
+	ClassesByHandle = TrieCreate();
+
+	if (Classes == Invalid_Array || ClassesByHandle == Invalid_Trie)
+		set_fail_state("Classes API storage was not initialized.");
 
 	register_native("create_class", "NativeCreateClass");
 	register_native("FindClass", "NativeFindClass");
@@ -36,6 +41,9 @@ public plugin_precache()
 
 public plugin_end()
 {
+	if (ClassesByHandle != Invalid_Trie)
+		TrieDestroy(ClassesByHandle);
+
 	if (Classes != Invalid_Array)
 	{
 		ArrayDestroy(Classes);
@@ -77,9 +85,13 @@ public Class:NativeCreateClass(plugin, params)
 	data[ClassTeam] = team;
 	data[ClassProps] = props;
 
+	new index = ArraySize(Classes);
+	if (!TrieSetCell(ClassesByHandle, handle, index, false))
+		return Class:ReportNativeError("Class '%s' handle index was not registered.", handle);
+
 	ArrayPushArray(Classes, data);
 
-	return MakeClassHandle(ArraySize(Classes) - 1);
+	return MakeClassHandle(index);
 }
 
 public Class:NativeFindClass(plugin, params)
@@ -201,15 +213,9 @@ public bool:NativeSetClassVar(plugin, params)
 
 stock Class:FindClassByHandle(const handle[])
 {
-	new data[ClassData];
-
-	for (new index = 0; index < ArraySize(Classes); index++)
-	{
-		ArrayGetArray(Classes, index, data);
-
-		if (equal(data[ClassHandle], handle))
-			return MakeClassHandle(index);
-	}
+	new index;
+	if (TrieGetCell(ClassesByHandle, handle, index))
+		return MakeClassHandle(index);
 
 	return Invalid_Class;
 }

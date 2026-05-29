@@ -61,6 +61,7 @@
 - [x] API de subclasses: criar, buscar, exigir e configurar subclasses.
 - [x] API de modos: criar, buscar, configurar e lancar modos.
 - [x] API de jogadores: estado, classe atual, infeccao, humano e zombie.
+- [x] Usar `Trie` para lookup rapido de handles mantendo `Array` como storage.
 - [x] Evitar uma API central acumulando responsabilidades diferentes.
 
 ## Round Core

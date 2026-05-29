@@ -16,12 +16,17 @@ enum _:SubclassData
 };
 
 new Array:Subclasses;
+new Trie:SubclassesByHandle;
 
 public plugin_natives()
 {
 	register_library("rezombie");
 
 	Subclasses = ArrayCreate(SubclassData);
+	SubclassesByHandle = TrieCreate();
+
+	if (Subclasses == Invalid_Array || SubclassesByHandle == Invalid_Trie)
+		set_fail_state("Subclasses API storage was not initialized.");
 
 	register_native("create_subclass", "NativeCreateSubclass");
 	register_native("FindSubclass", "NativeFindSubclass");
@@ -36,6 +41,9 @@ public plugin_precache()
 
 public plugin_end()
 {
+	if (SubclassesByHandle != Invalid_Trie)
+		TrieDestroy(SubclassesByHandle);
+
 	if (Subclasses != Invalid_Array)
 	{
 		ArrayDestroy(Subclasses);
@@ -77,9 +85,13 @@ public Subclass:NativeCreateSubclass(plugin, params)
 	data[SubclassClass] = class;
 	data[SubclassProps] = props;
 
+	new index = ArraySize(Subclasses);
+	if (!TrieSetCell(SubclassesByHandle, handle, index, false))
+		return Subclass:ReportNativeError("Subclass '%s' handle index was not registered.", handle);
+
 	ArrayPushArray(Subclasses, data);
 
-	return MakeSubclassHandle(ArraySize(Subclasses) - 1);
+	return MakeSubclassHandle(index);
 }
 
 public Subclass:NativeFindSubclass(plugin, params)
@@ -201,15 +213,9 @@ public bool:NativeSetSubclassVar(plugin, params)
 
 stock Subclass:FindSubclassByHandle(const handle[])
 {
-	new data[SubclassData];
-
-	for (new index = 0; index < ArraySize(Subclasses); index++)
-	{
-		ArrayGetArray(Subclasses, index, data);
-
-		if (equal(data[SubclassHandle], handle))
-			return MakeSubclassHandle(index);
-	}
+	new index;
+	if (TrieGetCell(SubclassesByHandle, handle, index))
+		return MakeSubclassHandle(index);
 
 	return Invalid_Subclass;
 }

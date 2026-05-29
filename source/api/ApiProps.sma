@@ -18,12 +18,17 @@ enum _:PropsData
 };
 
 new Array:PropsList;
+new Trie:PropsByHandle;
 
 public plugin_natives()
 {
 	register_library("rezombie");
 
 	PropsList = ArrayCreate(PropsData);
+	PropsByHandle = TrieCreate();
+
+	if (PropsList == Invalid_Array || PropsByHandle == Invalid_Trie)
+		set_fail_state("Props API storage was not initialized.");
 
 	register_native("create_props", "NativeCreateProps");
 	register_native("get_props_var", "NativeGetPropsVar");
@@ -37,6 +42,9 @@ public plugin_precache()
 
 public plugin_end()
 {
+	if (PropsByHandle != Invalid_Trie)
+		TrieDestroy(PropsByHandle);
+
 	if (PropsList != Invalid_Array)
 	{
 		ArrayDestroy(PropsList);
@@ -69,9 +77,13 @@ public Props:NativeCreateProps(plugin, params)
 	data[PropsSpeed] = PROPS_DEFAULT_SPEED;
 	data[PropsGravity] = PROPS_DEFAULT_GRAVITY;
 
+	new index = ArraySize(PropsList);
+	if (!TrieSetCell(PropsByHandle, handle, index, false))
+		return Props:ReportNativeError("Props '%s' handle index was not registered.", handle);
+
 	ArrayPushArray(PropsList, data);
 
-	return MakePropsHandle(ArraySize(PropsList) - 1);
+	return MakePropsHandle(index);
 }
 
 public any:NativeGetPropsVar(plugin, params)
@@ -170,15 +182,9 @@ public bool:NativeSetPropsVar(plugin, params)
 
 stock Props:FindPropsByHandle(const handle[])
 {
-	new data[PropsData];
-
-	for (new index = 0; index < ArraySize(PropsList); index++)
-	{
-		ArrayGetArray(PropsList, index, data);
-
-		if (equal(data[PropsHandle], handle))
-			return MakePropsHandle(index);
-	}
+	new index;
+	if (TrieGetCell(PropsByHandle, handle, index))
+		return MakePropsHandle(index);
 
 	return Invalid_Props;
 }
