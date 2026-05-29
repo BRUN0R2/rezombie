@@ -3,7 +3,7 @@
 
 public plugin_precache()
 {
-	register_plugin("Class: Zombie", "0.1.0", "ReZombie");
+	register_plugin("Class: Zombie", "0.1.0", "BRUN0");
 
 	new Class:class = create_class("zombie", TEAM_ZOMBIE);
 	set_class_var(class, "name", "Zombie");

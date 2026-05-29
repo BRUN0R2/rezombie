@@ -60,7 +60,7 @@ public plugin_natives()
 
 public plugin_precache()
 {
-	register_plugin("ReZombie API", "0.1.0", "ReZombie");
+	register_plugin("ReZombie API", "0.1.0", "BRUN0");
 }
 
 public plugin_end()

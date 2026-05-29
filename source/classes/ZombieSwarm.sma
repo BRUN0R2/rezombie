@@ -5,7 +5,7 @@ new Subclass:ZombieSwarm;
 
 public plugin_precache()
 {
-	register_plugin("Zombie: Swarm", "0.1.0", "ReZombie");
+	register_plugin("Zombie: Swarm", "0.1.0", "BRUN0");
 
 	new Class:class = RequireClass("zombie");
 	new Subclass:subclass = ZombieSwarm = create_subclass("zombie_swarm", class);
