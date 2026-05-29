@@ -110,4 +110,5 @@
 - [x] Validar troca de classe do jogador.
 - [x] Validar infeccao do primeiro zombie.
 - [x] Validar fim de round com vitoria zombie.
-- [ ] Validar fim de round com vitoria humana.
+- [x] Validar fim de round com vitoria humana.
+- [x] Validar modelo zombie `rz_default` em runtime.
