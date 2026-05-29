@@ -19,6 +19,7 @@
 
 - [x] Definir a estrutura minima dos modulos em `source`.
 - [x] Implementar APIs modulares em `source/api`.
+- [ ] Preparar integracao com ReHLDS, ReGameDLL e ReAPI atualizados.
 - [ ] Criar o nucleo de estado do jogador: humano, zombie, vivo e conectado.
 - [x] Criar a API publica minima em `include/rezombie.inc`.
 - [x] Criar handles tipados para `Class:`, `Subclass:`, `Props:` e `Mode:`.
@@ -52,6 +53,7 @@
 ## Validacao
 
 - [x] Compilar API e classes iniciais sem erros.
+- [ ] Validar servidor com ReHLDS, ReGameDLL e ReAPI atualizados.
 - [ ] Validar carregamento sem erros no servidor.
 - [ ] Validar entrada de jogador humano.
 - [ ] Validar infeccao do primeiro zombie.

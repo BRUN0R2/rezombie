@@ -2,6 +2,14 @@
 
 ReZombie e um mod zombie novo para CS 1.6.
 
+## Ambiente Alvo
+
+- Usar ReHLDS nas versoes mais recentes.
+- Usar ReGameDLL nas versoes mais recentes.
+- Usar ReAPI nas versoes mais recentes.
+- Priorizar ambiente moderno baseado em ReHLDS, ReGameDLL e ReAPI.
+- Evitar depender de comportamento legado do HLDS original quando existir alternativa moderna.
+
 As bases estudadas servem apenas como referencia:
 
 - Zombie Plague Next: logica simples de round, infeccao, classes e modos.

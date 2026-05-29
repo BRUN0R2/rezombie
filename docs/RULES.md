@@ -34,6 +34,13 @@
 - Comentarios de natives devem estar em ingles no padrao AMXX/CS 1.6.
 - Validar nomes de propriedades e tipos sem fallback silencioso.
 
+## Ambiente
+
+- O projeto deve usar ReHLDS, ReGameDLL e ReAPI.
+- ReHLDS, ReGameDLL e ReAPI devem estar nas versoes estaveis mais recentes disponiveis.
+- Integracoes com ReHLDS, ReGameDLL e ReAPI devem ser explicitas e isoladas.
+- Evitar dependencias em comportamento legado quando ReAPI oferecer contrato moderno.
+
 ## Tags e Tipagem
 
 - Todo handle publico deve possuir tag Pawn explicita.
