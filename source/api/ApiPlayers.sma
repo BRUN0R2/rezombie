@@ -253,7 +253,8 @@ public bool:NativeChangePlayerClass(plugin, params)
 	{
 		ChangePlayerClassParamPlayer = 1,
 		ChangePlayerClassParamClass,
-		ChangePlayerClassParamSubclass
+		ChangePlayerClassParamSubclass,
+		ChangePlayerClassParamApplyRuntime
 	};
 
 	if (params < ChangePlayerClassParamClass)
@@ -269,7 +270,11 @@ public bool:NativeChangePlayerClass(plugin, params)
 	if (params >= ChangePlayerClassParamSubclass)
 		subclass = Subclass:get_param(ChangePlayerClassParamSubclass);
 
-	return ChangePlayerClass(id, class, subclass);
+	new bool:applyRuntime = true;
+	if (params >= ChangePlayerClassParamApplyRuntime)
+		applyRuntime = bool:get_param(ChangePlayerClassParamApplyRuntime);
+
+	return ChangePlayerClass(id, class, subclass, applyRuntime);
 }
 
 public bool:NativeInfectPlayer(plugin, params)
@@ -324,7 +329,7 @@ stock ApplyDefaultHumanClass(id)
 		set_fail_state("ApiPlayers could not apply default human class to player %d.", id);
 }
 
-stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass)
+stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass, bool:applyRuntime = true)
 {
 	if (!IsRegisteredClass(class))
 		return bool:ReportNativeError("Invalid class handle %d.", _:class);
@@ -345,7 +350,7 @@ stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass)
 
 	ApplyPlayerTeam(id, team);
 
-	if (is_user_alive(id) && !ApplyPlayerClassRuntime(id, class, subclass))
+	if (applyRuntime && is_user_alive(id) && !ApplyPlayerClassRuntime(id, class, subclass))
 		return false;
 
 	ExecuteChangeClassPostForward(id, class, subclass);

@@ -348,6 +348,18 @@ native bool:launch_mode(Mode:mode, target = 0);
 native any:get_round_var(const var[], any:...);
 
 /**
+ * Sets a round property.
+ *
+ * @param var       Property name
+ *
+ * @return          true on success, false otherwise
+ * @error           Fails on invalid property or value
+ *
+ * @note            Intended for GameRules ownership only
+ */
+native bool:set_round_var(const var[], any:...);
+
+/**
  * Player natives.
  */
 
@@ -396,14 +408,15 @@ native bool:set_player_var(id, const var[], any:...);
 /**
  * Changes the player class and applies its runtime state.
  *
- * @param id        Player index
- * @param class     Class handle
- * @param subclass  Optional subclass handle
+ * @param id            Player index
+ * @param class         Class handle
+ * @param subclass      Optional subclass handle
+ * @param applyRuntime  Apply props, model and default items immediately when alive
  *
- * @return          true on success, false otherwise
- * @error           Fails on invalid player, class or subclass
+ * @return              true on success, false otherwise
+ * @error               Fails on invalid player, class or subclass
  */
-native bool:change_player_class(id, Class:class, Subclass:subclass = Invalid_Subclass);
+native bool:change_player_class(id, Class:class, Subclass:subclass = Invalid_Subclass, bool:applyRuntime = true);
 
 /**
  * Zombie natives.

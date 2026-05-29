@@ -42,9 +42,11 @@ As bases estudadas servem apenas como referencia:
 - `set_player_var` deve usar o fluxo oficial para aplicar classe/subclasse.
 - `connected`, `alive` e `zombie` são variáveis de jogador somente leitura.
 - Troca de classe aplica props, modelo, time e itens padrão.
-- `get_round_var` expõe somente leitura do estado real do round.
-- O estado do round pertence ao `GameRules`; a native apenas expõe leitura.
+- `ApiRounds` expoe o estado publico do round com `get_round_var` e `set_round_var`.
+- O estado real do round pertence ao `GameRules`; somente ele deve escrever em `set_round_var`.
 - Variáveis iniciais de round: `"state"`, `"mode"` e `"time_left"`.
+- O tempo configurado do round pertence ao modo via `"round_time"`.
+- `time_left` representa somente o tempo ativo sincronizado pelo `GameRules`.
 - O core usa estado explícito de freeze para não iniciar contagem durante `mp_freezetime`.
 - `mp_freezetime` deve ficar em `0` para o fluxo do mod começar direto.
 - O delay de fim de round continua separado do freeze inicial.
@@ -54,6 +56,7 @@ As bases estudadas servem apenas como referencia:
 - Durante `RoundStatePlaying` e `RoundStateEnding`, respawn automático fica bloqueado.
 - Durante `RoundStatePlaying` e `RoundStateEnding`, escolha jogável de time fica bloqueada.
 - A API de players só aplica classe, modelo e itens quando o jogador está vivo e em T/CT.
+- `ApiPlayers` é o único dono de props, modelo e itens no pós-spawn.
 
 ## Tags e Tipagem
 
@@ -111,14 +114,15 @@ Ordem inicial esperada dos plugins:
 3. `ApiClasses.amxx`
 4. `ApiSubclasses.amxx`
 5. `ApiModes.amxx`
-6. `ApiPlayers.amxx`
-7. Classes em `source/classes`
-8. Modos em `source/gamemodes`
-9. Core de round em `source/core`
-10. Feedback visual em `source/ui`
+6. `ApiRounds.amxx`
+7. `ApiPlayers.amxx`
+8. Classes em `source/classes`
+9. Modos em `source/gamemodes`
+10. Core de round em `source/core`
+11. HUD em `source/hud`
 
 As APIs devem carregar antes de qualquer classe, modo ou core que use suas natives.
-Modulos visuais devem escutar forwards publicos e nao devem colocar regras dentro do core.
+Modulos de HUD devem escutar forwards publicos e nao devem colocar regras dentro do core.
 
 ## Runtime Dev
 
@@ -145,12 +149,12 @@ rz_dev_validate_forward_returns [player] [subclass]
 rz_dev_validate_round_state
 ```
 
-## Feedback Visual
+## HUD
 
-- `RoundFeedback.amxx` fica em `source/ui`.
-- O modulo visual escuta forwards de round e infeccao.
+- `RoundFeedback.amxx` fica em `source/hud`.
+- O modulo HUD escuta forwards de round e infeccao.
 - O core de round nao deve depender de HUD, chat ou mensagens.
-- Countdown visual usa `FM_StartFrame` com `get_gametime()`.
+- Countdown HUD usa `FM_StartFrame` com `get_gametime()`.
 - Nao usar `set_task` para feedback de countdown.
 
 ## Forward Callbacks

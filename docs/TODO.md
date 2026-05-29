@@ -59,6 +59,7 @@
 - [x] Criar API modular de modos para `Mode:`.
 - [x] Criar API/registro de modos com `create_mode`, `get_mode_var`, `set_mode_var` e `launch_mode`.
 - [x] Criar leitura de modos registrados com `get_modes_count` e `get_mode`.
+- [x] Criar API modular de rounds para estado publico de round.
 - [x] Recriar o primeiro modo de jogo: infeccao.
 - [x] Precachear apenas os recursos usados pela primeira versao.
 - [x] Usar `rz_source` como modelo zombie padrao.
@@ -70,8 +71,10 @@
 - [x] Criar retornos proprios para forwards `pre`.
 - [x] Validar bloqueio de forwards `pre` com `RZ_SUPERCEDE`.
 - [x] Aplicar itens padrao ao trocar classe.
-- [x] Criar modulo visual minimo para feedback de round.
+- [x] Criar modulo HUD minimo para feedback de round.
 - [x] Criar `get_round_var` para estado publico de round.
+- [x] Criar `set_round_var` para sincronizacao explicita pelo `GameRules`.
+- [x] Mover `get_round_var` para `ApiRounds`.
 - [x] Evitar contagem duplicada ao iniciar novo round.
 - [x] Evitar entrega duplicada de armas no prepare do modo.
 - [x] Manter delay de fim de round separado do freeze inicial.
@@ -86,6 +89,7 @@
 - [x] API de classes: criar, buscar, exigir e configurar classes.
 - [x] API de subclasses: criar, buscar, exigir e configurar subclasses.
 - [x] API de modos: criar, buscar, configurar e lancar modos.
+- [x] API de rounds: expor estado publico do round.
 - [x] API de jogadores: estado, classe atual, infeccao, humano e zombie.
 - [x] API de jogadores: expor variaveis seguras do estado do jogador.
 - [x] API de jogadores: expor forwards de classe e infeccao.
@@ -108,6 +112,8 @@
 - [x] Resetar jogadores para humano no restart sem atraso visual de modelo.
 - [x] Expor eventos de prepare, start e end do round.
 - [x] Expor leitura segura de estado, modo e tempo restante do round.
+- [x] Manter tempo configurado do round dentro do `Mode`.
+- [x] Sincronizar estado publico do round pelo `GameRules` via `ApiRounds`.
 - [x] Tratar freeze do CS como estado explicito antes do prepare.
 - [x] Forcar cvars essenciais do round no core.
 - [x] Forcar humano/CT para jogador que nasce antes da infeccao.
@@ -116,6 +122,7 @@
 - [x] Forcar escolha jogavel de time para CT antes da infeccao.
 - [x] Bloquear escolha jogavel de time durante round em jogo ou finalizando.
 - [x] Bloquear runtime de classe e itens em jogador sem spawn real.
+- [x] Manter `ApiPlayers` como unico dono de runtime pos-spawn.
 - [ ] Criar politica explicita de respawn por modo.
 - [ ] Criar API publica de respawn quando a politica estiver definida.
 
@@ -133,6 +140,7 @@
 - [x] Compilar APIs modulares e classes sem erros.
 - [x] Compilar GameRules inicial sem erros.
 - [x] Compilar GameRules e Infection sem erros.
+- [x] Compilar `ApiRounds` junto do pacote local.
 - [x] Validar servidor com ReHLDS, ReGameDLL e ReAPI atualizados.
 - [x] Validar carregamento dos plugins ReZombie sem falhas.
 - [x] Revisar aviso `GameConfig CRC mismatch` do ambiente AMXX/ReHLDS.
@@ -151,10 +159,12 @@
 - [x] Validar restart de round sem manter skin zombie antiga.
 - [x] Validar fluxo runtime completo pelo `rz_dev_validate_round_flow`.
 - [x] Validar itens padrao de humano e zombie em runtime.
-- [x] Validar carregamento runtime do feedback visual de round.
+- [x] Validar carregamento runtime do feedback HUD de round.
 - [x] Validar `get_round_var` em runtime.
+- [x] Validar sincronizacao de `ApiRounds` em runtime.
 - [x] Validar tentativa de escolher Terrorist antes da infeccao mantendo CT.
 - [x] Validar tentativa de trocar para Terrorist sem matar jogador CT.
 - [x] Validar jogador sem time como morto, sem classe e sem runtime aplicado.
+- [ ] Confirmar visualmente spawn sem armas duplicadas no HUD.
 - [ ] Confirmar visualmente novo round sem armas duplicadas no HUD.
 - [ ] Confirmar jogador entrando durante `RoundStatePlaying` sem respawn automatico.

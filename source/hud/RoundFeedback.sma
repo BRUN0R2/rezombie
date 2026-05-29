@@ -25,7 +25,7 @@ new LastCountdownSeconds;
 
 public plugin_precache()
 {
-	register_plugin("UI: Round Feedback", "0.1.0", "BRUN0");
+	register_plugin("HUD: Round Feedback", "0.1.0", "BRUN0");
 }
 
 public plugin_init()

@@ -62,6 +62,10 @@ echo Compiling source\api\ApiModes.sma
 "%COMPILER%" "%ROOT%source\api\ApiModes.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ApiModes.amxx"
 if errorlevel 1 exit /b 1
 
+echo Compiling source\api\ApiRounds.sma
+"%COMPILER%" "%ROOT%source\api\ApiRounds.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ApiRounds.amxx"
+if errorlevel 1 exit /b 1
+
 echo Compiling source\api\ApiPlayers.sma
 "%COMPILER%" "%ROOT%source\api\ApiPlayers.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ApiPlayers.amxx"
 if errorlevel 1 exit /b 1
@@ -86,8 +90,8 @@ echo Compiling source\core\GameRules.sma
 "%COMPILER%" "%ROOT%source\core\GameRules.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\GameRules.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\ui\RoundFeedback.sma
-"%COMPILER%" "%ROOT%source\ui\RoundFeedback.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\RoundFeedback.amxx"
+echo Compiling source\hud\RoundFeedback.sma
+"%COMPILER%" "%ROOT%source\hud\RoundFeedback.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\RoundFeedback.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\dev\DevRuntime.sma
@@ -103,6 +107,7 @@ if errorlevel 1 exit /b 1
 >> "%PLUGIN_CONFIG%" echo rezombie/ApiClasses.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/ApiSubclasses.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/ApiModes.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/ApiRounds.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/ApiPlayers.amxx
 >> "%PLUGIN_CONFIG%" echo.
 >> "%PLUGIN_CONFIG%" echo ; Classes
@@ -116,7 +121,7 @@ if errorlevel 1 exit /b 1
 >> "%PLUGIN_CONFIG%" echo ; Game Rules
 >> "%PLUGIN_CONFIG%" echo rezombie/GameRules.amxx
 >> "%PLUGIN_CONFIG%" echo.
->> "%PLUGIN_CONFIG%" echo ; UI
+>> "%PLUGIN_CONFIG%" echo ; HUD
 >> "%PLUGIN_CONFIG%" echo rezombie/RoundFeedback.amxx
 if errorlevel 1 (
 	echo ERROR: Failed to write plugin config: %PLUGIN_CONFIG%
