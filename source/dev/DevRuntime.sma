@@ -37,6 +37,8 @@ new Float:RoundFlowNextCheckAt;
 new Float:RoundFlowTimeoutAt;
 new RoundFlowSubclassHandle[RZ_MAX_HANDLE_LENGTH];
 new RoundFlowZombieModelPath[RZ_MAX_RESOURCE_PATH_LENGTH];
+new bool:BlockNextChangeClassPre;
+new bool:BlockNextInfectPlayerPre;
 
 public plugin_precache()
 {
@@ -53,6 +55,7 @@ public plugin_init()
 	register_srvcmd("rz_dev_dump_player", "CommandDumpPlayer");
 	register_srvcmd("rz_dev_restart_round", "CommandRestartRound");
 	register_srvcmd("rz_dev_validate_round_flow", "CommandValidateRoundFlow");
+	register_srvcmd("rz_dev_validate_forward_returns", "CommandValidateForwardReturns");
 	register_forward(FM_StartFrame, "OnDevServerFrame");
 }
 
@@ -301,6 +304,94 @@ public CommandValidateRoundFlow()
 	DevInfo("Round flow validation started with subclass '%s' and %d required player(s).", subclassHandle, requiredPlayers);
 }
 
+public CommandValidateForwardReturns()
+{
+	enum
+	{
+		ValidateForwardReturnsArgPlayer = 1,
+		ValidateForwardReturnsArgSubclass
+	};
+
+	new id = FindFirstAlivePlayablePlayer();
+	if (read_argc() > ValidateForwardReturnsArgPlayer)
+		id = read_argv_int(ValidateForwardReturnsArgPlayer);
+
+	if (!RequireAlivePlayer(id))
+		return;
+
+	new subclassHandle[RZ_MAX_HANDLE_LENGTH];
+	if (read_argc() > ValidateForwardReturnsArgSubclass)
+		read_argv(ValidateForwardReturnsArgSubclass, subclassHandle, charsmax(subclassHandle));
+	else
+		copy(subclassHandle, charsmax(subclassHandle), DEV_DEFAULT_ROUND_FLOW_SUBCLASS);
+
+	new Class:class = FindRequiredClass(DEV_DEFAULT_ZOMBIE_CLASS);
+	if (class == Invalid_Class)
+		return;
+
+	new Subclass:subclass = FindRequiredSubclass(subclassHandle);
+	if (subclass == Invalid_Subclass)
+		return;
+
+	new Class:initialClass = get_player_class(id);
+	new Subclass:initialSubclass = get_player_subclass(id);
+	new bool:initialZombie = IsZombie(id);
+
+	BlockNextChangeClassPre = true;
+	new bool:blockedChangeClass = !change_player_class(id, class, subclass);
+	BlockNextChangeClassPre = false;
+
+	if (!blockedChangeClass)
+	{
+		DevError("@change_class_pre did not block change_player_class.");
+		return;
+	}
+
+	if (!ValidateUnchangedPlayerState(id, initialClass, initialSubclass, initialZombie, "change_class_pre"))
+		return;
+
+	BlockNextInfectPlayerPre = true;
+	new bool:blockedInfectPlayer = !infect_player(id, DEV_NO_ATTACKER, subclass);
+	BlockNextInfectPlayerPre = false;
+
+	if (!blockedInfectPlayer)
+	{
+		DevError("@infect_player_pre did not block infect_player.");
+		return;
+	}
+
+	if (!ValidateUnchangedPlayerState(id, initialClass, initialSubclass, initialZombie, "infect_player_pre"))
+		return;
+
+	DevInfo("Forward return validation passed for player %d.", id);
+}
+
+RzReturn:@change_class_pre(id, Class:class, Subclass:subclass)
+{
+	#pragma unused id
+	#pragma unused class
+	#pragma unused subclass
+
+	if (!BlockNextChangeClassPre)
+		return RZ_CONTINUE;
+
+	BlockNextChangeClassPre = false;
+	return RZ_SUPERCEDE;
+}
+
+RzReturn:@infect_player_pre(id, attacker, Subclass:subclass)
+{
+	#pragma unused id
+	#pragma unused attacker
+	#pragma unused subclass
+
+	if (!BlockNextInfectPlayerPre)
+		return RZ_CONTINUE;
+
+	BlockNextInfectPlayerPre = false;
+	return RZ_SUPERCEDE;
+}
+
 public OnDevServerFrame()
 {
 	if (RoundFlowState == DevRoundFlowIdle)
@@ -464,6 +555,20 @@ stock bool:ValidatePlayer(id)
 
 	if (IsZombie(id) && GetRuntimeModel(class, subclass) == Invalid_Model)
 		return DevError("Player %d is zombie without runtime model.", id);
+
+	return true;
+}
+
+stock bool:ValidateUnchangedPlayerState(id, Class:initialClass, Subclass:initialSubclass, bool:initialZombie, const stage[])
+{
+	if (get_player_class(id) != initialClass)
+		return DevError("Forward return %s changed player %d class.", stage, id);
+
+	if (get_player_subclass(id) != initialSubclass)
+		return DevError("Forward return %s changed player %d subclass.", stage, id);
+
+	if (IsZombie(id) != initialZombie)
+		return DevError("Forward return %s changed player %d zombie state.", stage, id);
 
 	return true;
 }
@@ -672,6 +777,8 @@ stock StopRoundFlow()
 	RoundFlowTimeoutAt = 0.0;
 	RoundFlowSubclassHandle[0] = EOS;
 	RoundFlowZombieModelPath[0] = EOS;
+	BlockNextChangeClassPre = false;
+	BlockNextInfectPlayerPre = false;
 }
 
 stock FailRoundFlow(const message[], any:...)

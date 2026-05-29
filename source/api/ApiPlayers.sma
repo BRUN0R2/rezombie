@@ -287,7 +287,7 @@ stock bool:ExecuteChangeClassPreForward(id, Class:class, Subclass:subclass)
 	if (!ExecuteForward(ChangeClassPreForward, result, id, class, subclass))
 		return bool:ReportNativeError("Could not execute @change_class_pre.");
 
-	return result < PLUGIN_HANDLED;
+	return RzReturn:result < RZ_SUPERCEDE;
 }
 
 stock ExecuteChangeClassPostForward(id, Class:class, Subclass:subclass)
@@ -303,7 +303,7 @@ stock bool:ExecuteInfectPlayerPreForward(id, attacker, Subclass:subclass)
 	if (!ExecuteForward(InfectPlayerPreForward, result, id, attacker, subclass))
 		return bool:ReportNativeError("Could not execute @infect_player_pre.");
 
-	return result < PLUGIN_HANDLED;
+	return RzReturn:result < RZ_SUPERCEDE;
 }
 
 stock ExecuteInfectPlayerPostForward(id, attacker, Subclass:subclass)

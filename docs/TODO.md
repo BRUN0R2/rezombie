@@ -66,6 +66,8 @@
 - [x] Criar runtime dev separado para validacao manual por IA/Codex.
 - [x] Criar validacao runtime completa de classe, infeccao e restart.
 - [x] Criar forwards minimos de player e round.
+- [x] Criar retornos proprios para forwards `pre`.
+- [x] Validar bloqueio de forwards `pre` com `RZ_SUPERCEDE`.
 
 ## APIs Modulares
 

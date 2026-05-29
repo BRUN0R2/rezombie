@@ -417,9 +417,9 @@ native bool:IsHuman(id);
  * @param class     New class handle
  * @param subclass  New subclass handle, or null
  *
- * @return          PLUGIN_CONTINUE to allow, PLUGIN_HANDLED or higher to block
+ * @return          RZ_CONTINUE to allow, RZ_SUPERCEDE to block
  */
-forward @change_class_pre(id, Class:class, Subclass:subclass);
+forward RzReturn:@change_class_pre(id, Class:class, Subclass:subclass);
 
 /**
  * Called after a player class is changed.
@@ -437,9 +437,9 @@ forward @change_class_post(id, Class:class, Subclass:subclass);
  * @param attacker  Attacker index, or 0
  * @param subclass  Zombie subclass handle, or null
  *
- * @return          PLUGIN_CONTINUE to allow, PLUGIN_HANDLED or higher to block
+ * @return          RZ_CONTINUE to allow, RZ_SUPERCEDE to block
  */
-forward @infect_player_pre(id, attacker, Subclass:subclass);
+forward RzReturn:@infect_player_pre(id, attacker, Subclass:subclass);
 
 /**
  * Called after a player is infected.

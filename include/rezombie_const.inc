@@ -17,6 +17,12 @@ const Props:Invalid_Props = Props:0;
 const Mode:Invalid_Mode = Mode:0;
 const Model:Invalid_Model = Model:0;
 
+enum RzReturn
+{
+	RZ_CONTINUE = 0,
+	RZ_SUPERCEDE
+}
+
 enum Team
 {
 	TEAM_NONE = 0,

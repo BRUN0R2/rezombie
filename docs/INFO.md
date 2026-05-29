@@ -121,6 +121,7 @@ rz_dev_validate_player <id>
 rz_dev_dump_player <id>
 rz_dev_restart_round [delay]
 rz_dev_validate_round_flow [subclass] [required_players]
+rz_dev_validate_forward_returns [player] [subclass]
 ```
 
 ## Forward Callbacks
@@ -133,4 +134,4 @@ rz_dev_validate_round_flow [subclass] [required_players]
 - `@round_start(Mode:mode, Float:duration)`
 - `@round_end(RoundEndReason:reason)`
 
-Callbacks `pre` podem retornar `PLUGIN_HANDLED` para bloquear o fluxo.
+Callbacks `pre` usam `RZ_CONTINUE` para permitir e `RZ_SUPERCEDE` para bloquear.

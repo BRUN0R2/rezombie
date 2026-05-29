@@ -37,6 +37,7 @@
 - Natives de humano devem ficar junto da categoria Human.
 - Comentarios de natives devem estar em ingles no padrao AMXX/CS 1.6.
 - Validar nomes de propriedades e tipos sem fallback silencioso.
+- Forwards publicos devem usar retornos proprios da API, como `RZ_CONTINUE` e `RZ_SUPERCEDE`.
 
 ## Ambiente
 
