@@ -140,7 +140,7 @@ public any:NativeGetClassVar(plugin, params)
 		if (params < GetClassVarParamOutputLength)
 			return ReportNativeError("get_class_var 'handle' requires output buffer and length.");
 
-		set_string(GetClassVarParamOutput, data[ClassHandle], get_param(GetClassVarParamOutputLength));
+		set_string(GetClassVarParamOutput, data[ClassHandle], get_param_byref(GetClassVarParamOutputLength));
 		return true;
 	}
 
@@ -149,7 +149,7 @@ public any:NativeGetClassVar(plugin, params)
 		if (params < GetClassVarParamOutputLength)
 			return ReportNativeError("get_class_var 'name' requires output buffer and length.");
 
-		set_string(GetClassVarParamOutput, data[ClassName], get_param(GetClassVarParamOutputLength));
+		set_string(GetClassVarParamOutput, data[ClassName], get_param_byref(GetClassVarParamOutputLength));
 		return true;
 	}
 
@@ -195,7 +195,7 @@ public bool:NativeSetClassVar(plugin, params)
 
 	if (equal(key, "props"))
 	{
-		new Props:props = Props:get_param(SetClassVarParamValue);
+		new Props:props = Props:get_param_byref(SetClassVarParamValue);
 
 		if (!IsRegisteredProps(props))
 			return bool:ReportNativeError("Invalid props handle %d.", _:props);

@@ -194,7 +194,7 @@ public any:NativeGetModeVar(plugin, params)
 		if (params < GetModeVarParamOutputLength)
 			return ReportNativeError("get_mode_var 'handle' requires output buffer and length.");
 
-		set_string(GetModeVarParamOutput, data[ModeHandle], get_param(GetModeVarParamOutputLength));
+		set_string(GetModeVarParamOutput, data[ModeHandle], get_param_byref(GetModeVarParamOutputLength));
 		return true;
 	}
 
@@ -203,7 +203,7 @@ public any:NativeGetModeVar(plugin, params)
 		if (params < GetModeVarParamOutputLength)
 			return ReportNativeError("get_mode_var 'name' requires output buffer and length.");
 
-		set_string(GetModeVarParamOutput, data[ModeName], get_param(GetModeVarParamOutputLength));
+		set_string(GetModeVarParamOutput, data[ModeName], get_param_byref(GetModeVarParamOutputLength));
 		return true;
 	}
 
@@ -212,7 +212,7 @@ public any:NativeGetModeVar(plugin, params)
 		if (params < GetModeVarParamOutputLength)
 			return ReportNativeError("get_mode_var 'notice_message' requires output buffer and length.");
 
-		set_string(GetModeVarParamOutput, data[ModeNoticeMessage], get_param(GetModeVarParamOutputLength));
+		set_string(GetModeVarParamOutput, data[ModeNoticeMessage], get_param_byref(GetModeVarParamOutputLength));
 		return true;
 	}
 
@@ -221,7 +221,7 @@ public any:NativeGetModeVar(plugin, params)
 		if (params < GetModeVarParamOutputLength)
 			return ReportNativeError("get_mode_var 'launch_forward' requires output buffer and length.");
 
-		set_string(GetModeVarParamOutput, data[ModeLaunchForwardName], get_param(GetModeVarParamOutputLength));
+		set_string(GetModeVarParamOutput, data[ModeLaunchForwardName], get_param_byref(GetModeVarParamOutputLength));
 		return true;
 	}
 
@@ -277,7 +277,7 @@ public bool:NativeSetModeVar(plugin, params)
 
 	if (equal(key, "min_players"))
 	{
-		new minPlayers = get_param(SetModeVarParamValue);
+		new minPlayers = get_param_byref(SetModeVarParamValue);
 		if (minPlayers < 1)
 			return bool:ReportNativeError("Mode min_players must be greater than zero.");
 
@@ -288,7 +288,7 @@ public bool:NativeSetModeVar(plugin, params)
 
 	if (equal(key, "chance"))
 	{
-		new chance = get_param(SetModeVarParamValue);
+		new chance = get_param_byref(SetModeVarParamValue);
 		if (chance < 1)
 			return bool:ReportNativeError("Mode chance must be greater than zero.");
 
@@ -299,7 +299,7 @@ public bool:NativeSetModeVar(plugin, params)
 
 	if (equal(key, "round_time"))
 	{
-		new Float:roundTime = get_param_f(SetModeVarParamValue);
+		new Float:roundTime = get_float_byref(SetModeVarParamValue);
 		if (roundTime <= 0.0)
 			return bool:ReportNativeError("Mode round_time must be greater than zero.");
 

@@ -140,7 +140,7 @@ public any:NativeGetSubclassVar(plugin, params)
 		if (params < GetSubclassVarParamOutputLength)
 			return ReportNativeError("get_subclass_var 'handle' requires output buffer and length.");
 
-		set_string(GetSubclassVarParamOutput, data[SubclassHandle], get_param(GetSubclassVarParamOutputLength));
+		set_string(GetSubclassVarParamOutput, data[SubclassHandle], get_param_byref(GetSubclassVarParamOutputLength));
 		return true;
 	}
 
@@ -149,7 +149,7 @@ public any:NativeGetSubclassVar(plugin, params)
 		if (params < GetSubclassVarParamOutputLength)
 			return ReportNativeError("get_subclass_var 'name' requires output buffer and length.");
 
-		set_string(GetSubclassVarParamOutput, data[SubclassName], get_param(GetSubclassVarParamOutputLength));
+		set_string(GetSubclassVarParamOutput, data[SubclassName], get_param_byref(GetSubclassVarParamOutputLength));
 		return true;
 	}
 
@@ -195,7 +195,7 @@ public bool:NativeSetSubclassVar(plugin, params)
 
 	if (equal(key, "props"))
 	{
-		new Props:props = Props:get_param(SetSubclassVarParamValue);
+		new Props:props = Props:get_param_byref(SetSubclassVarParamValue);
 
 		if (!IsRegisteredProps(props))
 			return bool:ReportNativeError("Invalid props handle %d.", _:props);

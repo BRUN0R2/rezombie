@@ -113,7 +113,7 @@ public any:NativeGetPropsVar(plugin, params)
 		if (params < GetPropsVarParamOutputLength)
 			return ReportNativeError("get_props_var 'handle' requires output buffer and length.");
 
-		set_string(GetPropsVarParamOutput, data[PropsHandle], get_param(GetPropsVarParamOutputLength));
+		set_string(GetPropsVarParamOutput, data[PropsHandle], get_param_byref(GetPropsVarParamOutputLength));
 		return true;
 	}
 
@@ -155,21 +155,21 @@ public bool:NativeSetPropsVar(plugin, params)
 
 	if (equal(key, "health"))
 	{
-		data[PropsHealth] = get_param(SetPropsVarParamValue);
+		data[PropsHealth] = get_param_byref(SetPropsVarParamValue);
 		ArraySetArray(PropsList, index, data);
 		return true;
 	}
 
 	if (equal(key, "speed"))
 	{
-		data[PropsSpeed] = get_param(SetPropsVarParamValue);
+		data[PropsSpeed] = get_param_byref(SetPropsVarParamValue);
 		ArraySetArray(PropsList, index, data);
 		return true;
 	}
 
 	if (equal(key, "gravity"))
 	{
-		data[PropsGravity] = get_param_f(SetPropsVarParamValue);
+		data[PropsGravity] = get_float_byref(SetPropsVarParamValue);
 		ArraySetArray(PropsList, index, data);
 		return true;
 	}

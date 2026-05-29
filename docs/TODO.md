@@ -16,6 +16,7 @@
 - [x] Criar `build.bat` para gerar o pacote local em `build/cstrike`.
 - [x] Gerar `plugins-rezombie.ini` com a ordem correta do mod.
 - [x] Organizar `plugins-rezombie.ini` por categorias.
+- [x] Corrigir leitura de parametros `any:...` nas APIs modulares.
 
 ## Proxima Meta
 
@@ -95,9 +96,10 @@
 - [x] Compilar APIs modulares e classes sem erros.
 - [x] Compilar GameRules inicial sem erros.
 - [x] Compilar GameRules e Infection sem erros.
-- [ ] Validar servidor com ReHLDS, ReGameDLL e ReAPI atualizados.
+- [x] Validar servidor com ReHLDS, ReGameDLL e ReAPI atualizados.
 - [ ] Validar carregamento sem erros no servidor.
 - [x] Validar compilacao automatizada pelo `build.bat`.
+- [x] Validar carregamento runtime das APIs, classes, modo e props com smoke temporario.
 - [ ] Validar entrada de jogador humano.
 - [ ] Validar troca de classe do jogador.
 - [ ] Validar infeccao do primeiro zombie.
