@@ -16,6 +16,7 @@
 - Preferir contratos explicitos e falhas visiveis.
 - Evitar numeros magicos, principalmente em parametros posicionais de natives.
 - Parametros posicionais de natives devem usar nomes semanticos via `enum`.
+- Todo plugin `.sma` deve usar `#pragma semicolon 1` e `#pragma compress 1`.
 
 ## API
 

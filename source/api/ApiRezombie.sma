@@ -1,6 +1,9 @@
 #include <amxmodx>
 #include <rezombie>
 
+#pragma semicolon 1
+#pragma compress 1
+
 const CLASS_HANDLE_OFFSET = 1000;
 const SUBCLASS_HANDLE_OFFSET = 2000;
 const PROPS_HANDLE_OFFSET = 3000;
@@ -11,7 +14,7 @@ enum _:ClassData
 	ClassName[RZ_MAX_NAME_LENGTH],
 	Team:ClassTeam,
 	Props:ClassProps
-}
+};
 
 enum _:SubclassData
 {
@@ -19,7 +22,7 @@ enum _:SubclassData
 	SubclassName[RZ_MAX_NAME_LENGTH],
 	Class:SubclassClass,
 	Props:SubclassProps
-}
+};
 
 enum _:PropsData
 {
@@ -27,7 +30,7 @@ enum _:PropsData
 	PropsHealth,
 	PropsSpeed,
 	Float:PropsGravity
-}
+};
 
 new Array:Classes;
 new Array:Subclasses;
@@ -91,7 +94,7 @@ public Class:NativeCreateClass(plugin, params)
 	{
 		CreateClassParamHandle = 1,
 		CreateClassParamTeam
-	}
+	};
 
 	if (params < CreateClassParamTeam)
 		return Class:NativeError("create_class requires handle and team.");
@@ -121,7 +124,7 @@ public Class:NativeFindClass(plugin, params)
 	enum
 	{
 		FindClassParamHandle = 1
-	}
+	};
 
 	if (params < FindClassParamHandle)
 		return Invalid_Class;
@@ -143,7 +146,7 @@ public any:NativeGetClassVar(plugin, params)
 		GetClassVarParamKey,
 		GetClassVarParamOutput,
 		GetClassVarParamOutputLength
-	}
+	};
 
 	if (params < GetClassVarParamKey)
 		return NativeError("get_class_var requires class and property name.");
@@ -194,7 +197,7 @@ public bool:NativeSetClassVar(plugin, params)
 		SetClassVarParamClass = 1,
 		SetClassVarParamKey,
 		SetClassVarParamValue
-	}
+	};
 
 	if (params < SetClassVarParamValue)
 		return bool:NativeError("set_class_var requires class, property name and value.");
@@ -239,7 +242,7 @@ public Subclass:NativeCreateSubclass(plugin, params)
 	{
 		CreateSubclassParamHandle = 1,
 		CreateSubclassParamClass
-	}
+	};
 
 	if (params < CreateSubclassParamClass)
 		return Subclass:NativeError("create_subclass requires handle and parent class.");
@@ -277,7 +280,7 @@ public any:NativeGetSubclassVar(plugin, params)
 		GetSubclassVarParamKey,
 		GetSubclassVarParamOutput,
 		GetSubclassVarParamOutputLength
-	}
+	};
 
 	if (params < GetSubclassVarParamKey)
 		return NativeError("get_subclass_var requires subclass and property name.");
@@ -328,7 +331,7 @@ public bool:NativeSetSubclassVar(plugin, params)
 		SetSubclassVarParamSubclass = 1,
 		SetSubclassVarParamKey,
 		SetSubclassVarParamValue
-	}
+	};
 
 	if (params < SetSubclassVarParamValue)
 		return bool:NativeError("set_subclass_var requires subclass, property name and value.");
@@ -375,7 +378,7 @@ public any:NativeGetPropsVar(plugin, params)
 		GetPropsVarParamKey,
 		GetPropsVarParamOutput,
 		GetPropsVarParamOutputLength
-	}
+	};
 
 	if (params < GetPropsVarParamKey)
 		return NativeError("get_props_var requires props and property name.");
@@ -420,7 +423,7 @@ public bool:NativeSetPropsVar(plugin, params)
 		SetPropsVarParamProps = 1,
 		SetPropsVarParamKey,
 		SetPropsVarParamValue
-	}
+	};
 
 	if (params < SetPropsVarParamValue)
 		return bool:NativeError("set_props_var requires props, property name and value.");
@@ -466,7 +469,7 @@ public bool:NativeIsZombie(plugin, params)
 	enum
 	{
 		IsZombieParamPlayer = 1
-	}
+	};
 
 	if (params < IsZombieParamPlayer)
 		return bool:NativeError("IsZombie requires player index.");
@@ -484,7 +487,7 @@ public bool:NativeIsHuman(plugin, params)
 	enum
 	{
 		IsHumanParamPlayer = 1
-	}
+	};
 
 	if (params < IsHumanParamPlayer)
 		return bool:NativeError("IsHuman requires player index.");
@@ -605,7 +608,7 @@ stock any:NativeError(const message[], any:...)
 	enum
 	{
 		NativeErrorFirstVarArg = 2
-	}
+	};
 
 	new text[192];
 	vformat(text, charsmax(text), message, NativeErrorFirstVarArg);

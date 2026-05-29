@@ -1,6 +1,9 @@
 #include <amxmodx>
 #include <rezombie>
 
+#pragma semicolon 1
+#pragma compress 1
+
 public plugin_precache()
 {
 	register_plugin("Class: Human", "0.1.0", "BRUN0");
