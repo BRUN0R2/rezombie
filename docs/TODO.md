@@ -16,6 +16,7 @@
 - [ ] Criar uma base inicial funcional, simples, limpa e enxuta.
 - [ ] Manter a primeira versao focada em jogador, round e infeccao.
 - [ ] Reimplementar somente o que fizer sentido para este projeto novo.
+- [ ] Separar API de classes e API de modos por responsabilidade.
 - [ ] Criar um core de round centralizado antes de recriar o modo Infection.
 - [ ] Recriar Infection como modo fino, sem responsabilidades de round.
 
@@ -37,9 +38,20 @@
 - [x] Criar `get_player_class` e `get_player_subclass`.
 - [x] Criar `change_player_class`.
 - [x] Criar `infect_player`.
+- [ ] Criar API modular de classes para `Class:`, `Subclass:` e `Props:`.
+- [ ] Mover registro, busca e variaveis de classes para a API de classes.
+- [ ] Criar API modular de modos para `Mode:`.
 - [ ] Criar API/registro de modos com `create_mode`, `get_mode_var`, `set_mode_var` e `launch_mode`.
 - [ ] Recriar o primeiro modo de jogo: infeccao.
 - [ ] Precachear apenas os recursos usados pela primeira versao.
+
+## APIs Modulares
+
+- [ ] Manter cada API com uma responsabilidade clara.
+- [ ] API de classes: criar, buscar, exigir e configurar classes, subclasses e props.
+- [ ] API de modos: criar, buscar, configurar e lancar modos.
+- [ ] API de jogadores: estado, classe atual, infeccao, humano e zombie.
+- [ ] Evitar uma API central acumulando responsabilidades diferentes.
 
 ## Round Core
 
