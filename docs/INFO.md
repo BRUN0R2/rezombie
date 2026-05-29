@@ -103,8 +103,10 @@ Ordem inicial esperada dos plugins:
 7. Classes em `source/classes`
 8. Modos em `source/gamemodes`
 9. Core de round em `source/core`
+10. Feedback visual em `source/ui`
 
 As APIs devem carregar antes de qualquer classe, modo ou core que use suas natives.
+Modulos visuais devem escutar forwards publicos e nao devem colocar regras dentro do core.
 
 ## Runtime Dev
 
@@ -129,6 +131,14 @@ rz_dev_restart_round [delay]
 rz_dev_validate_round_flow [subclass] [required_players]
 rz_dev_validate_forward_returns [player] [subclass]
 ```
+
+## Feedback Visual
+
+- `RoundFeedback.amxx` fica em `source/ui`.
+- O modulo visual escuta forwards de round e infeccao.
+- O core de round nao deve depender de HUD, chat ou mensagens.
+- Countdown visual usa `FM_StartFrame` com `get_gametime()`.
+- Nao usar `set_task` para feedback de countdown.
 
 ## Forward Callbacks
 

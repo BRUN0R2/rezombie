@@ -70,6 +70,7 @@
 - [x] Criar retornos proprios para forwards `pre`.
 - [x] Validar bloqueio de forwards `pre` com `RZ_SUPERCEDE`.
 - [x] Aplicar itens padrao ao trocar classe.
+- [x] Criar modulo visual minimo para feedback de round.
 
 ## APIs Modulares
 
@@ -106,7 +107,7 @@
 - [ ] Usar o ReZombie C++ como referencia de modularidade e experiencia visual.
 - [ ] Manter o estilo de API elegante do ReZombie C++ para criacao de conteudo.
 - [ ] Separar gameplay, runtime, recursos visuais e integracoes.
-- [ ] Criar HUD e mensagens somente quando ajudarem a validar o fluxo.
+- [x] Criar HUD e mensagens somente quando ajudarem a validar o fluxo.
 - [ ] Evitar globais ocultos, fallbacks silenciosos e codigo acumulado.
 
 ## Validacao
@@ -132,3 +133,4 @@
 - [x] Validar restart de round sem manter skin zombie antiga.
 - [x] Validar fluxo runtime completo pelo `rz_dev_validate_round_flow`.
 - [x] Validar itens padrao de humano e zombie em runtime.
+- [x] Validar carregamento runtime do feedback visual de round.
