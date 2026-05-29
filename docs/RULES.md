@@ -19,6 +19,6 @@
 
 - Implementar somente o necessario para o proximo passo real.
 - Validar em runtime antes de expandir.
-- Manter o projeto pequeno antes de torna-lo grande.
+- Evoluir por etapas pequenas, completas e funcionais.
 - Atualizar `docs/TODO.md` sempre que uma etapa mudar.
 - Comitar cada mudanca logica concluida e validada.
