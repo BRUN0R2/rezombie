@@ -54,6 +54,7 @@ As bases estudadas servem apenas como referencia:
 - Antes da infecção, qualquer jogador jogável que nascer deve ser humano/CT.
 - Menus padrão de time e personagem do CS ficam bloqueados.
 - Jogadores sem time são admitidos pelo core em CT sem depender do menu padrão.
+- A admissao controlada finaliza o estado interno de join do CS para evitar cameras de selecao.
 - Jogadores admitidos antes da infeccao podem receber respawn imediato.
 - Durante `RoundStatePlaying` e `RoundStateEnding`, respawn automático fica bloqueado.
 - Durante `RoundStatePlaying` e `RoundStateEnding`, jogadores já admitidos não podem trocar de time.

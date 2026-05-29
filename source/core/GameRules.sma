@@ -600,16 +600,28 @@ stock bool:IsDefaultTeamMenuState(menu)
 stock AdmitPlayerToDefaultTeam(id)
 {
 	new TeamName:team = get_member(id, m_iTeam);
-	if (team == TEAM_TERRORIST || team == TEAM_CT)
-		return;
+	if (team != TEAM_TERRORIST && team != TEAM_CT)
+	{
+		rg_set_user_team(id, GAME_RULES_DEFAULT_JOIN_TEAM, MODEL_AUTO, true, false);
 
-	rg_set_user_team(id, GAME_RULES_DEFAULT_JOIN_TEAM, MODEL_AUTO, true, false);
+		if (get_member(id, m_iTeam) != GAME_RULES_DEFAULT_JOIN_TEAM)
+			set_fail_state("GameRules could not admit player %d to the default team.", id);
+	}
 
-	if (get_member(id, m_iTeam) != GAME_RULES_DEFAULT_JOIN_TEAM)
-		set_fail_state("GameRules could not admit player %d to the default team.", id);
+	CompletePlayerAdmission(id);
 
 	if (IsRoundAcceptingHumans() && !is_user_alive(id))
+	{
 		rg_round_respawn(id);
+		CompletePlayerAdmission(id);
+	}
+}
+
+stock CompletePlayerAdmission(id)
+{
+	set_member(id, m_iJoiningState, JOINED);
+	set_member(id, m_iMenu, Menu_OFF);
+	set_member(id, m_bJustConnected, false);
 }
 
 stock ForceSpawnedPlayerToHumanTeam(id)
