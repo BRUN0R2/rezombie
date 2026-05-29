@@ -10,6 +10,8 @@
 - [x] Validar compilacao inicial da API e classes sem erros.
 - [x] Reestudar Infection no Zombie Plague Next e ReZombie C++.
 - [x] Definir que modos devem ser finos e o round deve ficar no core.
+- [x] Corrigir APIs modulares para plugins `.sma` em `source/api`.
+- [x] Separar `ApiClasses`, `ApiSubclasses` e `ApiProps`.
 
 ## Proxima Meta
 
@@ -38,8 +40,12 @@
 - [x] Criar `get_player_class` e `get_player_subclass`.
 - [x] Criar `change_player_class`.
 - [x] Criar `infect_player`.
-- [x] Criar API modular de classes para `Class:`, `Subclass:` e `Props:`.
-- [x] Mover registro, busca e variaveis de classes para a API de classes.
+- [x] Criar API modular de props para `Props:`.
+- [x] Criar API modular de classes para `Class:`.
+- [x] Criar API modular de subclasses para `Subclass:`.
+- [x] Mover registro, busca e variaveis de classes para `ApiClasses`.
+- [x] Mover registro, busca e variaveis de subclasses para `ApiSubclasses`.
+- [x] Mover registro e variaveis de props para `ApiProps`.
 - [x] Criar API modular de modos para `Mode:`.
 - [x] Criar API/registro de modos com `create_mode`, `get_mode_var`, `set_mode_var` e `launch_mode`.
 - [ ] Recriar o primeiro modo de jogo: infeccao.
@@ -48,7 +54,9 @@
 ## APIs Modulares
 
 - [x] Manter cada API com uma responsabilidade clara.
-- [x] API de classes: criar, buscar, exigir e configurar classes, subclasses e props.
+- [x] API de props: criar e configurar props.
+- [x] API de classes: criar, buscar, exigir e configurar classes.
+- [x] API de subclasses: criar, buscar, exigir e configurar subclasses.
 - [x] API de modos: criar, buscar, configurar e lancar modos.
 - [x] API de jogadores: estado, classe atual, infeccao, humano e zombie.
 - [x] Evitar uma API central acumulando responsabilidades diferentes.

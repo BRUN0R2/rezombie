@@ -98,6 +98,35 @@ native bool:set_class_var(Class:class, const var[], any:...);
 native Subclass:create_subclass(const handle[], Class:class);
 
 /**
+ * Finds a player subclass by handle.
+ *
+ * @param handle    Subclass handle
+ *
+ * @return          Subclass handle, or null when not found
+ */
+native Subclass:FindSubclass(const handle[]);
+
+/**
+ * Requires a player subclass by handle.
+ *
+ * @param handle    Subclass handle
+ *
+ * @return          Subclass handle
+ * @error           Fails when the subclass is not registered
+ */
+stock Subclass:RequireSubclass(const handle[])
+{
+	new Subclass:subclass = FindSubclass(handle);
+
+	if (subclass == Invalid_Subclass)
+	{
+		set_fail_state("Required subclass '%s' was not registered.", handle);
+	}
+
+	return subclass;
+}
+
+/**
  * Gets a subclass property.
  *
  * @param subclass  Subclass handle
@@ -122,6 +151,16 @@ native bool:set_subclass_var(Subclass:subclass, const var[], any:...);
 /**
  * Props natives.
  */
+
+/**
+ * Creates a props object.
+ *
+ * @param handle    Unique props handle
+ *
+ * @return          Props handle
+ * @error           Fails on empty or duplicate handle
+ */
+native Props:create_props(const handle[]);
 
 /**
  * Gets a props property.

@@ -1,17 +1,16 @@
-#if defined _PlayerApi_included
-	#endinput
-#endif
-
-#define _PlayerApi_included
-
 #include <amxmodx>
 #include <reapi>
 #include <rezombie>
 #include <rezombie_stock>
 #include <rezombie/core/PlayerState>
 
-stock RegisterPlayerNatives()
+#pragma semicolon 1
+#pragma compress 1
+
+public plugin_natives()
 {
+	register_library("rezombie");
+
 	register_native("get_player_class", "NativeGetPlayerClass");
 	register_native("get_player_subclass", "NativeGetPlayerSubclass");
 	register_native("change_player_class", "NativeChangePlayerClass");
@@ -21,7 +20,12 @@ stock RegisterPlayerNatives()
 	register_native("IsHuman", "NativeIsHuman");
 }
 
-stock RegisterPlayerHooks()
+public plugin_precache()
+{
+	register_plugin("API: Players", "0.1.0", "BRUN0");
+}
+
+public plugin_init()
 {
 	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawnPost", true);
 	RegisterHookChain(RG_CBasePlayer_Killed, "OnPlayerKilledPost", true);
@@ -173,7 +177,7 @@ public bool:NativeInfectPlayer(plugin, params)
 			return false;
 	}
 
-	new Class:class = FindClassByHandle("zombie");
+	new Class:class = FindClass("zombie");
 	if (class == Invalid_Class)
 		return bool:ReportNativeError("Required class 'zombie' was not registered.");
 
@@ -182,14 +186,14 @@ public bool:NativeInfectPlayer(plugin, params)
 
 stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass)
 {
-	if (!IsValidClassHandle(class))
+	if (!IsRegisteredClass(class))
 		return bool:ReportNativeError("Invalid class handle %d.", _:class);
 
-	if (subclass != Invalid_Subclass && !IsValidSubclassForClass(subclass, class))
+	if (subclass != Invalid_Subclass && !IsRegisteredSubclassForClass(subclass, class))
 		return bool:ReportNativeError("Invalid subclass handle %d for class %d.", _:subclass, _:class);
 
-	new Team:team = GetClassTeam(class);
-	if (!IsPlayableClassTeam(team))
+	new Team:team = GetClassTeamValue(class);
+	if (!IsPlayablePlayerTeam(team))
 		return bool:ReportNativeError("Invalid class team %d.", _:team);
 
 	SetPlayerClass(id, class);
@@ -207,18 +211,25 @@ stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass)
 stock ApplyPlayerClassProps(id, Class:class, Subclass:subclass)
 {
 	new Props:props = GetClassRuntimeProps(class, subclass);
-	if (!IsValidPropsHandle(props))
+	if (props == Invalid_Props)
 	{
 		ReportNativeError("Invalid runtime props for player %d.", id);
 		return;
 	}
 
-	new data[PropsData];
-	ArrayGetArray(PropsList, GetPropsIndex(props), data);
+	new health = get_props_var(props, "health");
+	new speed = get_props_var(props, "speed");
+	new Float:gravity = get_props_var(props, "gravity");
 
-	set_entvar(id, var_health, float(data[PropsHealth]));
-	set_entvar(id, var_maxspeed, float(data[PropsSpeed]));
-	set_entvar(id, var_gravity, data[PropsGravity]);
+	if (health <= 0 || speed <= 0 || gravity <= 0.0)
+	{
+		ReportNativeError("Invalid runtime props values for player %d.", id);
+		return;
+	}
+
+	set_entvar(id, var_health, float(health));
+	set_entvar(id, var_maxspeed, float(speed));
+	set_entvar(id, var_gravity, gravity);
 }
 
 stock ApplyPlayerTeam(id, Team:team)
@@ -229,9 +240,34 @@ stock ApplyPlayerTeam(id, Team:team)
 stock Props:GetClassRuntimeProps(Class:class, Subclass:subclass)
 {
 	if (subclass != Invalid_Subclass)
-		return GetSubclassProps(subclass);
+		return Props:get_subclass_var(subclass, "props");
 
-	return GetClassProps(class);
+	return Props:get_class_var(class, "props");
+}
+
+stock Team:GetClassTeamValue(Class:class)
+{
+	return Team:get_class_var(class, "team");
+}
+
+stock bool:IsRegisteredClass(Class:class)
+{
+	if (class == Invalid_Class)
+		return false;
+
+	return IsPlayablePlayerTeam(GetClassTeamValue(class));
+}
+
+stock bool:IsRegisteredSubclassForClass(Subclass:subclass, Class:class)
+{
+	new Class:parentClass = Class:get_subclass_var(subclass, "class");
+
+	return parentClass == class;
+}
+
+stock bool:IsPlayablePlayerTeam(Team:team)
+{
+	return team == TEAM_HUMAN || team == TEAM_ZOMBIE;
 }
 
 stock TeamName:GetGameTeam(Team:team)

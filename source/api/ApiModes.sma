@@ -1,12 +1,8 @@
-#if defined _ModeApi_included
-	#endinput
-#endif
-
-#define _ModeApi_included
-
 #include <amxmodx>
-#include <rezombie>
 #include <rezombie_stock>
+
+#pragma semicolon 1
+#pragma compress 1
 
 const MODE_HANDLE_OFFSET = 4000;
 const MODE_FORWARD_INVALID = -1;
@@ -28,13 +24,12 @@ enum _:ModeData
 
 new Array:Modes;
 
-stock InitializeModeApi()
+public plugin_natives()
 {
-	Modes = ArrayCreate(ModeData);
-}
+	register_library("rezombie");
 
-stock RegisterModeNatives()
-{
+	Modes = ArrayCreate(ModeData);
+
 	register_native("create_mode", "NativeCreateMode");
 	register_native("FindMode", "NativeFindMode");
 	register_native("get_mode_var", "NativeGetModeVar");
@@ -42,7 +37,12 @@ stock RegisterModeNatives()
 	register_native("launch_mode", "NativeLaunchMode");
 }
 
-stock DestroyModeApi()
+public plugin_precache()
+{
+	register_plugin("API: Modes", "0.1.0", "BRUN0");
+}
+
+public plugin_end()
 {
 	if (Modes == Invalid_Array)
 		return;
