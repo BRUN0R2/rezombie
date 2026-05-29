@@ -15,7 +15,10 @@ As bases estudadas servem apenas como referencia:
 - Usar handles tipados como `Class:`, `Subclass:` e `Props:`.
 - Manter propriedades por string, como `"props"`, `"health"`, `"speed"` e `"gravity"`.
 - Usar `RequireClass` quando uma classe for obrigatoria.
-- Usar `FindClass` e `IsClass` apenas para buscas opcionais.
+- Usar `FindClass` apenas para buscas opcionais.
+- Agrupar natives por categoria no include publico.
+- Manter natives de zombie junto da categoria Zombie.
+- Manter natives de humano junto da categoria Human.
 
 ## Tags e Tipagem
 

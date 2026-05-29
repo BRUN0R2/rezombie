@@ -22,7 +22,9 @@
 - [ ] Criar a API publica minima em `include/rezombie.inc`.
 - [ ] Criar handles tipados para `Class:`, `Subclass:`, `Props:` e `Mode:`.
 - [ ] Criar `new const any:null = 0` como nulo tipado da API.
-- [ ] Criar `IsClass`, `FindClass` e `RequireClass`.
+- [ ] Criar `FindClass` e `RequireClass`.
+- [ ] Organizar natives por categoria no include publico.
+- [ ] Documentar natives em ingles no padrao AMXX/CS 1.6.
 - [ ] Criar `get_class_var` e `set_class_var`.
 - [ ] Criar `get_subclass_var` e `set_subclass_var`.
 - [ ] Criar `get_props_var` e `set_props_var`.

@@ -15,6 +15,28 @@
 	#pragma library rezombie
 #endif
 
-// ReZombie API functions.
+/**
+ * Zombie natives.
+ */
+
+/**
+ * Checks whether a player is currently a zombie.
+ *
+ * @param id        Player index
+ *
+ * @return          true if the player is a zombie, false otherwise
+ */
 native bool:IsZombie(id);
+
+/**
+ * Human natives.
+ */
+
+/**
+ * Checks whether a player is currently a human.
+ *
+ * @param id        Player index
+ *
+ * @return          true if the player is a human, false otherwise
+ */
 native bool:IsHuman(id);

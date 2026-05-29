@@ -25,6 +25,10 @@
 - Manter handles tipados no Pawn, como `Class:`, `Subclass:` e `Props:`.
 - Manter propriedades por string, como `get_class_var(class, "props")`.
 - Manter setters claros, como `set_props_var(props, "health", 700)`.
+- Manter natives agrupadas por categoria no include publico.
+- Natives de zombie devem ficar junto da categoria Zombie.
+- Natives de humano devem ficar junto da categoria Human.
+- Comentarios de natives devem estar em ingles no padrao AMXX/CS 1.6.
 - Validar nomes de propriedades e tipos sem fallback silencioso.
 
 ## Tags e Tipagem
@@ -34,7 +38,6 @@
 - `0` nao deve ser usado diretamente como handle invalido.
 - Funcoes `Require*` devem falhar de forma explicita quando o recurso nao existir.
 - Funcoes `Find*` podem retornar `null` para buscas opcionais.
-- Funcoes `Is*` devem retornar apenas `true` ou `false`.
 
 ## Erros
 
