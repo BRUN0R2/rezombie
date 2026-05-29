@@ -621,7 +621,7 @@ stock bool:IsValidRoundState(RoundState:roundState)
 {
 	switch (roundState)
 	{
-		case RoundStateWaiting, RoundStatePreparing, RoundStatePlaying, RoundStateEnding:
+		case RoundStateFreezing, RoundStateWaiting, RoundStatePreparing, RoundStatePlaying, RoundStateEnding:
 			return true;
 	}
 

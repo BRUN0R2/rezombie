@@ -72,6 +72,8 @@
 - [x] Aplicar itens padrao ao trocar classe.
 - [x] Criar modulo visual minimo para feedback de round.
 - [x] Criar `get_round_var` para estado publico de round.
+- [x] Evitar contagem duplicada ao iniciar novo round.
+- [x] Evitar entrega duplicada de armas no prepare do modo.
 
 ## APIs Modulares
 
@@ -103,6 +105,7 @@
 - [x] Resetar jogadores para humano no restart sem atraso visual de modelo.
 - [x] Expor eventos de prepare, start e end do round.
 - [x] Expor leitura segura de estado, modo e tempo restante do round.
+- [x] Tratar freeze do CS como estado explicito antes do prepare.
 
 ## Arquitetura e Visual
 
@@ -137,3 +140,4 @@
 - [x] Validar itens padrao de humano e zombie em runtime.
 - [x] Validar carregamento runtime do feedback visual de round.
 - [x] Validar `get_round_var` em runtime.
+- [ ] Confirmar visualmente novo round sem armas duplicadas no HUD.

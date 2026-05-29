@@ -6,7 +6,8 @@
 
 enum RoundState
 {
-	RoundStateWaiting = 0,
+	RoundStateFreezing = 0,
+	RoundStateWaiting,
 	RoundStatePreparing,
 	RoundStatePlaying,
 	RoundStateEnding

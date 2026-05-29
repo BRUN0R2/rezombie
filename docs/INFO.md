@@ -45,6 +45,8 @@ As bases estudadas servem apenas como referencia:
 - `get_round_var` expõe somente leitura do estado real do round.
 - O estado do round pertence ao `GameRules`; a native apenas expõe leitura.
 - Variáveis iniciais de round: `"state"`, `"mode"` e `"time_left"`.
+- O core usa estado explícito de freeze para não iniciar contagem durante `mp_freezetime`.
+- `mp_freezetime` deve ficar em `0` para o fluxo do mod começar direto.
 
 ## Tags e Tipagem
 

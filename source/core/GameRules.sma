@@ -11,13 +11,14 @@
 const GAME_RULES_FORWARD_INVALID = -1;
 const GAME_RULES_MIN_ALIVE_PLAYERS = 2;
 const GAME_RULES_PREPARE_SECONDS = 10;
+const GAME_RULES_FREEZE_SECONDS = 0;
 const Float:GAME_RULES_WAIT_CHECK_INTERVAL = 1.0;
 const Float:GAME_RULES_WIN_CHECK_INTERVAL = 1.0;
-const Float:GAME_RULES_ROUND_END_DELAY = 5.0;
+const Float:GAME_RULES_ROUND_END_DELAY = 0.0;
 
 new const GAME_RULES_DEFAULT_HUMAN_CLASS[] = "human";
 
-new RoundState:CurrentRoundState = RoundStateWaiting;
+new RoundState:CurrentRoundState = RoundStateFreezing;
 new Mode:CurrentMode = Invalid_Mode;
 new Float:NextWaitCheckAt;
 new Float:PrepareEndsAt;
@@ -52,6 +53,11 @@ public plugin_init()
 	register_forward(FM_StartFrame, "OnServerFrame");
 }
 
+public plugin_cfg()
+{
+	set_cvar_num("mp_freezetime", GAME_RULES_FREEZE_SECONDS);
+}
+
 public plugin_end()
 {
 	DestroyRoundForwards();
@@ -59,16 +65,21 @@ public plugin_end()
 
 public OnRestartRoundPre()
 {
+	EnterFreezingRound();
 	ResetPlayablePlayersToHumans();
 }
 
 public OnRestartRoundPost()
 {
-	ResetRoundState(get_gametime());
+	if (get_cvar_float("mp_freezetime") <= 0.0)
+		ResetRoundState(get_gametime());
 }
 
 public OnRoundFreezeEndPost()
 {
+	if (CurrentRoundState != RoundStateFreezing)
+		return;
+
 	ResetRoundState(get_gametime());
 }
 
@@ -174,6 +185,16 @@ stock ResetRoundState(Float:now)
 	ScheduleWaitCheck(now);
 }
 
+stock EnterFreezingRound()
+{
+	CurrentRoundState = RoundStateFreezing;
+	CurrentMode = Invalid_Mode;
+	PrepareEndsAt = 0.0;
+	RoundEndsAt = 0.0;
+	NextWinCheckAt = 0.0;
+	NextWaitCheckAt = 0.0;
+}
+
 stock UpdateWaitingRound(Float:now)
 {
 	if (now < NextWaitCheckAt)
@@ -227,8 +248,6 @@ stock UpdatePlayingRound(Float:now)
 
 stock StartPrepareRound(Mode:mode, Float:now)
 {
-	ResetPlayablePlayersToHumans();
-
 	CurrentRoundState = RoundStatePreparing;
 	CurrentMode = mode;
 	PrepareEndsAt = now + float(GAME_RULES_PREPARE_SECONDS);
@@ -426,6 +445,9 @@ stock ResetPlayablePlayersToHumans()
 	for (new id = 1; id <= MaxClients; id++)
 	{
 		if (!is_user_connected(id) || !IsPlayerOnPlayableGameTeam(id))
+			continue;
+
+		if (IsHuman(id) && get_player_class(id) == class && get_player_subclass(id) == Invalid_Subclass)
 			continue;
 
 		if (!change_player_class(id, class))
