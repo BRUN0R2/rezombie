@@ -53,6 +53,7 @@ As bases estudadas servem apenas como referencia:
 - Antes da infecção, qualquer escolha jogável no menu de time deve entrar como CT.
 - Durante `RoundStatePlaying` e `RoundStateEnding`, respawn automático fica bloqueado.
 - Durante `RoundStatePlaying` e `RoundStateEnding`, escolha jogável de time fica bloqueada.
+- A API de players só aplica classe, modelo e itens quando o jogador está vivo e em T/CT.
 
 ## Tags e Tipagem
 

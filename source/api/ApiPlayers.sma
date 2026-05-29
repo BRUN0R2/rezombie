@@ -62,6 +62,18 @@ public client_disconnected(id)
 
 public OnPlayerSpawnPost(id)
 {
+	if (!is_user_alive(id))
+	{
+		KillPlayerState(id);
+		return;
+	}
+
+	if (!IsPlayerOnGameTeam(id))
+	{
+		KillPlayerState(id);
+		return;
+	}
+
 	SpawnPlayerState(id);
 
 	new Class:class = GetPlayerClass(id);
@@ -333,7 +345,7 @@ stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass)
 
 	ApplyPlayerTeam(id, team);
 
-	if (IsPlayerAlive(id) && !ApplyPlayerClassRuntime(id, class, subclass))
+	if (is_user_alive(id) && !ApplyPlayerClassRuntime(id, class, subclass))
 		return false;
 
 	ExecuteChangeClassPostForward(id, class, subclass);
@@ -568,6 +580,13 @@ stock TeamName:GetGameTeam(Team:team)
 	}
 
 	return TEAM_UNASSIGNED;
+}
+
+stock bool:IsPlayerOnGameTeam(id)
+{
+	new TeamName:team = get_member(id, m_iTeam);
+
+	return team == TEAM_TERRORIST || team == TEAM_CT;
 }
 
 stock bool:IsValidConnectedPlayer(id, const nativeName[])

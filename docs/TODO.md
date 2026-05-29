@@ -115,6 +115,7 @@
 - [x] Corrigir retorno ReAPI do bloqueio de respawn.
 - [x] Forcar escolha jogavel de time para CT antes da infeccao.
 - [x] Bloquear escolha jogavel de time durante round em jogo ou finalizando.
+- [x] Bloquear runtime de classe e itens em jogador sem spawn real.
 - [ ] Criar politica explicita de respawn por modo.
 - [ ] Criar API publica de respawn quando a politica estiver definida.
 
@@ -154,5 +155,6 @@
 - [x] Validar `get_round_var` em runtime.
 - [x] Validar tentativa de escolher Terrorist antes da infeccao mantendo CT.
 - [x] Validar tentativa de trocar para Terrorist sem matar jogador CT.
+- [x] Validar jogador sem time como morto, sem classe e sem runtime aplicado.
 - [ ] Confirmar visualmente novo round sem armas duplicadas no HUD.
 - [ ] Confirmar jogador entrando durante `RoundStatePlaying` sem respawn automatico.
