@@ -13,6 +13,9 @@
 - [x] Corrigir APIs modulares para plugins `.sma` em `source/api`.
 - [x] Separar `ApiClasses`, `ApiSubclasses` e `ApiProps`.
 - [x] Documentar a ordem inicial de carregamento dos plugins.
+- [x] Criar `build.bat` para gerar o pacote local em `build/cstrike`.
+- [x] Gerar `plugins-rezombie.ini` com a ordem correta do mod.
+- [x] Organizar `plugins-rezombie.ini` por categorias.
 
 ## Proxima Meta
 
@@ -94,6 +97,7 @@
 - [x] Compilar GameRules e Infection sem erros.
 - [ ] Validar servidor com ReHLDS, ReGameDLL e ReAPI atualizados.
 - [ ] Validar carregamento sem erros no servidor.
+- [x] Validar compilacao automatizada pelo `build.bat`.
 - [ ] Validar entrada de jogador humano.
 - [ ] Validar troca de classe do jogador.
 - [ ] Validar infeccao do primeiro zombie.
