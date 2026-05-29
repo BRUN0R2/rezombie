@@ -64,6 +64,7 @@
 - [x] Evitar fallback silencioso quando zombie estiver sem modelo runtime.
 - [x] Criar `fleshpound` como primeira subclass zombie com modelo proprio.
 - [x] Criar runtime dev separado para validacao manual por IA/Codex.
+- [x] Criar validacao runtime completa de classe, infeccao e restart.
 
 ## APIs Modulares
 
@@ -121,3 +122,4 @@
 - [x] Validar modelo proprio `rz_fleshpound` da subclass `fleshpound` em runtime.
 - [x] Validar comandos do runtime dev em servidor local.
 - [x] Validar restart de round sem manter skin zombie antiga.
+- [x] Validar fluxo runtime completo pelo `rz_dev_validate_round_flow`.

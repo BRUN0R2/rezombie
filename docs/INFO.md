@@ -120,4 +120,5 @@ rz_dev_change_class <id> <class> [subclass]
 rz_dev_validate_player <id>
 rz_dev_dump_player <id>
 rz_dev_restart_round [delay]
+rz_dev_validate_round_flow [subclass] [required_players]
 ```

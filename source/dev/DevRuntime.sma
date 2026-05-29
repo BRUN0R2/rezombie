@@ -1,4 +1,5 @@
 #include <amxmodx>
+#include <fakemeta>
 #include <reapi>
 #include <rezombie>
 
@@ -8,8 +9,34 @@
 const DEV_MAX_BOTS_PER_COMMAND = 16;
 const DEV_NO_ATTACKER = 0;
 const Float:DEV_IMMEDIATE_RESTART_DELAY = 0.0;
+const DEV_ROUND_FLOW_DEFAULT_PLAYERS = 1;
+const Float:DEV_ROUND_FLOW_CHECK_INTERVAL = 0.25;
+const Float:DEV_ROUND_FLOW_WAIT_TIMEOUT = 20.0;
+const Float:DEV_ROUND_FLOW_RESTART_WAIT = 1.0;
+const Float:DEV_ROUND_FLOW_RESTART_DELAY = 1.0;
 
 new const DEV_PREFIX[] = "[ReZombie Dev]";
+new const DEV_DEFAULT_HUMAN_CLASS[] = "human";
+new const DEV_DEFAULT_ZOMBIE_CLASS[] = "zombie";
+new const DEV_DEFAULT_ROUND_FLOW_SUBCLASS[] = "fleshpound";
+
+enum DevRoundFlowState
+{
+	DevRoundFlowIdle = 0,
+	DevRoundFlowWaitingPlayers,
+	DevRoundFlowValidatingBaseline,
+	DevRoundFlowValidatingRestart
+};
+
+new DevRoundFlowState:RoundFlowState = DevRoundFlowIdle;
+new Subclass:RoundFlowSubclass = Invalid_Subclass;
+new RoundFlowVictim;
+new RoundFlowRequiredPlayers;
+new bool:RoundFlowBotsRequested;
+new Float:RoundFlowNextCheckAt;
+new Float:RoundFlowTimeoutAt;
+new RoundFlowSubclassHandle[RZ_MAX_HANDLE_LENGTH];
+new RoundFlowZombieModelPath[RZ_MAX_RESOURCE_PATH_LENGTH];
 
 public plugin_precache()
 {
@@ -25,6 +52,8 @@ public plugin_init()
 	register_srvcmd("rz_dev_validate_player", "CommandValidatePlayer");
 	register_srvcmd("rz_dev_dump_player", "CommandDumpPlayer");
 	register_srvcmd("rz_dev_restart_round", "CommandRestartRound");
+	register_srvcmd("rz_dev_validate_round_flow", "CommandValidateRoundFlow");
+	register_forward(FM_StartFrame, "OnDevServerFrame");
 }
 
 public CommandAddBots()
@@ -221,6 +250,192 @@ public CommandRestartRound()
 	DevInfo("Round restart scheduled with %.2f second delay.", delay);
 }
 
+public CommandValidateRoundFlow()
+{
+	enum
+	{
+		ValidateRoundFlowArgSubclass = 1,
+		ValidateRoundFlowArgRequiredPlayers
+	};
+
+	if (RoundFlowState != DevRoundFlowIdle)
+	{
+		DevError("Round flow validation is already running.");
+		return;
+	}
+
+	new subclassHandle[RZ_MAX_HANDLE_LENGTH];
+	if (read_argc() > ValidateRoundFlowArgSubclass)
+		read_argv(ValidateRoundFlowArgSubclass, subclassHandle, charsmax(subclassHandle));
+	else
+		copy(subclassHandle, charsmax(subclassHandle), DEV_DEFAULT_ROUND_FLOW_SUBCLASS);
+
+	new Subclass:subclass = FindRequiredSubclass(subclassHandle);
+	if (subclass == Invalid_Subclass)
+		return;
+
+	new requiredPlayers = DEV_ROUND_FLOW_DEFAULT_PLAYERS;
+	if (read_argc() > ValidateRoundFlowArgRequiredPlayers)
+		requiredPlayers = read_argv_int(ValidateRoundFlowArgRequiredPlayers);
+
+	if (requiredPlayers <= 0 || requiredPlayers > DEV_MAX_BOTS_PER_COMMAND)
+	{
+		DevError("Round flow required players must be between 1 and %d.", DEV_MAX_BOTS_PER_COMMAND);
+		return;
+	}
+
+	if (!PrepareRoundFlowModelPath(subclass))
+		return;
+
+	RoundFlowState = DevRoundFlowWaitingPlayers;
+	RoundFlowSubclass = subclass;
+	RoundFlowVictim = 0;
+	RoundFlowRequiredPlayers = requiredPlayers;
+	RoundFlowBotsRequested = false;
+	copy(RoundFlowSubclassHandle, charsmax(RoundFlowSubclassHandle), subclassHandle);
+
+	new Float:now = get_gametime();
+	RoundFlowNextCheckAt = now;
+	RoundFlowTimeoutAt = now + DEV_ROUND_FLOW_WAIT_TIMEOUT;
+
+	DevInfo("Round flow validation started with subclass '%s' and %d required player(s).", subclassHandle, requiredPlayers);
+}
+
+public OnDevServerFrame()
+{
+	if (RoundFlowState == DevRoundFlowIdle)
+		return FMRES_IGNORED;
+
+	new Float:now = get_gametime();
+	if (now < RoundFlowNextCheckAt)
+		return FMRES_IGNORED;
+
+	RoundFlowNextCheckAt = now + DEV_ROUND_FLOW_CHECK_INTERVAL;
+	UpdateRoundFlow(now);
+
+	return FMRES_IGNORED;
+}
+
+stock UpdateRoundFlow(Float:now)
+{
+	switch (RoundFlowState)
+	{
+		case DevRoundFlowWaitingPlayers:
+			UpdateRoundFlowWaitingPlayers(now);
+		case DevRoundFlowValidatingBaseline:
+			UpdateRoundFlowBaseline(now);
+		case DevRoundFlowValidatingRestart:
+			UpdateRoundFlowRestart(now);
+	}
+}
+
+stock UpdateRoundFlowWaitingPlayers(Float:now)
+{
+	new alivePlayers = CountAlivePlayablePlayers();
+	if (alivePlayers >= RoundFlowRequiredPlayers)
+	{
+		rg_restart_round();
+
+		RoundFlowState = DevRoundFlowValidatingBaseline;
+		RoundFlowNextCheckAt = now + DEV_ROUND_FLOW_RESTART_WAIT;
+		RoundFlowTimeoutAt = now + DEV_ROUND_FLOW_WAIT_TIMEOUT;
+
+		DevInfo("Round flow baseline restart requested.");
+		return;
+	}
+
+	if (!RoundFlowBotsRequested)
+	{
+		RequestMissingBots(RoundFlowRequiredPlayers - alivePlayers);
+		RoundFlowBotsRequested = true;
+	}
+
+	if (now >= RoundFlowTimeoutAt)
+		FailRoundFlow("Timed out waiting for %d alive playable players.", RoundFlowRequiredPlayers);
+}
+
+stock UpdateRoundFlowBaseline(Float:now)
+{
+	if (CountAlivePlayablePlayers() < RoundFlowRequiredPlayers)
+	{
+		if (now >= RoundFlowTimeoutAt)
+			FailRoundFlow("Timed out waiting for alive players after baseline restart.");
+
+		return;
+	}
+
+	if (!ValidateAliveHumans("baseline"))
+	{
+		StopRoundFlow();
+		return;
+	}
+
+	new id = FindFirstAlivePlayablePlayer();
+	if (!id)
+	{
+		FailRoundFlow("Could not find an alive playable player for infection.");
+		return;
+	}
+
+	if (!infect_player(id, DEV_NO_ATTACKER, RoundFlowSubclass))
+	{
+		FailRoundFlow("Could not infect player %d with subclass '%s'.", id, RoundFlowSubclassHandle);
+		return;
+	}
+
+	RoundFlowVictim = id;
+
+	if (!ValidateRoundFlowZombie(id))
+	{
+		StopRoundFlow();
+		return;
+	}
+
+	if (!rg_round_end(DEV_ROUND_FLOW_RESTART_DELAY, WINSTATUS_DRAW, ROUND_GAME_RESTART, "Dev Round Flow"))
+	{
+		FailRoundFlow("Could not schedule round restart after infection.");
+		return;
+	}
+
+	RoundFlowState = DevRoundFlowValidatingRestart;
+	RoundFlowNextCheckAt = now + DEV_ROUND_FLOW_RESTART_DELAY + DEV_ROUND_FLOW_RESTART_WAIT;
+	RoundFlowTimeoutAt = now + DEV_ROUND_FLOW_RESTART_DELAY + DEV_ROUND_FLOW_WAIT_TIMEOUT;
+
+	DevInfo("Round flow infected player %d and scheduled restart.", id);
+}
+
+stock UpdateRoundFlowRestart(Float:now)
+{
+	if (CountAlivePlayablePlayers() < RoundFlowRequiredPlayers)
+	{
+		if (now >= RoundFlowTimeoutAt)
+			FailRoundFlow("Timed out waiting for alive players after restart.");
+
+		return;
+	}
+
+	if (!RequireConnectedPlayer(RoundFlowVictim))
+	{
+		StopRoundFlow();
+		return;
+	}
+
+	if (!ValidateRoundFlowHuman(RoundFlowVictim, "restart victim"))
+	{
+		StopRoundFlow();
+		return;
+	}
+
+	if (!ValidateAliveHumans("restart"))
+	{
+		StopRoundFlow();
+		return;
+	}
+
+	DevInfo("Round flow validation passed.");
+	StopRoundFlow();
+}
+
 stock bool:ValidatePlayer(id)
 {
 	new Class:class = get_player_class(id);
@@ -301,6 +516,171 @@ stock DumpPlayer(id)
 		health,
 		speed,
 		gravity);
+}
+
+stock bool:PrepareRoundFlowModelPath(Subclass:subclass)
+{
+	new Class:class = Class:get_subclass_var(subclass, "class");
+	if (class == Invalid_Class)
+		return DevError("Round flow subclass has no parent class.");
+
+	new Model:model = GetRuntimeModel(class, subclass);
+	if (model == Invalid_Model)
+		return DevError("Round flow subclass has no runtime model.");
+
+	if (!get_model_var(model, "path", RoundFlowZombieModelPath, charsmax(RoundFlowZombieModelPath)))
+		return DevError("Round flow subclass model has no path.");
+
+	return true;
+}
+
+stock RequestMissingBots(missingPlayers)
+{
+	if (missingPlayers <= 0)
+		return;
+
+	if (missingPlayers > DEV_MAX_BOTS_PER_COMMAND)
+		missingPlayers = DEV_MAX_BOTS_PER_COMMAND;
+
+	for (new index = 0; index < missingPlayers; index++)
+		server_cmd("sypb_add");
+
+	server_exec();
+	DevInfo("Round flow requested %d missing bot(s).", missingPlayers);
+}
+
+stock bool:ValidateAliveHumans(const stage[])
+{
+	new alivePlayers;
+
+	for (new id = 1; id <= MaxClients; id++)
+	{
+		if (!is_user_connected(id) || !is_user_alive(id) || !IsPlayerOnPlayableGameTeam(id))
+			continue;
+
+		alivePlayers++;
+
+		if (!ValidateRoundFlowHuman(id, stage))
+			return false;
+	}
+
+	if (alivePlayers < RoundFlowRequiredPlayers)
+		return DevError("Round flow %s expected at least %d alive playable players.", stage, RoundFlowRequiredPlayers);
+
+	return true;
+}
+
+stock bool:ValidateRoundFlowHuman(id, const stage[])
+{
+	new Class:class = FindRequiredClass(DEV_DEFAULT_HUMAN_CLASS);
+	if (class == Invalid_Class)
+		return false;
+
+	if (!is_user_alive(id))
+		return DevError("Round flow %s expected player %d alive.", stage, id);
+
+	if (!IsHuman(id))
+		return DevError("Round flow %s expected player %d human.", stage, id);
+
+	if (get_player_class(id) != class)
+		return DevError("Round flow %s expected player %d class human.", stage, id);
+
+	if (get_player_subclass(id) != Invalid_Subclass)
+		return DevError("Round flow %s expected player %d without subclass.", stage, id);
+
+	if (!ValidatePlayer(id))
+		return false;
+
+	new entityModel[RZ_MAX_RESOURCE_PATH_LENGTH];
+	get_entvar(id, var_model, entityModel, charsmax(entityModel));
+
+	if (equal(entityModel, RoundFlowZombieModelPath))
+		return DevError("Round flow %s player %d kept zombie model '%s'.", stage, id, entityModel);
+
+	return true;
+}
+
+stock bool:ValidateRoundFlowZombie(id)
+{
+	new Class:class = FindRequiredClass(DEV_DEFAULT_ZOMBIE_CLASS);
+	if (class == Invalid_Class)
+		return false;
+
+	if (!is_user_alive(id))
+		return DevError("Round flow expected infected player %d alive.", id);
+
+	if (!IsZombie(id))
+		return DevError("Round flow expected infected player %d zombie.", id);
+
+	if (get_player_class(id) != class)
+		return DevError("Round flow expected infected player %d class zombie.", id);
+
+	if (get_player_subclass(id) != RoundFlowSubclass)
+		return DevError("Round flow expected infected player %d subclass '%s'.", id, RoundFlowSubclassHandle);
+
+	if (!ValidatePlayer(id))
+		return false;
+
+	new entityModel[RZ_MAX_RESOURCE_PATH_LENGTH];
+	get_entvar(id, var_model, entityModel, charsmax(entityModel));
+
+	if (!equal(entityModel, RoundFlowZombieModelPath))
+		return DevError("Round flow expected infected player %d model '%s', got '%s'.", id, RoundFlowZombieModelPath, entityModel);
+
+	return true;
+}
+
+stock CountAlivePlayablePlayers()
+{
+	new count;
+
+	for (new id = 1; id <= MaxClients; id++)
+	{
+		if (is_user_connected(id) && is_user_alive(id) && IsPlayerOnPlayableGameTeam(id))
+			count++;
+	}
+
+	return count;
+}
+
+stock FindFirstAlivePlayablePlayer()
+{
+	for (new id = 1; id <= MaxClients; id++)
+	{
+		if (is_user_connected(id) && is_user_alive(id) && IsPlayerOnPlayableGameTeam(id))
+			return id;
+	}
+
+	return 0;
+}
+
+stock bool:IsPlayerOnPlayableGameTeam(id)
+{
+	new TeamName:team = get_member(id, m_iTeam);
+
+	return team == TEAM_TERRORIST || team == TEAM_CT;
+}
+
+stock StopRoundFlow()
+{
+	RoundFlowState = DevRoundFlowIdle;
+	RoundFlowSubclass = Invalid_Subclass;
+	RoundFlowVictim = 0;
+	RoundFlowRequiredPlayers = 0;
+	RoundFlowBotsRequested = false;
+	RoundFlowNextCheckAt = 0.0;
+	RoundFlowTimeoutAt = 0.0;
+	RoundFlowSubclassHandle[0] = EOS;
+	RoundFlowZombieModelPath[0] = EOS;
+}
+
+stock FailRoundFlow(const message[], any:...)
+{
+	new formatted[512];
+	vformat(formatted, charsmax(formatted), message, 2);
+
+	DevError("%s", formatted);
+	StopRoundFlow();
 }
 
 stock Props:GetRuntimeProps(Class:class, Subclass:subclass)
