@@ -14,6 +14,7 @@
 - [x] Separar `ApiClasses`, `ApiSubclasses` e `ApiProps`.
 - [x] Documentar a ordem inicial de carregamento dos plugins.
 - [x] Criar `build.bat` para gerar o pacote local em `build/cstrike`.
+- [x] Criar `start.bat` para abrir o servidor visivel em primeiro plano.
 - [x] Gerar `plugins-rezombie.ini` com a ordem correta do mod.
 - [x] Organizar `plugins-rezombie.ini` por categorias.
 - [x] Corrigir leitura de parametros `any:...` nas APIs modulares.
