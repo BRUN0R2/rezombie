@@ -332,10 +332,7 @@ stock bool:LaunchMode(Mode:mode, target)
 	if (!ExecuteForward(data[ModeLaunchForward], result, mode, target))
 		return bool:ReportNativeError("Mode '%s' launch forward could not be executed.", data[ModeHandle]);
 
-	if (!result)
-		return bool:ReportNativeError("Mode '%s' launch forward returned failure.", data[ModeHandle]);
-
-	return true;
+	return bool:result;
 }
 
 stock Mode:FindModeByHandle(const handle[])
