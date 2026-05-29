@@ -18,6 +18,60 @@
 #endif
 
 /**
+ * Model natives.
+ */
+
+/**
+ * Creates and precaches a player model.
+ *
+ * @param handle    Internal player model name
+ *
+ * @return          Model handle
+ * @error           Fails on empty handle, duplicate model or missing model file
+ */
+native Model:create_model(const handle[]);
+
+/**
+ * Finds a model by handle.
+ *
+ * @param handle    Model handle
+ *
+ * @return          Model handle, or null when not found
+ */
+native Model:FindModel(const handle[]);
+
+/**
+ * Requires a model by handle.
+ *
+ * @param handle    Model handle
+ *
+ * @return          Model handle
+ * @error           Fails when the model is not registered
+ */
+stock Model:RequireModel(const handle[])
+{
+	new Model:model = FindModel(handle);
+
+	if (model == Invalid_Model)
+	{
+		set_fail_state("Required model '%s' was not registered.", handle);
+	}
+
+	return model;
+}
+
+/**
+ * Gets a model property.
+ *
+ * @param model     Model handle
+ * @param var       Property name
+ *
+ * @return          Property value
+ * @error           Fails on invalid model or property
+ */
+native any:get_model_var(Model:model, const var[], any:...);
+
+/**
  * Class natives.
  */
 

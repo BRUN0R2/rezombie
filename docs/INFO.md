@@ -20,7 +20,7 @@ As bases estudadas servem apenas como referencia:
 - APIs modulares ficam em `source/api`.
 - A API deve ser simples, bonita, tipada e facil de manter.
 - Criar novas classes, subclasses e modos deve ser muito facil.
-- Usar handles tipados como `Class:`, `Subclass:` e `Props:`.
+- Usar handles tipados como `Class:`, `Subclass:`, `Props:`, `Mode:` e `Model:`.
 - Manter propriedades por string, como `"props"`, `"health"`, `"speed"` e `"gravity"`.
 - Usar `RequireClass` quando uma classe for obrigatoria.
 - Usar `FindClass` apenas para buscas opcionais.
@@ -45,12 +45,16 @@ Class:
 Subclass:
 Props:
 Mode:
+Model:
 ```
 
 Exemplo esperado:
 
 ```pawn
 new Class:class = RequireClass("zombie");
+new Model:model = create_model("rz_default");
+set_class_var(class, "model", model);
+
 new Subclass:subclass = create_subclass("zombie_swarm", class);
 new Props:props = get_subclass_var(subclass, "props");
 
@@ -64,12 +68,13 @@ set_props_var(props, "gravity", 1.0);
 Ordem inicial esperada dos plugins:
 
 1. `ApiProps.amxx`
-2. `ApiClasses.amxx`
-3. `ApiSubclasses.amxx`
-4. `ApiModes.amxx`
-5. `ApiPlayers.amxx`
-6. Classes em `source/classes`
-7. Modos em `source/gamemodes`
-8. Core de round em `source/core`
+2. `ApiModels.amxx`
+3. `ApiClasses.amxx`
+4. `ApiSubclasses.amxx`
+5. `ApiModes.amxx`
+6. `ApiPlayers.amxx`
+7. Classes em `source/classes`
+8. Modos em `source/gamemodes`
+9. Core de round em `source/core`
 
 As APIs devem carregar antes de qualquer classe, modo ou core que use suas natives.

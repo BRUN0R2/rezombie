@@ -11,6 +11,7 @@ enum _:ClassData
 {
 	ClassHandle[RZ_MAX_HANDLE_LENGTH],
 	ClassName[RZ_MAX_NAME_LENGTH],
+	Model:ClassModel,
 	Team:ClassTeam,
 	Props:ClassProps
 };
@@ -79,6 +80,7 @@ public Class:NativeCreateClass(plugin, params)
 	new data[ClassData];
 	copy(data[ClassHandle], charsmax(data[ClassHandle]), handle);
 	copy(data[ClassName], charsmax(data[ClassName]), handle);
+	data[ClassModel] = Invalid_Model;
 	data[ClassTeam] = team;
 	data[ClassProps] = props;
 
@@ -159,6 +161,9 @@ public any:NativeGetClassVar(plugin, params)
 	if (equal(key, "props"))
 		return data[ClassProps];
 
+	if (equal(key, "model"))
+		return data[ClassModel];
+
 	return ReportNativeError("Invalid class property '%s'.", key);
 }
 
@@ -205,6 +210,18 @@ public bool:NativeSetClassVar(plugin, params)
 		return true;
 	}
 
+	if (equal(key, "model"))
+	{
+		new Model:model = Model:get_param_byref(SetClassVarParamValue);
+
+		if (!IsRegisteredModel(model))
+			return bool:ReportNativeError("Invalid model handle %d.", _:model);
+
+		data[ClassModel] = model;
+		ArraySetArray(Classes, index, data);
+		return true;
+	}
+
 	return bool:ReportNativeError("Invalid or readonly class property '%s'.", key);
 }
 
@@ -239,6 +256,15 @@ stock bool:IsRegisteredProps(Props:props)
 
 	new handle[RZ_MAX_HANDLE_LENGTH];
 	return bool:get_props_var(props, "handle", handle, charsmax(handle));
+}
+
+stock bool:IsRegisteredModel(Model:model)
+{
+	if (model == Invalid_Model)
+		return false;
+
+	new handle[RZ_MAX_HANDLE_LENGTH];
+	return bool:get_model_var(model, "handle", handle, charsmax(handle));
 }
 
 stock bool:IsPlayableClassTeam(Team:team)

@@ -11,6 +11,7 @@ enum _:SubclassData
 {
 	SubclassHandle[RZ_MAX_HANDLE_LENGTH],
 	SubclassName[RZ_MAX_NAME_LENGTH],
+	Model:SubclassModel,
 	Class:SubclassClass,
 	Props:SubclassProps
 };
@@ -79,6 +80,7 @@ public Subclass:NativeCreateSubclass(plugin, params)
 	new data[SubclassData];
 	copy(data[SubclassHandle], charsmax(data[SubclassHandle]), handle);
 	copy(data[SubclassName], charsmax(data[SubclassName]), handle);
+	data[SubclassModel] = Invalid_Model;
 	data[SubclassClass] = class;
 	data[SubclassProps] = props;
 
@@ -159,6 +161,9 @@ public any:NativeGetSubclassVar(plugin, params)
 	if (equal(key, "props"))
 		return data[SubclassProps];
 
+	if (equal(key, "model"))
+		return data[SubclassModel];
+
 	return ReportNativeError("Invalid subclass property '%s'.", key);
 }
 
@@ -201,6 +206,18 @@ public bool:NativeSetSubclassVar(plugin, params)
 			return bool:ReportNativeError("Invalid props handle %d.", _:props);
 
 		data[SubclassProps] = props;
+		ArraySetArray(Subclasses, index, data);
+		return true;
+	}
+
+	if (equal(key, "model"))
+	{
+		new Model:model = Model:get_param_byref(SetSubclassVarParamValue);
+
+		if (!IsRegisteredModel(model))
+			return bool:ReportNativeError("Invalid model handle %d.", _:model);
+
+		data[SubclassModel] = model;
 		ArraySetArray(Subclasses, index, data);
 		return true;
 	}
@@ -248,4 +265,13 @@ stock bool:IsRegisteredProps(Props:props)
 
 	new handle[RZ_MAX_HANDLE_LENGTH];
 	return bool:get_props_var(props, "handle", handle, charsmax(handle));
+}
+
+stock bool:IsRegisteredModel(Model:model)
+{
+	if (model == Invalid_Model)
+		return false;
+
+	new handle[RZ_MAX_HANDLE_LENGTH];
+	return bool:get_model_var(model, "handle", handle, charsmax(handle));
 }

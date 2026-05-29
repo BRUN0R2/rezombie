@@ -9,7 +9,10 @@ public plugin_precache()
 	register_plugin("Class: Zombie", "0.1.0", "BRUN0");
 
 	new Class:class = create_class("zombie", TEAM_ZOMBIE);
+	new Model:model = create_model("rz_default");
+
 	set_class_var(class, "name", "Zombie");
+	set_class_var(class, "model", model);
 
 	new Props:props = get_class_var(class, "props");
 	set_props_var(props, "health", 500);

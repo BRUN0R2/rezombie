@@ -248,6 +248,8 @@ stock ApplyPlayerClassProps(id, Class:class, Subclass:subclass)
 	set_entvar(id, var_health, float(health));
 	set_entvar(id, var_maxspeed, float(speed));
 	set_entvar(id, var_gravity, gravity);
+
+	ApplyPlayerModel(id, class, subclass);
 }
 
 stock ApplyPlayerTeam(id, Team:team)
@@ -261,6 +263,39 @@ stock Props:GetClassRuntimeProps(Class:class, Subclass:subclass)
 		return Props:get_subclass_var(subclass, "props");
 
 	return Props:get_class_var(class, "props");
+}
+
+stock ApplyPlayerModel(id, Class:class, Subclass:subclass)
+{
+	new Model:model = GetClassRuntimeModel(class, subclass);
+
+	if (model == Invalid_Model)
+	{
+		rg_reset_user_model(id, true);
+		return;
+	}
+
+	new name[RZ_MAX_HANDLE_LENGTH];
+	if (!get_model_var(model, "name", name, charsmax(name)))
+	{
+		ReportNativeError("Invalid runtime model for player %d.", id);
+		return;
+	}
+
+	rg_set_user_model(id, name, true);
+}
+
+stock Model:GetClassRuntimeModel(Class:class, Subclass:subclass)
+{
+	if (subclass != Invalid_Subclass)
+	{
+		new Model:model = Model:get_subclass_var(subclass, "model");
+
+		if (model != Invalid_Model)
+			return model;
+	}
+
+	return Model:get_class_var(class, "model");
 }
 
 stock Team:GetClassTeamValue(Class:class)

@@ -45,6 +45,10 @@ echo Compiling source\api\ApiProps.sma
 "%COMPILER%" "%ROOT%source\api\ApiProps.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ApiProps.amxx"
 if errorlevel 1 exit /b 1
 
+echo Compiling source\api\ApiModels.sma
+"%COMPILER%" "%ROOT%source\api\ApiModels.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ApiModels.amxx"
+if errorlevel 1 exit /b 1
+
 echo Compiling source\api\ApiClasses.sma
 "%COMPILER%" "%ROOT%source\api\ApiClasses.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ApiClasses.amxx"
 if errorlevel 1 exit /b 1
@@ -86,6 +90,7 @@ if errorlevel 1 exit /b 1
 >> "%PLUGIN_CONFIG%" echo.
 >> "%PLUGIN_CONFIG%" echo ; Core APIs
 >> "%PLUGIN_CONFIG%" echo rezombie/ApiProps.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/ApiModels.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/ApiClasses.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/ApiSubclasses.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/ApiModes.amxx

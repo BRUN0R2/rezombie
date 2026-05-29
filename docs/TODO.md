@@ -12,6 +12,7 @@
 - [x] Definir que modos devem ser finos e o round deve ficar no core.
 - [x] Corrigir APIs modulares para plugins `.sma` em `source/api`.
 - [x] Separar `ApiClasses`, `ApiSubclasses` e `ApiProps`.
+- [x] Criar API modular de modelos para `Model:`.
 - [x] Documentar a ordem inicial de carregamento dos plugins.
 - [x] Criar `build.bat` para gerar o pacote local em `build/cstrike`.
 - [x] Criar `start.bat` para abrir o servidor visivel em primeiro plano.
@@ -36,6 +37,7 @@
 - [x] Criar o nucleo de estado do jogador: humano, zombie, vivo e conectado.
 - [x] Criar a API publica minima em `include/rezombie.inc`.
 - [x] Criar handles tipados para `Class:`, `Subclass:`, `Props:` e `Mode:`.
+- [x] Criar handle tipado para `Model:`.
 - [x] Criar `new const any:null = 0` como nulo tipado da API.
 - [x] Criar `FindClass` e `RequireClass`.
 - [x] Organizar natives por categoria no include publico.
@@ -47,6 +49,7 @@
 - [x] Criar `change_player_class`.
 - [x] Criar `infect_player`.
 - [x] Criar API modular de props para `Props:`.
+- [x] Criar API modular de modelos para `Model:`.
 - [x] Criar API modular de classes para `Class:`.
 - [x] Criar API modular de subclasses para `Subclass:`.
 - [x] Mover registro, busca e variaveis de classes para `ApiClasses`.
@@ -56,12 +59,13 @@
 - [x] Criar API/registro de modos com `create_mode`, `get_mode_var`, `set_mode_var` e `launch_mode`.
 - [x] Criar leitura de modos registrados com `get_modes_count` e `get_mode`.
 - [x] Recriar o primeiro modo de jogo: infeccao.
-- [ ] Precachear apenas os recursos usados pela primeira versao.
+- [x] Precachear apenas os recursos usados pela primeira versao.
 
 ## APIs Modulares
 
 - [x] Manter cada API com uma responsabilidade clara.
 - [x] API de props: criar e configurar props.
+- [x] API de modelos: criar, buscar e precachear modelos.
 - [x] API de classes: criar, buscar, exigir e configurar classes.
 - [x] API de subclasses: criar, buscar, exigir e configurar subclasses.
 - [x] API de modos: criar, buscar, configurar e lancar modos.
