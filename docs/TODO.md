@@ -8,12 +8,16 @@
 - [x] Criar regras iniciais do projeto.
 - [x] Criar `source/api` para APIs modulares.
 - [x] Validar compilacao inicial da API e classes sem erros.
+- [x] Reestudar Infection no Zombie Plague Next e ReZombie C++.
+- [x] Definir que modos devem ser finos e o round deve ficar no core.
 
 ## Proxima Meta
 
 - [ ] Criar uma base inicial funcional, simples, limpa e enxuta.
 - [ ] Manter a primeira versao focada em jogador, round e infeccao.
 - [ ] Reimplementar somente o que fizer sentido para este projeto novo.
+- [ ] Criar um core de round centralizado antes de recriar o modo Infection.
+- [ ] Recriar Infection como modo fino, sem responsabilidades de round.
 
 ## Base Inicial
 
@@ -33,17 +37,23 @@
 - [x] Criar `get_player_class` e `get_player_subclass`.
 - [x] Criar `change_player_class`.
 - [x] Criar `infect_player`.
-- [x] Criar o primeiro modo de jogo: infeccao.
-- [x] Criar o fluxo basico de round: preparar, iniciar, infectar e finalizar.
+- [ ] Criar API/registro de modos com `create_mode`, `get_mode_var`, `set_mode_var` e `launch_mode`.
+- [ ] Recriar o primeiro modo de jogo: infeccao.
 - [ ] Precachear apenas os recursos usados pela primeira versao.
 
-## Round
+## Round Core
 
 - [x] Usar a logica simples do Zombie Plague Next como referencia principal.
-- [x] Aguardar jogadores suficientes antes de iniciar o round.
-- [x] Iniciar uma contagem curta antes da infeccao.
-- [x] Escolher o primeiro zombie de forma clara e previsivel.
-- [x] Finalizar o round quando humanos ou zombies vencerem.
+- [x] Usar o ReZombie C++ como referencia de separacao entre GameRules e Mode.
+- [ ] Criar `source/core/GameRules.sma` como dono do ciclo do round.
+- [ ] Controlar estados do round: aguardando, preparando, jogando e finalizando.
+- [ ] Usar `server_frame()` com `get_gametime()` e deadlines absolutos.
+- [ ] Evitar `set_task` para countdown, inicio de round e infeccao.
+- [ ] Aguardar jogadores suficientes antes de iniciar o round.
+- [ ] Iniciar uma contagem curta antes da infeccao.
+- [ ] Selecionar e lancar o modo atual pelo core.
+- [ ] Deixar Infection responsavel apenas por escolher/aplicar o primeiro zombie.
+- [ ] Finalizar o round quando humanos ou zombies vencerem.
 
 ## Arquitetura e Visual
 
@@ -56,7 +66,7 @@
 ## Validacao
 
 - [x] Compilar API e classes iniciais sem erros.
-- [x] Compilar modo Infection sem erros.
+- [ ] Compilar GameRules e Infection sem erros.
 - [ ] Validar servidor com ReHLDS, ReGameDLL e ReAPI atualizados.
 - [ ] Validar carregamento sem erros no servidor.
 - [ ] Validar entrada de jogador humano.
