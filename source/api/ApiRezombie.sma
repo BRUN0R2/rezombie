@@ -5,6 +5,7 @@
 #pragma semicolon 1
 #pragma compress 1
 
+#include <rezombie_stock>
 #include <rezombie/core/PlayerState>
 
 const CLASS_HANDLE_OFFSET = 1000;
@@ -38,8 +39,6 @@ enum _:PropsData
 new Array:Classes;
 new Array:Subclasses;
 new Array:PropsList;
-
-stock any:ReportNativeError(const message[], any:...);
 
 public plugin_natives()
 {
@@ -836,11 +835,6 @@ stock bool:IsValidPropsIndex(index)
 	return 0 <= index < ArraySize(PropsList);
 }
 
-stock bool:IsPlayerIndex(id)
-{
-	return 1 <= id <= MaxClients;
-}
-
 stock bool:IsPlayableClassTeam(Team:team)
 {
 	return team == TEAM_HUMAN || team == TEAM_ZOMBIE;
@@ -861,18 +855,4 @@ stock bool:IsValidConnectedPlayer(id, const nativeName[])
 	}
 
 	return true;
-}
-
-stock any:ReportNativeError(const message[], any:...)
-{
-	enum
-	{
-		NativeErrorFirstVarArg = 2
-	};
-
-	new text[192];
-	vformat(text, charsmax(text), message, NativeErrorFirstVarArg);
-	log_error(AMX_ERR_NATIVE, "%s", text);
-
-	return null;
 }
