@@ -15,6 +15,18 @@
 - Evitar duplicacao, codigo morto e comentarios obsoletos.
 - Preferir contratos explicitos e falhas visiveis.
 
+## API
+
+- APIs modulares devem ficar em `source/api`.
+- A API publica deve ser simples, elegante e facil de usar.
+- Tipagem forte e explicita e obrigatoria nos handles e contratos expostos.
+- Criar classes, subclasses e modos deve ser muito facil.
+- O estilo visual da API deve seguir a organizacao simples do ReZombie C++.
+- Manter handles tipados no Pawn, como `Class:`, `Subclass:` e `Props:`.
+- Manter propriedades por string, como `get_class_var(class, "props")`.
+- Manter setters claros, como `set_props_var(props, "health", 700)`.
+- Validar nomes de propriedades e tipos sem fallback silencioso.
+
 ## Erros
 
 - Todo erro deve ser explicito, claro e rastreavel.
