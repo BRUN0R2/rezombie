@@ -146,8 +146,55 @@ native any:get_props_var(Props:props, const var[], any:...);
 native bool:set_props_var(Props:props, const var[], any:...);
 
 /**
+ * Player natives.
+ */
+
+/**
+ * Gets the current player class.
+ *
+ * @param id        Player index
+ *
+ * @return          Player class handle
+ * @error           Fails on invalid or disconnected player
+ */
+native Class:get_player_class(id);
+
+/**
+ * Gets the current player subclass.
+ *
+ * @param id        Player index
+ *
+ * @return          Player subclass handle, or null when not set
+ * @error           Fails on invalid or disconnected player
+ */
+native Subclass:get_player_subclass(id);
+
+/**
+ * Changes the player class and applies its runtime state.
+ *
+ * @param id        Player index
+ * @param class     Class handle
+ * @param subclass  Optional subclass handle
+ *
+ * @return          true on success, false otherwise
+ * @error           Fails on invalid player, class or subclass
+ */
+native bool:change_player_class(id, Class:class, Subclass:subclass = Invalid_Subclass);
+
+/**
  * Zombie natives.
  */
+
+/**
+ * Infects a player using the registered zombie class.
+ *
+ * @param id        Player index
+ * @param attacker  Optional attacker index
+ *
+ * @return          true on success, false otherwise
+ * @error           Fails on invalid player, attacker or missing zombie class
+ */
+native bool:infect_player(id, attacker = 0);
 
 /**
  * Checks whether a player is currently a zombie.

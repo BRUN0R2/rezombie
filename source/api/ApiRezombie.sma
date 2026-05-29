@@ -1,8 +1,11 @@
 #include <amxmodx>
+#include <reapi>
 #include <rezombie>
 
 #pragma semicolon 1
 #pragma compress 1
+
+#include <rezombie/core/PlayerState>
 
 const CLASS_HANDLE_OFFSET = 1000;
 const SUBCLASS_HANDLE_OFFSET = 2000;
@@ -35,7 +38,8 @@ enum _:PropsData
 new Array:Classes;
 new Array:Subclasses;
 new Array:PropsList;
-new bool:PlayerIsZombie[MAX_PLAYERS + 1];
+
+stock any:ReportNativeError(const message[], any:...);
 
 public plugin_natives()
 {
@@ -57,6 +61,11 @@ public plugin_natives()
 	register_native("get_props_var", "NativeGetPropsVar");
 	register_native("set_props_var", "NativeSetPropsVar");
 
+	register_native("get_player_class", "NativeGetPlayerClass");
+	register_native("get_player_subclass", "NativeGetPlayerSubclass");
+	register_native("change_player_class", "NativeChangePlayerClass");
+
+	register_native("infect_player", "NativeInfectPlayer");
 	register_native("IsZombie", "NativeIsZombie");
 	register_native("IsHuman", "NativeIsHuman");
 }
@@ -64,6 +73,12 @@ public plugin_natives()
 public plugin_precache()
 {
 	register_plugin("ReZombie API", "0.1.0", "BRUN0");
+}
+
+public plugin_init()
+{
+	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawnPost", true);
+	RegisterHookChain(RG_CBasePlayer_Killed, "OnPlayerKilledPost", true);
 }
 
 public plugin_end()
@@ -80,12 +95,29 @@ public plugin_end()
 
 public client_putinserver(id)
 {
-	PlayerIsZombie[id] = false;
+	ConnectPlayerState(id);
 }
 
 public client_disconnected(id)
 {
-	PlayerIsZombie[id] = false;
+	DisconnectPlayerState(id);
+}
+
+public OnPlayerSpawnPost(id)
+{
+	SpawnPlayerState(id);
+
+	new Class:class = GetPlayerClass(id);
+	if (class != Invalid_Class)
+		ApplyPlayerClassProps(id, class, GetPlayerSubclass(id));
+}
+
+public OnPlayerKilledPost(id, attacker, gib)
+{
+	#pragma unused attacker
+	#pragma unused gib
+
+	KillPlayerState(id);
 }
 
 public Class:NativeCreateClass(plugin, params)
@@ -97,21 +129,25 @@ public Class:NativeCreateClass(plugin, params)
 	};
 
 	if (params < CreateClassParamTeam)
-		return Class:NativeError("create_class requires handle and team.");
+		return Class:ReportNativeError("create_class requires handle and team.");
 
 	new handle[RZ_MAX_HANDLE_LENGTH];
 	get_string(CreateClassParamHandle, handle, charsmax(handle));
 
 	if (IsNullString(handle))
-		return Class:NativeError("Class handle cannot be empty.");
+		return Class:ReportNativeError("Class handle cannot be empty.");
 
 	if (FindClassByHandle(handle) != Invalid_Class)
-		return Class:NativeError("Class '%s' is already registered.", handle);
+		return Class:ReportNativeError("Class '%s' is already registered.", handle);
 
 	new data[ClassData];
 	copy(data[ClassHandle], charsmax(data[ClassHandle]), handle);
 	copy(data[ClassName], charsmax(data[ClassName]), handle);
-	data[ClassTeam] = Team:get_param(CreateClassParamTeam);
+	new Team:team = Team:get_param(CreateClassParamTeam);
+	if (!IsPlayableClassTeam(team))
+		return Class:ReportNativeError("Invalid class team %d.", _:team);
+
+	data[ClassTeam] = team;
 	data[ClassProps] = CreateProps(handle);
 
 	ArrayPushArray(Classes, data);
@@ -149,13 +185,13 @@ public any:NativeGetClassVar(plugin, params)
 	};
 
 	if (params < GetClassVarParamKey)
-		return NativeError("get_class_var requires class and property name.");
+		return ReportNativeError("get_class_var requires class and property name.");
 
 	new Class:class = Class:get_param(GetClassVarParamClass);
 	new index = GetClassIndex(class);
 
 	if (!IsValidClassIndex(index))
-		return NativeError("Invalid class handle %d.", _:class);
+		return ReportNativeError("Invalid class handle %d.", _:class);
 
 	new key[RZ_MAX_HANDLE_LENGTH];
 	get_string(GetClassVarParamKey, key, charsmax(key));
@@ -166,7 +202,7 @@ public any:NativeGetClassVar(plugin, params)
 	if (equal(key, "handle"))
 	{
 		if (params < GetClassVarParamOutputLength)
-			return NativeError("get_class_var 'handle' requires output buffer and length.");
+			return ReportNativeError("get_class_var 'handle' requires output buffer and length.");
 
 		set_string(GetClassVarParamOutput, data[ClassHandle], get_param(GetClassVarParamOutputLength));
 		return true;
@@ -175,7 +211,7 @@ public any:NativeGetClassVar(plugin, params)
 	if (equal(key, "name"))
 	{
 		if (params < GetClassVarParamOutputLength)
-			return NativeError("get_class_var 'name' requires output buffer and length.");
+			return ReportNativeError("get_class_var 'name' requires output buffer and length.");
 
 		set_string(GetClassVarParamOutput, data[ClassName], get_param(GetClassVarParamOutputLength));
 		return true;
@@ -187,7 +223,7 @@ public any:NativeGetClassVar(plugin, params)
 	if (equal(key, "props"))
 		return data[ClassProps];
 
-	return NativeError("Invalid class property '%s'.", key);
+	return ReportNativeError("Invalid class property '%s'.", key);
 }
 
 public bool:NativeSetClassVar(plugin, params)
@@ -200,13 +236,13 @@ public bool:NativeSetClassVar(plugin, params)
 	};
 
 	if (params < SetClassVarParamValue)
-		return bool:NativeError("set_class_var requires class, property name and value.");
+		return bool:ReportNativeError("set_class_var requires class, property name and value.");
 
 	new Class:class = Class:get_param(SetClassVarParamClass);
 	new index = GetClassIndex(class);
 
 	if (!IsValidClassIndex(index))
-		return bool:NativeError("Invalid class handle %d.", _:class);
+		return bool:ReportNativeError("Invalid class handle %d.", _:class);
 
 	new key[RZ_MAX_HANDLE_LENGTH];
 	get_string(SetClassVarParamKey, key, charsmax(key));
@@ -226,14 +262,14 @@ public bool:NativeSetClassVar(plugin, params)
 		new Props:props = Props:get_param(SetClassVarParamValue);
 
 		if (!IsValidPropsHandle(props))
-			return bool:NativeError("Invalid props handle %d.", _:props);
+			return bool:ReportNativeError("Invalid props handle %d.", _:props);
 
 		data[ClassProps] = props;
 		ArraySetArray(Classes, index, data);
 		return true;
 	}
 
-	return bool:NativeError("Invalid or readonly class property '%s'.", key);
+	return bool:ReportNativeError("Invalid or readonly class property '%s'.", key);
 }
 
 public Subclass:NativeCreateSubclass(plugin, params)
@@ -245,21 +281,21 @@ public Subclass:NativeCreateSubclass(plugin, params)
 	};
 
 	if (params < CreateSubclassParamClass)
-		return Subclass:NativeError("create_subclass requires handle and parent class.");
+		return Subclass:ReportNativeError("create_subclass requires handle and parent class.");
 
 	new handle[RZ_MAX_HANDLE_LENGTH];
 	get_string(CreateSubclassParamHandle, handle, charsmax(handle));
 
 	if (IsNullString(handle))
-		return Subclass:NativeError("Subclass handle cannot be empty.");
+		return Subclass:ReportNativeError("Subclass handle cannot be empty.");
 
 	if (FindSubclassByHandle(handle) != Invalid_Subclass)
-		return Subclass:NativeError("Subclass '%s' is already registered.", handle);
+		return Subclass:ReportNativeError("Subclass '%s' is already registered.", handle);
 
 	new Class:class = Class:get_param(CreateSubclassParamClass);
 
 	if (!IsValidClassHandle(class))
-		return Subclass:NativeError("Invalid parent class handle %d.", _:class);
+		return Subclass:ReportNativeError("Invalid parent class handle %d.", _:class);
 
 	new data[SubclassData];
 	copy(data[SubclassHandle], charsmax(data[SubclassHandle]), handle);
@@ -283,13 +319,13 @@ public any:NativeGetSubclassVar(plugin, params)
 	};
 
 	if (params < GetSubclassVarParamKey)
-		return NativeError("get_subclass_var requires subclass and property name.");
+		return ReportNativeError("get_subclass_var requires subclass and property name.");
 
 	new Subclass:subclass = Subclass:get_param(GetSubclassVarParamSubclass);
 	new index = GetSubclassIndex(subclass);
 
 	if (!IsValidSubclassIndex(index))
-		return NativeError("Invalid subclass handle %d.", _:subclass);
+		return ReportNativeError("Invalid subclass handle %d.", _:subclass);
 
 	new key[RZ_MAX_HANDLE_LENGTH];
 	get_string(GetSubclassVarParamKey, key, charsmax(key));
@@ -300,7 +336,7 @@ public any:NativeGetSubclassVar(plugin, params)
 	if (equal(key, "handle"))
 	{
 		if (params < GetSubclassVarParamOutputLength)
-			return NativeError("get_subclass_var 'handle' requires output buffer and length.");
+			return ReportNativeError("get_subclass_var 'handle' requires output buffer and length.");
 
 		set_string(GetSubclassVarParamOutput, data[SubclassHandle], get_param(GetSubclassVarParamOutputLength));
 		return true;
@@ -309,7 +345,7 @@ public any:NativeGetSubclassVar(plugin, params)
 	if (equal(key, "name"))
 	{
 		if (params < GetSubclassVarParamOutputLength)
-			return NativeError("get_subclass_var 'name' requires output buffer and length.");
+			return ReportNativeError("get_subclass_var 'name' requires output buffer and length.");
 
 		set_string(GetSubclassVarParamOutput, data[SubclassName], get_param(GetSubclassVarParamOutputLength));
 		return true;
@@ -321,7 +357,7 @@ public any:NativeGetSubclassVar(plugin, params)
 	if (equal(key, "props"))
 		return data[SubclassProps];
 
-	return NativeError("Invalid subclass property '%s'.", key);
+	return ReportNativeError("Invalid subclass property '%s'.", key);
 }
 
 public bool:NativeSetSubclassVar(plugin, params)
@@ -334,13 +370,13 @@ public bool:NativeSetSubclassVar(plugin, params)
 	};
 
 	if (params < SetSubclassVarParamValue)
-		return bool:NativeError("set_subclass_var requires subclass, property name and value.");
+		return bool:ReportNativeError("set_subclass_var requires subclass, property name and value.");
 
 	new Subclass:subclass = Subclass:get_param(SetSubclassVarParamSubclass);
 	new index = GetSubclassIndex(subclass);
 
 	if (!IsValidSubclassIndex(index))
-		return bool:NativeError("Invalid subclass handle %d.", _:subclass);
+		return bool:ReportNativeError("Invalid subclass handle %d.", _:subclass);
 
 	new key[RZ_MAX_HANDLE_LENGTH];
 	get_string(SetSubclassVarParamKey, key, charsmax(key));
@@ -360,14 +396,14 @@ public bool:NativeSetSubclassVar(plugin, params)
 		new Props:props = Props:get_param(SetSubclassVarParamValue);
 
 		if (!IsValidPropsHandle(props))
-			return bool:NativeError("Invalid props handle %d.", _:props);
+			return bool:ReportNativeError("Invalid props handle %d.", _:props);
 
 		data[SubclassProps] = props;
 		ArraySetArray(Subclasses, index, data);
 		return true;
 	}
 
-	return bool:NativeError("Invalid or readonly subclass property '%s'.", key);
+	return bool:ReportNativeError("Invalid or readonly subclass property '%s'.", key);
 }
 
 public any:NativeGetPropsVar(plugin, params)
@@ -381,13 +417,13 @@ public any:NativeGetPropsVar(plugin, params)
 	};
 
 	if (params < GetPropsVarParamKey)
-		return NativeError("get_props_var requires props and property name.");
+		return ReportNativeError("get_props_var requires props and property name.");
 
 	new Props:props = Props:get_param(GetPropsVarParamProps);
 	new index = GetPropsIndex(props);
 
 	if (!IsValidPropsIndex(index))
-		return NativeError("Invalid props handle %d.", _:props);
+		return ReportNativeError("Invalid props handle %d.", _:props);
 
 	new key[RZ_MAX_HANDLE_LENGTH];
 	get_string(GetPropsVarParamKey, key, charsmax(key));
@@ -398,7 +434,7 @@ public any:NativeGetPropsVar(plugin, params)
 	if (equal(key, "handle"))
 	{
 		if (params < GetPropsVarParamOutputLength)
-			return NativeError("get_props_var 'handle' requires output buffer and length.");
+			return ReportNativeError("get_props_var 'handle' requires output buffer and length.");
 
 		set_string(GetPropsVarParamOutput, data[PropsHandle], get_param(GetPropsVarParamOutputLength));
 		return true;
@@ -413,7 +449,7 @@ public any:NativeGetPropsVar(plugin, params)
 	if (equal(key, "gravity"))
 		return data[PropsGravity];
 
-	return NativeError("Invalid props property '%s'.", key);
+	return ReportNativeError("Invalid props property '%s'.", key);
 }
 
 public bool:NativeSetPropsVar(plugin, params)
@@ -426,13 +462,13 @@ public bool:NativeSetPropsVar(plugin, params)
 	};
 
 	if (params < SetPropsVarParamValue)
-		return bool:NativeError("set_props_var requires props, property name and value.");
+		return bool:ReportNativeError("set_props_var requires props, property name and value.");
 
 	new Props:props = Props:get_param(SetPropsVarParamProps);
 	new index = GetPropsIndex(props);
 
 	if (!IsValidPropsIndex(index))
-		return bool:NativeError("Invalid props handle %d.", _:props);
+		return bool:ReportNativeError("Invalid props handle %d.", _:props);
 
 	new key[RZ_MAX_HANDLE_LENGTH];
 	get_string(SetPropsVarParamKey, key, charsmax(key));
@@ -461,7 +497,7 @@ public bool:NativeSetPropsVar(plugin, params)
 		return true;
 	}
 
-	return bool:NativeError("Invalid or readonly props property '%s'.", key);
+	return bool:ReportNativeError("Invalid or readonly props property '%s'.", key);
 }
 
 public bool:NativeIsZombie(plugin, params)
@@ -472,14 +508,14 @@ public bool:NativeIsZombie(plugin, params)
 	};
 
 	if (params < IsZombieParamPlayer)
-		return bool:NativeError("IsZombie requires player index.");
+		return bool:ReportNativeError("IsZombie requires player index.");
 
 	new id = get_param(IsZombieParamPlayer);
 
-	if (!IsPlayerIndex(id))
-		return bool:NativeError("Invalid player index %d.", id);
+	if (!IsValidConnectedPlayer(id, "IsZombie"))
+		return false;
 
-	return bool:(is_user_connected(id) && PlayerIsZombie[id]);
+	return IsPlayerZombie(id);
 }
 
 public bool:NativeIsHuman(plugin, params)
@@ -490,14 +526,104 @@ public bool:NativeIsHuman(plugin, params)
 	};
 
 	if (params < IsHumanParamPlayer)
-		return bool:NativeError("IsHuman requires player index.");
+		return bool:ReportNativeError("IsHuman requires player index.");
 
 	new id = get_param(IsHumanParamPlayer);
 
-	if (!IsPlayerIndex(id))
-		return bool:NativeError("Invalid player index %d.", id);
+	if (!IsValidConnectedPlayer(id, "IsHuman"))
+		return false;
 
-	return bool:(is_user_connected(id) && !PlayerIsZombie[id]);
+	return IsPlayerHuman(id);
+}
+
+public Class:NativeGetPlayerClass(plugin, params)
+{
+	enum
+	{
+		GetPlayerClassParamPlayer = 1
+	};
+
+	if (params < GetPlayerClassParamPlayer)
+		return Class:ReportNativeError("get_player_class requires player index.");
+
+	new id = get_param(GetPlayerClassParamPlayer);
+
+	if (!IsValidConnectedPlayer(id, "get_player_class"))
+		return Invalid_Class;
+
+	return GetPlayerClass(id);
+}
+
+public Subclass:NativeGetPlayerSubclass(plugin, params)
+{
+	enum
+	{
+		GetPlayerSubclassParamPlayer = 1
+	};
+
+	if (params < GetPlayerSubclassParamPlayer)
+		return Subclass:ReportNativeError("get_player_subclass requires player index.");
+
+	new id = get_param(GetPlayerSubclassParamPlayer);
+
+	if (!IsValidConnectedPlayer(id, "get_player_subclass"))
+		return Invalid_Subclass;
+
+	return GetPlayerSubclass(id);
+}
+
+public bool:NativeChangePlayerClass(plugin, params)
+{
+	enum
+	{
+		ChangePlayerClassParamPlayer = 1,
+		ChangePlayerClassParamClass,
+		ChangePlayerClassParamSubclass
+	};
+
+	if (params < ChangePlayerClassParamClass)
+		return bool:ReportNativeError("change_player_class requires player and class.");
+
+	new id = get_param(ChangePlayerClassParamPlayer);
+	if (!IsValidConnectedPlayer(id, "change_player_class"))
+		return false;
+
+	new Class:class = Class:get_param(ChangePlayerClassParamClass);
+	new Subclass:subclass = Invalid_Subclass;
+
+	if (params >= ChangePlayerClassParamSubclass)
+		subclass = Subclass:get_param(ChangePlayerClassParamSubclass);
+
+	return ChangePlayerClass(id, class, subclass);
+}
+
+public bool:NativeInfectPlayer(plugin, params)
+{
+	enum
+	{
+		InfectPlayerParamPlayer = 1,
+		InfectPlayerParamAttacker
+	};
+
+	if (params < InfectPlayerParamPlayer)
+		return bool:ReportNativeError("infect_player requires player index.");
+
+	new id = get_param(InfectPlayerParamPlayer);
+	if (!IsValidConnectedPlayer(id, "infect_player"))
+		return false;
+
+	if (params >= InfectPlayerParamAttacker)
+	{
+		new attacker = get_param(InfectPlayerParamAttacker);
+		if (attacker && !IsValidConnectedPlayer(attacker, "infect_player"))
+			return false;
+	}
+
+	new Class:class = FindClassByHandle("zombie");
+	if (class == Invalid_Class)
+		return bool:ReportNativeError("Required class 'zombie' was not registered.");
+
+	return ChangePlayerClass(id, class, Invalid_Subclass);
 }
 
 stock Props:CreateProps(const handle[])
@@ -511,6 +637,105 @@ stock Props:CreateProps(const handle[])
 	ArrayPushArray(PropsList, data);
 
 	return MakePropsHandle(ArraySize(PropsList) - 1);
+}
+
+stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass)
+{
+	if (!IsValidClassHandle(class))
+		return bool:ReportNativeError("Invalid class handle %d.", _:class);
+
+	if (subclass != Invalid_Subclass && !IsValidSubclassForClass(subclass, class))
+		return bool:ReportNativeError("Invalid subclass handle %d for class %d.", _:subclass, _:class);
+
+	new Team:team = GetClassTeam(class);
+	if (!IsPlayableClassTeam(team))
+		return bool:ReportNativeError("Invalid class team %d.", _:team);
+
+	SetPlayerClass(id, class);
+	SetPlayerSubclass(id, subclass);
+	SetPlayerZombie(id, bool:(team == TEAM_ZOMBIE));
+
+	ApplyPlayerTeam(id, team);
+
+	if (IsPlayerAlive(id))
+		ApplyPlayerClassProps(id, class, subclass);
+
+	return true;
+}
+
+stock ApplyPlayerClassProps(id, Class:class, Subclass:subclass)
+{
+	new Props:props = GetClassRuntimeProps(class, subclass);
+	if (!IsValidPropsHandle(props))
+	{
+		ReportNativeError("Invalid runtime props for player %d.", id);
+		return;
+	}
+
+	new data[PropsData];
+	ArrayGetArray(PropsList, GetPropsIndex(props), data);
+
+	set_entvar(id, var_health, float(data[PropsHealth]));
+	set_entvar(id, var_maxspeed, float(data[PropsSpeed]));
+	set_entvar(id, var_gravity, data[PropsGravity]);
+}
+
+stock ApplyPlayerTeam(id, Team:team)
+{
+	rg_set_user_team(id, GetGameTeam(team), MODEL_AUTO, true, false);
+}
+
+stock Props:GetClassRuntimeProps(Class:class, Subclass:subclass)
+{
+	if (subclass != Invalid_Subclass)
+		return GetSubclassProps(subclass);
+
+	return GetClassProps(class);
+}
+
+stock TeamName:GetGameTeam(Team:team)
+{
+	switch (team)
+	{
+		case TEAM_HUMAN:
+			return TEAM_CT;
+		case TEAM_ZOMBIE:
+			return TEAM_TERRORIST;
+	}
+
+	return TEAM_UNASSIGNED;
+}
+
+stock Team:GetClassTeam(Class:class)
+{
+	new data[ClassData];
+	ArrayGetArray(Classes, GetClassIndex(class), data);
+
+	return data[ClassTeam];
+}
+
+stock Props:GetClassProps(Class:class)
+{
+	new data[ClassData];
+	ArrayGetArray(Classes, GetClassIndex(class), data);
+
+	return data[ClassProps];
+}
+
+stock Class:GetSubclassClass(Subclass:subclass)
+{
+	new data[SubclassData];
+	ArrayGetArray(Subclasses, GetSubclassIndex(subclass), data);
+
+	return data[SubclassClass];
+}
+
+stock Props:GetSubclassProps(Subclass:subclass)
+{
+	new data[SubclassData];
+	ArrayGetArray(Subclasses, GetSubclassIndex(subclass), data);
+
+	return data[SubclassProps];
 }
 
 stock Class:FindClassByHandle(const handle[])
@@ -578,6 +803,19 @@ stock bool:IsValidClassHandle(Class:class)
 	return IsValidClassIndex(GetClassIndex(class));
 }
 
+stock bool:IsValidSubclassHandle(Subclass:subclass)
+{
+	return IsValidSubclassIndex(GetSubclassIndex(subclass));
+}
+
+stock bool:IsValidSubclassForClass(Subclass:subclass, Class:class)
+{
+	if (!IsValidSubclassHandle(subclass))
+		return false;
+
+	return GetSubclassClass(subclass) == class;
+}
+
 stock bool:IsValidPropsHandle(Props:props)
 {
 	return IsValidPropsIndex(GetPropsIndex(props));
@@ -603,7 +841,29 @@ stock bool:IsPlayerIndex(id)
 	return 1 <= id <= MaxClients;
 }
 
-stock any:NativeError(const message[], any:...)
+stock bool:IsPlayableClassTeam(Team:team)
+{
+	return team == TEAM_HUMAN || team == TEAM_ZOMBIE;
+}
+
+stock bool:IsValidConnectedPlayer(id, const nativeName[])
+{
+	if (!IsPlayerIndex(id))
+	{
+		ReportNativeError("%s received invalid player index %d.", nativeName, id);
+		return false;
+	}
+
+	if (!IsPlayerConnected(id))
+	{
+		ReportNativeError("%s received disconnected player %d.", nativeName, id);
+		return false;
+	}
+
+	return true;
+}
+
+stock any:ReportNativeError(const message[], any:...)
 {
 	enum
 	{

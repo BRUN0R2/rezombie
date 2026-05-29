@@ -21,6 +21,8 @@
 ## API
 
 - APIs modulares devem ficar em `source/api`.
+- Includes internos modulares devem ficar em `include/rezombie/<modulo>`.
+- Codigo em `source` deve usar includes padrao, sem caminhos relativos entre pastas.
 - A API publica deve ser simples, elegante e facil de usar.
 - Tipagem forte e explicita e obrigatoria nos handles e contratos expostos.
 - Criar classes, subclasses e modos deve ser muito facil.
