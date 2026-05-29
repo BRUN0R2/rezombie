@@ -32,9 +32,6 @@ public plugin_natives()
 	Modes = ArrayCreate(ModeData);
 	ModesByHandle = TrieCreate();
 
-	if (Modes == Invalid_Array || ModesByHandle == Invalid_Trie)
-		set_fail_state("Modes API storage was not initialized.");
-
 	register_native("create_mode", "NativeCreateMode");
 	register_native("FindMode", "NativeFindMode");
 	register_native("get_modes_count", "NativeGetModesCount");

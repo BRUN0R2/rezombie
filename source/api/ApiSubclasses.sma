@@ -25,9 +25,6 @@ public plugin_natives()
 	Subclasses = ArrayCreate(SubclassData);
 	SubclassesByHandle = TrieCreate();
 
-	if (Subclasses == Invalid_Array || SubclassesByHandle == Invalid_Trie)
-		set_fail_state("Subclasses API storage was not initialized.");
-
 	register_native("create_subclass", "NativeCreateSubclass");
 	register_native("FindSubclass", "NativeFindSubclass");
 	register_native("get_subclass_var", "NativeGetSubclassVar");

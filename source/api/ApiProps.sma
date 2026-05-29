@@ -27,9 +27,6 @@ public plugin_natives()
 	PropsList = ArrayCreate(PropsData);
 	PropsByHandle = TrieCreate();
 
-	if (PropsList == Invalid_Array || PropsByHandle == Invalid_Trie)
-		set_fail_state("Props API storage was not initialized.");
-
 	register_native("create_props", "NativeCreateProps");
 	register_native("get_props_var", "NativeGetPropsVar");
 	register_native("set_props_var", "NativeSetPropsVar");

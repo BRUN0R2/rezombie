@@ -25,9 +25,6 @@ public plugin_natives()
 	Classes = ArrayCreate(ClassData);
 	ClassesByHandle = TrieCreate();
 
-	if (Classes == Invalid_Array || ClassesByHandle == Invalid_Trie)
-		set_fail_state("Classes API storage was not initialized.");
-
 	register_native("create_class", "NativeCreateClass");
 	register_native("FindClass", "NativeFindClass");
 	register_native("get_class_var", "NativeGetClassVar");
