@@ -90,3 +90,23 @@ Ordem inicial esperada dos plugins:
 9. Core de round em `source/core`
 
 As APIs devem carregar antes de qualquer classe, modo ou core que use suas natives.
+
+## Runtime Dev
+
+- `DevRuntime.amxx` e exclusivo para validacao local.
+- O build gera `plugins-rezombie-dev.ini` separado da lista principal.
+- Comandos dev devem ser genericos e explicitos.
+- Comandos dev nao devem virar dependencia do gameplay.
+- `rz_dev_restart_round` aceita delay opcional para validar restart temporizado.
+
+Comandos iniciais:
+
+```text
+rz_dev_add_bots <count>
+rz_dev_respawn_player <id>
+rz_dev_infect_player <id> <subclass>
+rz_dev_change_class <id> <class> [subclass]
+rz_dev_validate_player <id>
+rz_dev_dump_player <id>
+rz_dev_restart_round [delay]
+```
