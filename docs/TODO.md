@@ -114,6 +114,7 @@
 - [x] Expor leitura segura de estado, modo e tempo restante do round.
 - [x] Manter tempo configurado do round dentro do `Mode`.
 - [x] Sincronizar estado publico do round pelo `GameRules` via `ApiRounds`.
+- [x] Organizar `GameRules` em `RoundConfig`, `RoundRuntime` e `RoundForwards`.
 - [x] Tratar freeze do CS como estado explicito antes do prepare.
 - [x] Forcar cvars essenciais do round no core.
 - [x] Forcar humano/CT para jogador que nasce antes da infeccao.

@@ -9,36 +9,56 @@
 #pragma compress 1
 
 const GAME_RULES_FORWARD_INVALID = -1;
-const GAME_RULES_MIN_ALIVE_PLAYERS = 2;
-const GAME_RULES_PREPARE_SECONDS = 10;
-const GAME_RULES_FREEZE_SECONDS = 0;
-const GAME_RULES_LIMIT_TEAMS = 0;
-const GAME_RULES_AUTO_TEAM_BALANCE = 0;
 const GAME_RULES_HOOK_FALSE = 0;
 const GAME_RULES_NO_ENTITY = 0;
 const GAME_RULES_NO_OBSERVER_TARGET = 0;
-const TeamName:GAME_RULES_DEFAULT_JOIN_TEAM = TEAM_CT;
-const Float:GAME_RULES_WAIT_CHECK_INTERVAL = 1.0;
-const Float:GAME_RULES_WIN_CHECK_INTERVAL = 1.0;
-const Float:GAME_RULES_ROUND_END_DELAY = 5.0;
-const Float:GAME_RULES_NO_INTRO_CAMERA_TIME = 0.0;
 
 new const GAME_RULES_DEFAULT_HUMAN_CLASS[] = "human";
 new const GAME_RULES_ROUND_VAR_STATE[] = "state";
 new const GAME_RULES_ROUND_VAR_MODE[] = "mode";
 new const GAME_RULES_ROUND_VAR_TIME_LEFT[] = "time_left";
 
-new RoundState:CurrentRoundState = RoundStateFreezing;
-new Mode:CurrentMode = Invalid_Mode;
-new Float:NextWaitCheckAt;
-new Float:PrepareEndsAt;
-new Float:RoundEndsAt;
-new Float:NextWinCheckAt;
-new bool:MissingModesReported;
-new bool:GameRulesEndingRound;
-new RoundPrepareForward = GAME_RULES_FORWARD_INVALID;
-new RoundStartForward = GAME_RULES_FORWARD_INVALID;
-new RoundEndForward = GAME_RULES_FORWARD_INVALID;
+enum _:RoundConfig
+{
+	RoundConfigMinAlivePlayers,
+	RoundConfigPrepareSeconds,
+	RoundConfigFreezeSeconds,
+	RoundConfigLimitTeams,
+	RoundConfigAutoTeamBalance,
+	TeamName:RoundConfigDefaultJoinTeam,
+	Float:RoundConfigWaitCheckInterval,
+	Float:RoundConfigWinCheckInterval,
+	Float:RoundConfigEndDelay,
+	Float:RoundConfigNoIntroCameraTime
+};
+
+enum _:RoundRuntime
+{
+	RoundState:RoundRuntimeState,
+	Mode:RoundRuntimeMode,
+	Float:RoundRuntimeNextWaitCheckAt,
+	Float:RoundRuntimePrepareEndsAt,
+	Float:RoundRuntimeRoundEndsAt,
+	Float:RoundRuntimeNextWinCheckAt,
+	bool:RoundRuntimeMissingModesReported,
+	bool:RoundRuntimeEndingRound
+};
+
+enum _:RoundForwards
+{
+	RoundForwardPrepare,
+	RoundForwardStart,
+	RoundForwardEnd
+};
+
+new RoundConfigData[RoundConfig];
+new RoundRuntimeData[RoundRuntime];
+new RoundForwardData[RoundForwards] =
+{
+	GAME_RULES_FORWARD_INVALID,
+	GAME_RULES_FORWARD_INVALID,
+	GAME_RULES_FORWARD_INVALID
+};
 
 public plugin_precache()
 {
@@ -47,6 +67,8 @@ public plugin_precache()
 
 public plugin_init()
 {
+	InitializeRoundConfig();
+	InitializeRoundRuntime();
 	CreateRoundForwards();
 	register_clcmd("chooseteam", "CommandBlockDefaultJoinFlow");
 	register_clcmd("jointeam", "CommandBlockDefaultJoinFlow");
@@ -64,6 +86,32 @@ public plugin_init()
 	RegisterHookChain(RG_RoundEnd, "OnRoundEndPre", false);
 	RegisterHookChain(RG_RoundEnd, "OnRoundEndPost", true);
 	register_forward(FM_StartFrame, "OnServerFrame");
+}
+
+stock InitializeRoundConfig()
+{
+	RoundConfigData[RoundConfigMinAlivePlayers] = 2;
+	RoundConfigData[RoundConfigPrepareSeconds] = 10;
+	RoundConfigData[RoundConfigFreezeSeconds] = 0;
+	RoundConfigData[RoundConfigLimitTeams] = 0;
+	RoundConfigData[RoundConfigAutoTeamBalance] = 0;
+	RoundConfigData[RoundConfigDefaultJoinTeam] = TEAM_CT;
+	RoundConfigData[RoundConfigWaitCheckInterval] = 1.0;
+	RoundConfigData[RoundConfigWinCheckInterval] = 1.0;
+	RoundConfigData[RoundConfigEndDelay] = 5.0;
+	RoundConfigData[RoundConfigNoIntroCameraTime] = 0.0;
+}
+
+stock InitializeRoundRuntime()
+{
+	RoundRuntimeData[RoundRuntimeState] = RoundStateFreezing;
+	RoundRuntimeData[RoundRuntimeMode] = Invalid_Mode;
+	RoundRuntimeData[RoundRuntimeNextWaitCheckAt] = 0.0;
+	RoundRuntimeData[RoundRuntimePrepareEndsAt] = 0.0;
+	RoundRuntimeData[RoundRuntimeRoundEndsAt] = 0.0;
+	RoundRuntimeData[RoundRuntimeNextWinCheckAt] = 0.0;
+	RoundRuntimeData[RoundRuntimeMissingModesReported] = false;
+	RoundRuntimeData[RoundRuntimeEndingRound] = false;
 }
 
 public plugin_cfg()
@@ -100,7 +148,7 @@ public OnRestartRoundPost()
 
 public OnRoundFreezeEndPost()
 {
-	if (CurrentRoundState != RoundStateFreezing)
+	if (RoundRuntimeData[RoundRuntimeState] != RoundStateFreezing)
 		return;
 
 	ResetRoundState(get_gametime());
@@ -112,11 +160,11 @@ public OnRoundEndPost(WinStatus:status, ScenarioEventEndRound:event, Float:delay
 	#pragma unused event
 	#pragma unused delay
 
-	if (!GameRulesEndingRound)
+	if (!RoundRuntimeData[RoundRuntimeEndingRound])
 		return;
 
-	CurrentRoundState = RoundStateEnding;
-	CurrentMode = Invalid_Mode;
+	RoundRuntimeData[RoundRuntimeState] = RoundStateEnding;
+	RoundRuntimeData[RoundRuntimeMode] = Invalid_Mode;
 	SyncRoundVars(0.0);
 }
 
@@ -126,10 +174,10 @@ public OnRoundEndPre(WinStatus:status, ScenarioEventEndRound:event, Float:delay)
 	#pragma unused event
 	#pragma unused delay
 
-	if (GameRulesEndingRound)
+	if (RoundRuntimeData[RoundRuntimeEndingRound])
 		return HC_CONTINUE;
 
-	switch (CurrentRoundState)
+	switch (RoundRuntimeData[RoundRuntimeState])
 	{
 		case RoundStateWaiting, RoundStatePreparing, RoundStatePlaying:
 		{
@@ -228,7 +276,7 @@ public OnPlayerCanRespawnPre(id)
 	if (!is_user_connected(id))
 		return HC_CONTINUE;
 
-	if (CurrentRoundState == RoundStatePlaying || CurrentRoundState == RoundStateEnding)
+	if (RoundRuntimeData[RoundRuntimeState] == RoundStatePlaying || RoundRuntimeData[RoundRuntimeState] == RoundStateEnding)
 	{
 		SetHookChainReturn(ATYPE_INTEGER, GAME_RULES_HOOK_FALSE);
 		return HC_SUPERCEDE;
@@ -241,7 +289,7 @@ public client_putinserver(id)
 {
 	#pragma unused id
 
-	if (CurrentRoundState == RoundStateWaiting)
+	if (RoundRuntimeData[RoundRuntimeState] == RoundStateWaiting)
 		ScheduleWaitCheck(get_gametime());
 }
 
@@ -249,15 +297,15 @@ public client_disconnected(id)
 {
 	#pragma unused id
 
-	if (CurrentRoundState == RoundStatePlaying)
-		NextWinCheckAt = get_gametime();
+	if (RoundRuntimeData[RoundRuntimeState] == RoundStatePlaying)
+		RoundRuntimeData[RoundRuntimeNextWinCheckAt] = get_gametime();
 }
 
 public OnServerFrame()
 {
 	new Float:now = get_gametime();
 
-	switch (CurrentRoundState)
+	switch (RoundRuntimeData[RoundRuntimeState])
 	{
 		case RoundStateWaiting:
 			UpdateWaitingRound(now);
@@ -272,33 +320,33 @@ public OnServerFrame()
 
 stock ResetRoundState(Float:now)
 {
-	CurrentRoundState = RoundStateWaiting;
-	CurrentMode = Invalid_Mode;
-	PrepareEndsAt = 0.0;
-	RoundEndsAt = 0.0;
-	NextWinCheckAt = 0.0;
+	RoundRuntimeData[RoundRuntimeState] = RoundStateWaiting;
+	RoundRuntimeData[RoundRuntimeMode] = Invalid_Mode;
+	RoundRuntimeData[RoundRuntimePrepareEndsAt] = 0.0;
+	RoundRuntimeData[RoundRuntimeRoundEndsAt] = 0.0;
+	RoundRuntimeData[RoundRuntimeNextWinCheckAt] = 0.0;
 	ScheduleWaitCheck(now);
 	SyncRoundVars(0.0);
 }
 
 stock EnterFreezingRound()
 {
-	CurrentRoundState = RoundStateFreezing;
-	CurrentMode = Invalid_Mode;
-	PrepareEndsAt = 0.0;
-	RoundEndsAt = 0.0;
-	NextWinCheckAt = 0.0;
-	NextWaitCheckAt = 0.0;
+	RoundRuntimeData[RoundRuntimeState] = RoundStateFreezing;
+	RoundRuntimeData[RoundRuntimeMode] = Invalid_Mode;
+	RoundRuntimeData[RoundRuntimePrepareEndsAt] = 0.0;
+	RoundRuntimeData[RoundRuntimeRoundEndsAt] = 0.0;
+	RoundRuntimeData[RoundRuntimeNextWinCheckAt] = 0.0;
+	RoundRuntimeData[RoundRuntimeNextWaitCheckAt] = 0.0;
 	SyncRoundVars(0.0);
 }
 
 stock UpdateWaitingRound(Float:now)
 {
-	if (now < NextWaitCheckAt)
+	if (now < RoundRuntimeData[RoundRuntimeNextWaitCheckAt])
 		return;
 
 	new alivePlayers = CountAlivePlayers();
-	if (alivePlayers < GAME_RULES_MIN_ALIVE_PLAYERS)
+	if (alivePlayers < RoundConfigData[RoundConfigMinAlivePlayers])
 	{
 		ScheduleWaitCheck(now);
 		return;
@@ -316,13 +364,13 @@ stock UpdateWaitingRound(Float:now)
 
 stock UpdatePreparingRound(Float:now)
 {
-	if (!HasEnoughPlayersForMode(CurrentMode))
+	if (!HasEnoughPlayersForMode(RoundRuntimeData[RoundRuntimeMode]))
 	{
 		ResetRoundState(now);
 		return;
 	}
 
-	if (now < PrepareEndsAt)
+	if (now < RoundRuntimeData[RoundRuntimePrepareEndsAt])
 		return;
 
 	StartPlayingRound(now);
@@ -330,45 +378,45 @@ stock UpdatePreparingRound(Float:now)
 
 stock UpdatePlayingRound(Float:now)
 {
-	if (now >= RoundEndsAt)
+	if (now >= RoundRuntimeData[RoundRuntimeRoundEndsAt])
 	{
 		EndRound(RoundEndReasonHumans);
 		return;
 	}
 
-	if (now < NextWinCheckAt)
+	if (now < RoundRuntimeData[RoundRuntimeNextWinCheckAt])
 		return;
 
-	NextWinCheckAt = now + GAME_RULES_WIN_CHECK_INTERVAL;
+	RoundRuntimeData[RoundRuntimeNextWinCheckAt] = now + RoundConfigData[RoundConfigWinCheckInterval];
 	CheckWinConditions();
 }
 
 stock StartPrepareRound(Mode:mode, Float:now)
 {
-	CurrentRoundState = RoundStatePreparing;
-	CurrentMode = mode;
-	PrepareEndsAt = now + float(GAME_RULES_PREPARE_SECONDS);
-	NextWinCheckAt = 0.0;
-	SyncRoundVars(float(GAME_RULES_PREPARE_SECONDS));
+	RoundRuntimeData[RoundRuntimeState] = RoundStatePreparing;
+	RoundRuntimeData[RoundRuntimeMode] = mode;
+	RoundRuntimeData[RoundRuntimePrepareEndsAt] = now + float(RoundConfigData[RoundConfigPrepareSeconds]);
+	RoundRuntimeData[RoundRuntimeNextWinCheckAt] = 0.0;
+	SyncRoundVars(float(RoundConfigData[RoundConfigPrepareSeconds]));
 
-	ExecuteRoundPrepareForward(mode, float(GAME_RULES_PREPARE_SECONDS));
+	ExecuteRoundPrepareForward(mode, float(RoundConfigData[RoundConfigPrepareSeconds]));
 }
 
 stock StartPlayingRound(Float:now)
 {
-	if (!launch_mode(CurrentMode))
+	if (!launch_mode(RoundRuntimeData[RoundRuntimeMode]))
 		set_fail_state("GameRules could not launch the selected mode.");
 
-	new Float:roundTime = get_mode_var(CurrentMode, "round_time");
+	new Float:roundTime = get_mode_var(RoundRuntimeData[RoundRuntimeMode], "round_time");
 	if (roundTime <= 0.0)
 		set_fail_state("Selected mode has invalid round_time.");
 
-	CurrentRoundState = RoundStatePlaying;
-	RoundEndsAt = now + roundTime;
-	NextWinCheckAt = now + GAME_RULES_WIN_CHECK_INTERVAL;
+	RoundRuntimeData[RoundRuntimeState] = RoundStatePlaying;
+	RoundRuntimeData[RoundRuntimeRoundEndsAt] = now + roundTime;
+	RoundRuntimeData[RoundRuntimeNextWinCheckAt] = now + RoundConfigData[RoundConfigWinCheckInterval];
 	SyncRoundVars(roundTime);
 
-	ExecuteRoundStartForward(CurrentMode, roundTime);
+	ExecuteRoundStartForward(RoundRuntimeData[RoundRuntimeMode], roundTime);
 }
 
 stock CheckWinConditions()
@@ -394,42 +442,42 @@ stock CheckWinConditions()
 
 stock EndRound(RoundEndReason:reason)
 {
-	if (CurrentRoundState == RoundStateEnding)
+	if (RoundRuntimeData[RoundRuntimeState] == RoundStateEnding)
 		return;
 
-	CurrentRoundState = RoundStateEnding;
-	CurrentMode = Invalid_Mode;
+	RoundRuntimeData[RoundRuntimeState] = RoundStateEnding;
+	RoundRuntimeData[RoundRuntimeMode] = Invalid_Mode;
 	SyncRoundVars(0.0);
-	GameRulesEndingRound = true;
+	RoundRuntimeData[RoundRuntimeEndingRound] = true;
 	ExecuteRoundEndForward(reason);
 
 	switch (reason)
 	{
 		case RoundEndReasonHumans:
-			rg_round_end(GAME_RULES_ROUND_END_DELAY, WINSTATUS_CTS, ROUND_CTS_WIN);
+			rg_round_end(RoundConfigData[RoundConfigEndDelay], WINSTATUS_CTS, ROUND_CTS_WIN);
 		case RoundEndReasonZombies:
-			rg_round_end(GAME_RULES_ROUND_END_DELAY, WINSTATUS_TERRORISTS, ROUND_TERRORISTS_WIN);
+			rg_round_end(RoundConfigData[RoundConfigEndDelay], WINSTATUS_TERRORISTS, ROUND_TERRORISTS_WIN);
 		case RoundEndReasonDraw:
-			rg_round_end(GAME_RULES_ROUND_END_DELAY, WINSTATUS_DRAW, ROUND_END_DRAW);
+			rg_round_end(RoundConfigData[RoundConfigEndDelay], WINSTATUS_DRAW, ROUND_END_DRAW);
 		default:
-			rg_round_end(GAME_RULES_ROUND_END_DELAY, WINSTATUS_NONE, ROUND_NONE);
+			rg_round_end(RoundConfigData[RoundConfigEndDelay], WINSTATUS_NONE, ROUND_NONE);
 	}
 
-	GameRulesEndingRound = false;
+	RoundRuntimeData[RoundRuntimeEndingRound] = false;
 }
 
 stock CreateRoundForwards()
 {
-	RoundPrepareForward = CreateMultiForward("@round_prepare", ET_IGNORE, FP_CELL, FP_FLOAT);
-	RoundStartForward = CreateMultiForward("@round_start", ET_IGNORE, FP_CELL, FP_FLOAT);
-	RoundEndForward = CreateMultiForward("@round_end", ET_IGNORE, FP_CELL);
+	RoundForwardData[RoundForwardPrepare] = CreateMultiForward("@round_prepare", ET_IGNORE, FP_CELL, FP_FLOAT);
+	RoundForwardData[RoundForwardStart] = CreateMultiForward("@round_start", ET_IGNORE, FP_CELL, FP_FLOAT);
+	RoundForwardData[RoundForwardEnd] = CreateMultiForward("@round_end", ET_IGNORE, FP_CELL);
 }
 
 stock DestroyRoundForwards()
 {
-	DestroyRoundForward(RoundPrepareForward);
-	DestroyRoundForward(RoundStartForward);
-	DestroyRoundForward(RoundEndForward);
+	DestroyRoundForward(RoundForwardData[RoundForwardPrepare]);
+	DestroyRoundForward(RoundForwardData[RoundForwardStart]);
+	DestroyRoundForward(RoundForwardData[RoundForwardEnd]);
 }
 
 stock DestroyRoundForward(&forwardId)
@@ -444,21 +492,21 @@ stock DestroyRoundForward(&forwardId)
 stock ExecuteRoundPrepareForward(Mode:mode, Float:prepareTime)
 {
 	new result;
-	if (!ExecuteForward(RoundPrepareForward, result, mode, prepareTime))
+	if (!ExecuteForward(RoundForwardData[RoundForwardPrepare], result, mode, prepareTime))
 		set_fail_state("GameRules could not execute @round_prepare.");
 }
 
 stock ExecuteRoundStartForward(Mode:mode, Float:roundTime)
 {
 	new result;
-	if (!ExecuteForward(RoundStartForward, result, mode, roundTime))
+	if (!ExecuteForward(RoundForwardData[RoundForwardStart], result, mode, roundTime))
 		set_fail_state("GameRules could not execute @round_start.");
 }
 
 stock ExecuteRoundEndForward(RoundEndReason:reason)
 {
 	new result;
-	if (!ExecuteForward(RoundEndForward, result, reason))
+	if (!ExecuteForward(RoundForwardData[RoundForwardEnd], result, reason))
 		set_fail_state("GameRules could not execute @round_end.");
 }
 
@@ -535,14 +583,14 @@ stock CountAliveZombies()
 
 stock ScheduleWaitCheck(Float:now)
 {
-	NextWaitCheckAt = now + GAME_RULES_WAIT_CHECK_INTERVAL;
+	RoundRuntimeData[RoundRuntimeNextWaitCheckAt] = now + RoundConfigData[RoundConfigWaitCheckInterval];
 }
 
 stock EnforceGameRuleCvars()
 {
-	set_cvar_num("mp_freezetime", GAME_RULES_FREEZE_SECONDS);
-	set_cvar_num("mp_limitteams", GAME_RULES_LIMIT_TEAMS);
-	set_cvar_num("mp_autoteambalance", GAME_RULES_AUTO_TEAM_BALANCE);
+	set_cvar_num("mp_freezetime", RoundConfigData[RoundConfigFreezeSeconds]);
+	set_cvar_num("mp_limitteams", RoundConfigData[RoundConfigLimitTeams]);
+	set_cvar_num("mp_autoteambalance", RoundConfigData[RoundConfigAutoTeamBalance]);
 }
 
 stock ResetPlayablePlayersToHumans()
@@ -569,7 +617,7 @@ stock ResetPlayerToHuman(id, Class:class)
 
 stock bool:IsRoundAcceptingHumans()
 {
-	switch (CurrentRoundState)
+	switch (RoundRuntimeData[RoundRuntimeState])
 	{
 		case RoundStateFreezing, RoundStateWaiting, RoundStatePreparing:
 			return true;
@@ -580,7 +628,7 @@ stock bool:IsRoundAcceptingHumans()
 
 stock bool:IsRoundBlockingAdmission()
 {
-	switch (CurrentRoundState)
+	switch (RoundRuntimeData[RoundRuntimeState])
 	{
 		case RoundStatePlaying, RoundStateEnding:
 			return true;
@@ -616,9 +664,9 @@ stock AdmitPlayerToDefaultTeam(id)
 	new TeamName:team = get_member(id, m_iTeam);
 	if (team != TEAM_TERRORIST && team != TEAM_CT)
 	{
-		rg_set_user_team(id, GAME_RULES_DEFAULT_JOIN_TEAM, MODEL_AUTO, true, false);
+		rg_set_user_team(id, RoundConfigData[RoundConfigDefaultJoinTeam], MODEL_AUTO, true, false);
 
-		if (get_member(id, m_iTeam) != GAME_RULES_DEFAULT_JOIN_TEAM)
+		if (get_member(id, m_iTeam) != RoundConfigData[RoundConfigDefaultJoinTeam])
 			set_fail_state("GameRules could not admit player %d to the default team.", id);
 	}
 
@@ -647,7 +695,7 @@ stock CompletePlayerJoinState(id)
 stock ResetPlayerJoinCamera(id)
 {
 	set_member(id, m_pIntroCamera, GAME_RULES_NO_ENTITY);
-	set_member(id, m_fIntroCamTime, GAME_RULES_NO_INTRO_CAMERA_TIME);
+	set_member(id, m_fIntroCamTime, RoundConfigData[RoundConfigNoIntroCameraTime]);
 	set_entvar(id, var_iuser1, OBS_NONE);
 	set_entvar(id, var_iuser2, GAME_RULES_NO_OBSERVER_TARGET);
 	set_entvar(id, var_iuser3, GAME_RULES_NO_OBSERVER_TARGET);
@@ -671,19 +719,19 @@ stock bool:IsPlayerOnPlayableGameTeam(id)
 
 stock ReportMissingModes()
 {
-	if (MissingModesReported)
+	if (RoundRuntimeData[RoundRuntimeMissingModesReported])
 		return;
 
-	MissingModesReported = true;
+	RoundRuntimeData[RoundRuntimeMissingModesReported] = true;
 	log_amx("GameRules is waiting for at least one registered mode.");
 }
 
 stock SyncRoundVars(Float:timeLeft)
 {
-	if (!set_round_var(GAME_RULES_ROUND_VAR_STATE, CurrentRoundState))
+	if (!set_round_var(GAME_RULES_ROUND_VAR_STATE, RoundRuntimeData[RoundRuntimeState]))
 		set_fail_state("GameRules could not sync round state.");
 
-	if (!set_round_var(GAME_RULES_ROUND_VAR_MODE, CurrentMode))
+	if (!set_round_var(GAME_RULES_ROUND_VAR_MODE, RoundRuntimeData[RoundRuntimeMode]))
 		set_fail_state("GameRules could not sync round mode.");
 
 	if (!set_round_var(GAME_RULES_ROUND_VAR_TIME_LEFT, timeLeft))

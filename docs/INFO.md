@@ -44,6 +44,7 @@ As bases estudadas servem apenas como referencia:
 - Troca de classe aplica props, modelo, time e itens padrão.
 - `ApiRounds` expoe o estado publico do round com `get_round_var` e `set_round_var`.
 - O estado real do round pertence ao `GameRules`; somente ele deve escrever em `set_round_var`.
+- O `GameRules` organiza estado interno em `RoundConfig`, `RoundRuntime` e `RoundForwards`.
 - Variáveis iniciais de round: `"state"`, `"mode"` e `"time_left"`.
 - O tempo configurado do round pertence ao modo via `"round_time"`.
 - `time_left` representa somente o tempo ativo sincronizado pelo `GameRules`.
