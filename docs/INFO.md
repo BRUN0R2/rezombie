@@ -122,3 +122,15 @@ rz_dev_dump_player <id>
 rz_dev_restart_round [delay]
 rz_dev_validate_round_flow [subclass] [required_players]
 ```
+
+## Forward Callbacks
+
+- `@change_class_pre(id, Class:class, Subclass:subclass)`
+- `@change_class_post(id, Class:class, Subclass:subclass)`
+- `@infect_player_pre(id, attacker, Subclass:subclass)`
+- `@infect_player_post(id, attacker, Subclass:subclass)`
+- `@round_prepare(Mode:mode, Float:duration)`
+- `@round_start(Mode:mode, Float:duration)`
+- `@round_end(RoundEndReason:reason)`
+
+Callbacks `pre` podem retornar `PLUGIN_HANDLED` para bloquear o fluxo.

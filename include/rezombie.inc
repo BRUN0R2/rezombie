@@ -405,3 +405,70 @@ native bool:IsZombie(id);
  * @return          true if the player is a human, false otherwise
  */
 native bool:IsHuman(id);
+
+/**
+ * Forward callbacks.
+ */
+
+/**
+ * Called before a player class is changed.
+ *
+ * @param id        Player index
+ * @param class     New class handle
+ * @param subclass  New subclass handle, or null
+ *
+ * @return          PLUGIN_CONTINUE to allow, PLUGIN_HANDLED or higher to block
+ */
+forward @change_class_pre(id, Class:class, Subclass:subclass);
+
+/**
+ * Called after a player class is changed.
+ *
+ * @param id        Player index
+ * @param class     Applied class handle
+ * @param subclass  Applied subclass handle, or null
+ */
+forward @change_class_post(id, Class:class, Subclass:subclass);
+
+/**
+ * Called before a player is infected.
+ *
+ * @param id        Player index
+ * @param attacker  Attacker index, or 0
+ * @param subclass  Zombie subclass handle, or null
+ *
+ * @return          PLUGIN_CONTINUE to allow, PLUGIN_HANDLED or higher to block
+ */
+forward @infect_player_pre(id, attacker, Subclass:subclass);
+
+/**
+ * Called after a player is infected.
+ *
+ * @param id        Player index
+ * @param attacker  Attacker index, or 0
+ * @param subclass  Applied zombie subclass handle, or null
+ */
+forward @infect_player_post(id, attacker, Subclass:subclass);
+
+/**
+ * Called when the round enters prepare state.
+ *
+ * @param mode      Selected mode handle
+ * @param duration  Prepare duration in seconds
+ */
+forward @round_prepare(Mode:mode, Float:duration);
+
+/**
+ * Called when the round starts playing.
+ *
+ * @param mode      Current mode handle
+ * @param duration  Round duration in seconds
+ */
+forward @round_start(Mode:mode, Float:duration);
+
+/**
+ * Called when ReZombie ends the current round.
+ *
+ * @param reason    Round end reason
+ */
+forward @round_end(RoundEndReason:reason);

@@ -65,6 +65,7 @@
 - [x] Criar `fleshpound` como primeira subclass zombie com modelo proprio.
 - [x] Criar runtime dev separado para validacao manual por IA/Codex.
 - [x] Criar validacao runtime completa de classe, infeccao e restart.
+- [x] Criar forwards minimos de player e round.
 
 ## APIs Modulares
 
@@ -75,6 +76,7 @@
 - [x] API de subclasses: criar, buscar, exigir e configurar subclasses.
 - [x] API de modos: criar, buscar, configurar e lancar modos.
 - [x] API de jogadores: estado, classe atual, infeccao, humano e zombie.
+- [x] API de jogadores: expor forwards de classe e infeccao.
 - [x] Usar `Trie` para lookup rapido de handles mantendo `Array` como storage.
 - [x] Evitar uma API central acumulando responsabilidades diferentes.
 
@@ -92,6 +94,7 @@
 - [x] Deixar Infection responsavel apenas por escolher/aplicar o primeiro zombie.
 - [x] Finalizar o round quando humanos ou zombies vencerem.
 - [x] Resetar jogadores para humano no restart sem atraso visual de modelo.
+- [x] Expor eventos de prepare, start e end do round.
 
 ## Arquitetura e Visual
 

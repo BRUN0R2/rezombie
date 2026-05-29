@@ -7,6 +7,7 @@
 #pragma semicolon 1
 #pragma compress 1
 
+const GAME_RULES_FORWARD_INVALID = -1;
 const GAME_RULES_MIN_ALIVE_PLAYERS = 2;
 const GAME_RULES_PREPARE_SECONDS = 10;
 const Float:GAME_RULES_WAIT_CHECK_INTERVAL = 1.0;
@@ -23,6 +24,9 @@ new Float:RoundEndsAt;
 new Float:NextWinCheckAt;
 new bool:MissingModesReported;
 new bool:GameRulesEndingRound;
+new RoundPrepareForward = GAME_RULES_FORWARD_INVALID;
+new RoundStartForward = GAME_RULES_FORWARD_INVALID;
+new RoundEndForward = GAME_RULES_FORWARD_INVALID;
 
 public plugin_precache()
 {
@@ -31,12 +35,18 @@ public plugin_precache()
 
 public plugin_init()
 {
+	CreateRoundForwards();
 	RegisterHookChain(RG_CSGameRules_RestartRound, "OnRestartRoundPre", false);
 	RegisterHookChain(RG_CSGameRules_RestartRound, "OnRestartRoundPost", true);
 	RegisterHookChain(RG_CSGameRules_OnRoundFreezeEnd, "OnRoundFreezeEndPost", true);
 	RegisterHookChain(RG_RoundEnd, "OnRoundEndPre", false);
 	RegisterHookChain(RG_RoundEnd, "OnRoundEndPost", true);
 	register_forward(FM_StartFrame, "OnServerFrame");
+}
+
+public plugin_end()
+{
+	DestroyRoundForwards();
 }
 
 public OnRestartRoundPre()
@@ -190,6 +200,8 @@ stock StartPrepareRound(Mode:mode, Float:now)
 	CurrentMode = mode;
 	PrepareEndsAt = now + float(GAME_RULES_PREPARE_SECONDS);
 	NextWinCheckAt = 0.0;
+
+	ExecuteRoundPrepareForward(mode, float(GAME_RULES_PREPARE_SECONDS));
 }
 
 stock StartPlayingRound(Float:now)
@@ -204,6 +216,8 @@ stock StartPlayingRound(Float:now)
 	CurrentRoundState = RoundStatePlaying;
 	RoundEndsAt = now + roundTime;
 	NextWinCheckAt = now + GAME_RULES_WIN_CHECK_INTERVAL;
+
+	ExecuteRoundStartForward(CurrentMode, roundTime);
 }
 
 stock CheckWinConditions()
@@ -235,6 +249,7 @@ stock EndRound(RoundEndReason:reason)
 	CurrentRoundState = RoundStateEnding;
 	CurrentMode = Invalid_Mode;
 	GameRulesEndingRound = true;
+	ExecuteRoundEndForward(reason);
 
 	switch (reason)
 	{
@@ -249,6 +264,50 @@ stock EndRound(RoundEndReason:reason)
 	}
 
 	GameRulesEndingRound = false;
+}
+
+stock CreateRoundForwards()
+{
+	RoundPrepareForward = CreateMultiForward("@round_prepare", ET_IGNORE, FP_CELL, FP_FLOAT);
+	RoundStartForward = CreateMultiForward("@round_start", ET_IGNORE, FP_CELL, FP_FLOAT);
+	RoundEndForward = CreateMultiForward("@round_end", ET_IGNORE, FP_CELL);
+}
+
+stock DestroyRoundForwards()
+{
+	DestroyRoundForward(RoundPrepareForward);
+	DestroyRoundForward(RoundStartForward);
+	DestroyRoundForward(RoundEndForward);
+}
+
+stock DestroyRoundForward(&forwardId)
+{
+	if (forwardId == GAME_RULES_FORWARD_INVALID)
+		return;
+
+	DestroyForward(forwardId);
+	forwardId = GAME_RULES_FORWARD_INVALID;
+}
+
+stock ExecuteRoundPrepareForward(Mode:mode, Float:prepareTime)
+{
+	new result;
+	if (!ExecuteForward(RoundPrepareForward, result, mode, prepareTime))
+		set_fail_state("GameRules could not execute @round_prepare.");
+}
+
+stock ExecuteRoundStartForward(Mode:mode, Float:roundTime)
+{
+	new result;
+	if (!ExecuteForward(RoundStartForward, result, mode, roundTime))
+		set_fail_state("GameRules could not execute @round_start.");
+}
+
+stock ExecuteRoundEndForward(RoundEndReason:reason)
+{
+	new result;
+	if (!ExecuteForward(RoundEndForward, result, reason))
+		set_fail_state("GameRules could not execute @round_end.");
 }
 
 stock Mode:SelectMode(alivePlayers)

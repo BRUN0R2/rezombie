@@ -7,8 +7,15 @@
 #pragma semicolon 1
 #pragma compress 1
 
+const PLAYER_FORWARD_INVALID = -1;
+
 new const DEFAULT_HUMAN_CLASS[] = "human";
 new const DEFAULT_ZOMBIE_CLASS[] = "zombie";
+
+new ChangeClassPreForward = PLAYER_FORWARD_INVALID;
+new ChangeClassPostForward = PLAYER_FORWARD_INVALID;
+new InfectPlayerPreForward = PLAYER_FORWARD_INVALID;
+new InfectPlayerPostForward = PLAYER_FORWARD_INVALID;
 
 public plugin_natives()
 {
@@ -30,8 +37,14 @@ public plugin_precache()
 
 public plugin_init()
 {
+	CreatePlayerForwards();
 	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawnPost", true);
 	RegisterHookChain(RG_CBasePlayer_Killed, "OnPlayerKilledPost", true);
+}
+
+public plugin_end()
+{
+	DestroyPlayerForwards();
 }
 
 public client_putinserver(id)
@@ -179,9 +192,10 @@ public bool:NativeInfectPlayer(plugin, params)
 	if (!IsValidConnectedPlayer(id, "infect_player"))
 		return false;
 
+	new attacker = 0;
 	if (params >= InfectPlayerParamAttacker)
 	{
-		new attacker = get_param(InfectPlayerParamAttacker);
+		attacker = get_param(InfectPlayerParamAttacker);
 		if (attacker && !IsValidConnectedPlayer(attacker, "infect_player"))
 			return false;
 	}
@@ -194,7 +208,14 @@ public bool:NativeInfectPlayer(plugin, params)
 	if (params >= InfectPlayerParamSubclass)
 		subclass = Subclass:get_param(InfectPlayerParamSubclass);
 
-	return ChangePlayerClass(id, class, subclass);
+	if (!ExecuteInfectPlayerPreForward(id, attacker, subclass))
+		return false;
+
+	if (!ChangePlayerClass(id, class, subclass))
+		return false;
+
+	ExecuteInfectPlayerPostForward(id, attacker, subclass);
+	return true;
 }
 
 stock ApplyDefaultHumanClass(id)
@@ -219,6 +240,9 @@ stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass)
 	if (!IsPlayablePlayerTeam(team))
 		return bool:ReportNativeError("Invalid class team %d.", _:team);
 
+	if (!ExecuteChangeClassPreForward(id, class, subclass))
+		return false;
+
 	SetPlayerClass(id, class);
 	SetPlayerSubclass(id, subclass);
 	SetPlayerZombie(id, bool:(team == TEAM_ZOMBIE));
@@ -228,7 +252,65 @@ stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass)
 	if (IsPlayerAlive(id))
 		ApplyPlayerClassProps(id, class, subclass);
 
+	ExecuteChangeClassPostForward(id, class, subclass);
 	return true;
+}
+
+stock CreatePlayerForwards()
+{
+	ChangeClassPreForward = CreateMultiForward("@change_class_pre", ET_CONTINUE, FP_CELL, FP_CELL, FP_CELL);
+	ChangeClassPostForward = CreateMultiForward("@change_class_post", ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
+	InfectPlayerPreForward = CreateMultiForward("@infect_player_pre", ET_CONTINUE, FP_CELL, FP_CELL, FP_CELL);
+	InfectPlayerPostForward = CreateMultiForward("@infect_player_post", ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
+}
+
+stock DestroyPlayerForwards()
+{
+	DestroyPlayerForward(ChangeClassPreForward);
+	DestroyPlayerForward(ChangeClassPostForward);
+	DestroyPlayerForward(InfectPlayerPreForward);
+	DestroyPlayerForward(InfectPlayerPostForward);
+}
+
+stock DestroyPlayerForward(&forwardId)
+{
+	if (forwardId == PLAYER_FORWARD_INVALID)
+		return;
+
+	DestroyForward(forwardId);
+	forwardId = PLAYER_FORWARD_INVALID;
+}
+
+stock bool:ExecuteChangeClassPreForward(id, Class:class, Subclass:subclass)
+{
+	new result;
+	if (!ExecuteForward(ChangeClassPreForward, result, id, class, subclass))
+		return bool:ReportNativeError("Could not execute @change_class_pre.");
+
+	return result < PLUGIN_HANDLED;
+}
+
+stock ExecuteChangeClassPostForward(id, Class:class, Subclass:subclass)
+{
+	new result;
+	if (!ExecuteForward(ChangeClassPostForward, result, id, class, subclass))
+		ReportNativeError("Could not execute @change_class_post.");
+}
+
+stock bool:ExecuteInfectPlayerPreForward(id, attacker, Subclass:subclass)
+{
+	new result;
+	if (!ExecuteForward(InfectPlayerPreForward, result, id, attacker, subclass))
+		return bool:ReportNativeError("Could not execute @infect_player_pre.");
+
+	return result < PLUGIN_HANDLED;
+}
+
+stock ExecuteInfectPlayerPostForward(id, attacker, Subclass:subclass)
+{
+	new result;
+	if (!ExecuteForward(InfectPlayerPostForward, result, id, attacker, subclass))
+		ReportNativeError("Could not execute @infect_player_post.");
 }
 
 stock ApplyPlayerClassProps(id, Class:class, Subclass:subclass)
