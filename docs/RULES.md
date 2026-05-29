@@ -27,6 +27,15 @@
 - Manter setters claros, como `set_props_var(props, "health", 700)`.
 - Validar nomes de propriedades e tipos sem fallback silencioso.
 
+## Tags e Tipagem
+
+- Todo handle publico deve possuir tag Pawn explicita.
+- `null` deve ser tipado como `any:null = 0`.
+- `0` nao deve ser usado diretamente como handle invalido.
+- Funcoes `Require*` devem falhar de forma explicita quando o recurso nao existir.
+- Funcoes `Find*` podem retornar `null` para buscas opcionais.
+- Funcoes `Is*` devem retornar apenas `true` ou `false`.
+
 ## Erros
 
 - Todo erro deve ser explicito, claro e rastreavel.

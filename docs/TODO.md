@@ -20,7 +20,9 @@
 - [ ] Implementar APIs modulares em `source/api`.
 - [ ] Criar o nucleo de estado do jogador: humano, zombie, vivo e conectado.
 - [ ] Criar a API publica minima em `include/rezombie.inc`.
-- [ ] Criar handles tipados para `Class:`, `Subclass:` e `Props:`.
+- [ ] Criar handles tipados para `Class:`, `Subclass:`, `Props:` e `Mode:`.
+- [ ] Criar `new const any:null = 0` como nulo tipado da API.
+- [ ] Criar `IsClass`, `FindClass` e `RequireClass`.
 - [ ] Criar `get_class_var` e `set_class_var`.
 - [ ] Criar `get_subclass_var` e `set_subclass_var`.
 - [ ] Criar `get_props_var` e `set_props_var`.

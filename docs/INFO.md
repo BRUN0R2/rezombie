@@ -14,11 +14,32 @@ As bases estudadas servem apenas como referencia:
 - Criar novas classes, subclasses e modos deve ser muito facil.
 - Usar handles tipados como `Class:`, `Subclass:` e `Props:`.
 - Manter propriedades por string, como `"props"`, `"health"`, `"speed"` e `"gravity"`.
+- Usar `RequireClass` quando uma classe for obrigatoria.
+- Usar `FindClass` e `IsClass` apenas para buscas opcionais.
+
+## Tags e Tipagem
+
+- Usar tags Pawn para todos os handles publicos.
+- Evitar `0` solto para representar handle invalido.
+- Usar um nulo tipado no estilo ReZombie C++:
+
+```pawn
+new const any:null = 0;
+```
+
+- Tags iniciais esperadas:
+
+```pawn
+Class:
+Subclass:
+Props:
+Mode:
+```
 
 Exemplo esperado:
 
 ```pawn
-new Class:class = checkClassExists("zombie");
+new Class:class = RequireClass("zombie");
 new Subclass:subclass = create_subclass("zombie_swarm", class);
 new Props:props = get_subclass_var(subclass, "props");
 
