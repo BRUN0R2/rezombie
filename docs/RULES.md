@@ -45,6 +45,12 @@
 - Integracoes com ReHLDS, ReGameDLL e ReAPI devem ser explicitas e isoladas.
 - Evitar dependencias em comportamento legado quando ReAPI oferecer contrato moderno.
 
+## Round e Tempo
+
+- Contagem de round, inicio de infeccao e checks de vitoria devem usar frame do servidor.
+- Timings de gameplay devem usar tempo absoluto, como `get_gametime()`, para evitar descompasso com variacao de FPS.
+- Nao usar `set_task` para controlar countdown, inicio de infeccao ou fluxo principal de round.
+
 ## Tags e Tipagem
 
 - Todo handle publico deve possuir tag Pawn explicita.

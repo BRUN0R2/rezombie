@@ -33,17 +33,17 @@
 - [x] Criar `get_player_class` e `get_player_subclass`.
 - [x] Criar `change_player_class`.
 - [x] Criar `infect_player`.
-- [ ] Criar o primeiro modo de jogo: infeccao.
-- [ ] Criar o fluxo basico de round: preparar, iniciar, infectar e finalizar.
+- [x] Criar o primeiro modo de jogo: infeccao.
+- [x] Criar o fluxo basico de round: preparar, iniciar, infectar e finalizar.
 - [ ] Precachear apenas os recursos usados pela primeira versao.
 
 ## Round
 
-- [ ] Usar a logica simples do Zombie Plague Next como referencia principal.
-- [ ] Aguardar jogadores suficientes antes de iniciar o round.
-- [ ] Iniciar uma contagem curta antes da infeccao.
-- [ ] Escolher o primeiro zombie de forma clara e previsivel.
-- [ ] Finalizar o round quando humanos ou zombies vencerem.
+- [x] Usar a logica simples do Zombie Plague Next como referencia principal.
+- [x] Aguardar jogadores suficientes antes de iniciar o round.
+- [x] Iniciar uma contagem curta antes da infeccao.
+- [x] Escolher o primeiro zombie de forma clara e previsivel.
+- [x] Finalizar o round quando humanos ou zombies vencerem.
 
 ## Arquitetura e Visual
 
@@ -56,6 +56,7 @@
 ## Validacao
 
 - [x] Compilar API e classes iniciais sem erros.
+- [x] Compilar modo Infection sem erros.
 - [ ] Validar servidor com ReHLDS, ReGameDLL e ReAPI atualizados.
 - [ ] Validar carregamento sem erros no servidor.
 - [ ] Validar entrada de jogador humano.
