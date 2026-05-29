@@ -47,8 +47,9 @@
 
 ## Round e Tempo
 
-- Contagem de round, inicio de infeccao e checks de vitoria devem usar frame do servidor.
+- Contagem de round, inicio de infeccao e checks de vitoria devem usar hook explicito de frame do servidor.
 - Timings de gameplay devem usar tempo absoluto, como `get_gametime()`, para evitar descompasso com variacao de FPS.
+- Preferir `FM_StartFrame` registrado de forma explicita quando o fluxo depender de tick/frame continuo.
 - Nao usar `set_task` para controlar countdown, inicio de infeccao ou fluxo principal de round.
 
 ## Tags e Tipagem

@@ -7,6 +7,9 @@
 #pragma semicolon 1
 #pragma compress 1
 
+new const DEFAULT_HUMAN_CLASS[] = "human";
+new const DEFAULT_ZOMBIE_CLASS[] = "zombie";
+
 public plugin_natives()
 {
 	register_library("rezombie");
@@ -46,8 +49,13 @@ public OnPlayerSpawnPost(id)
 	SpawnPlayerState(id);
 
 	new Class:class = GetPlayerClass(id);
-	if (class != Invalid_Class)
-		ApplyPlayerClassProps(id, class, GetPlayerSubclass(id));
+	if (class == Invalid_Class)
+	{
+		ApplyDefaultHumanClass(id);
+		return;
+	}
+
+	ApplyPlayerClassProps(id, class, GetPlayerSubclass(id));
 }
 
 public OnPlayerKilledPost(id, attacker, gib)
@@ -177,11 +185,21 @@ public bool:NativeInfectPlayer(plugin, params)
 			return false;
 	}
 
-	new Class:class = FindClass("zombie");
+	new Class:class = FindClass(DEFAULT_ZOMBIE_CLASS);
 	if (class == Invalid_Class)
 		return bool:ReportNativeError("Required class 'zombie' was not registered.");
 
 	return ChangePlayerClass(id, class, Invalid_Subclass);
+}
+
+stock ApplyDefaultHumanClass(id)
+{
+	new Class:class = FindClass(DEFAULT_HUMAN_CLASS);
+	if (class == Invalid_Class)
+		set_fail_state("Required class 'human' was not registered.");
+
+	if (!ChangePlayerClass(id, class, Invalid_Subclass))
+		set_fail_state("ApiPlayers could not apply default human class to player %d.", id);
 }
 
 stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass)

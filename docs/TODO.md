@@ -74,7 +74,7 @@
 - [x] Usar o ReZombie C++ como referencia de separacao entre GameRules e Mode.
 - [x] Criar `source/core/GameRules.sma` como dono do ciclo do round.
 - [x] Controlar estados do round: aguardando, preparando, jogando e finalizando.
-- [x] Usar `server_frame()` com `get_gametime()` e deadlines absolutos.
+- [x] Usar `FM_StartFrame` com `get_gametime()` e deadlines absolutos.
 - [x] Evitar `set_task` para countdown, inicio de round e infeccao.
 - [x] Aguardar jogadores suficientes antes de iniciar o round.
 - [x] Iniciar uma contagem curta antes da infeccao.
@@ -97,10 +97,12 @@
 - [x] Compilar GameRules inicial sem erros.
 - [x] Compilar GameRules e Infection sem erros.
 - [x] Validar servidor com ReHLDS, ReGameDLL e ReAPI atualizados.
-- [ ] Validar carregamento sem erros no servidor.
+- [x] Validar carregamento dos plugins ReZombie sem falhas.
+- [ ] Revisar aviso `GameConfig CRC mismatch` do ambiente ReAPI/ReGameDLL.
 - [x] Validar compilacao automatizada pelo `build.bat`.
 - [x] Validar carregamento runtime das APIs, classes, modo e props com smoke temporario.
-- [ ] Validar entrada de jogador humano.
-- [ ] Validar troca de classe do jogador.
-- [ ] Validar infeccao do primeiro zombie.
-- [ ] Validar fim de round para humanos e zombies.
+- [x] Validar entrada de jogador humano.
+- [x] Validar troca de classe do jogador.
+- [x] Validar infeccao do primeiro zombie.
+- [x] Validar fim de round com vitoria zombie.
+- [ ] Validar fim de round com vitoria humana.

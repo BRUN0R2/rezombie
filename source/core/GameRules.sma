@@ -1,4 +1,5 @@
 #include <amxmodx>
+#include <fakemeta>
 #include <reapi>
 #include <rezombie>
 #include <rezombie/core/RoundState>
@@ -12,6 +13,8 @@ const Float:GAME_RULES_WAIT_CHECK_INTERVAL = 1.0;
 const Float:GAME_RULES_WIN_CHECK_INTERVAL = 1.0;
 const Float:GAME_RULES_ROUND_END_DELAY = 5.0;
 
+new const GAME_RULES_DEFAULT_HUMAN_CLASS[] = "human";
+
 new RoundState:CurrentRoundState = RoundStateWaiting;
 new Mode:CurrentMode = Invalid_Mode;
 new Float:NextWaitCheckAt;
@@ -19,6 +22,7 @@ new Float:PrepareEndsAt;
 new Float:RoundEndsAt;
 new Float:NextWinCheckAt;
 new bool:MissingModesReported;
+new bool:GameRulesEndingRound;
 
 public plugin_precache()
 {
@@ -29,7 +33,9 @@ public plugin_init()
 {
 	RegisterHookChain(RG_CSGameRules_RestartRound, "OnRestartRoundPost", true);
 	RegisterHookChain(RG_CSGameRules_OnRoundFreezeEnd, "OnRoundFreezeEndPost", true);
+	RegisterHookChain(RG_RoundEnd, "OnRoundEndPre", false);
 	RegisterHookChain(RG_RoundEnd, "OnRoundEndPost", true);
+	register_forward(FM_StartFrame, "OnServerFrame");
 }
 
 public OnRestartRoundPost()
@@ -48,8 +54,32 @@ public OnRoundEndPost(WinStatus:status, ScenarioEventEndRound:event, Float:delay
 	#pragma unused event
 	#pragma unused delay
 
+	if (!GameRulesEndingRound)
+		return;
+
 	CurrentRoundState = RoundStateEnding;
 	CurrentMode = Invalid_Mode;
+}
+
+public OnRoundEndPre(WinStatus:status, ScenarioEventEndRound:event, Float:delay)
+{
+	#pragma unused status
+	#pragma unused event
+	#pragma unused delay
+
+	if (GameRulesEndingRound)
+		return HC_CONTINUE;
+
+	switch (CurrentRoundState)
+	{
+		case RoundStateWaiting, RoundStatePreparing, RoundStatePlaying:
+		{
+			SetHookChainReturn(ATYPE_BOOL, false);
+			return HC_SUPERCEDE;
+		}
+	}
+
+	return HC_CONTINUE;
 }
 
 public client_putinserver(id)
@@ -68,7 +98,7 @@ public client_disconnected(id)
 		NextWinCheckAt = get_gametime();
 }
 
-public server_frame()
+public OnServerFrame()
 {
 	new Float:now = get_gametime();
 
@@ -81,6 +111,8 @@ public server_frame()
 		case RoundStatePlaying:
 			UpdatePlayingRound(now);
 	}
+
+	return FMRES_IGNORED;
 }
 
 stock ResetRoundState(Float:now)
@@ -146,6 +178,8 @@ stock UpdatePlayingRound(Float:now)
 
 stock StartPrepareRound(Mode:mode, Float:now)
 {
+	ResetAlivePlayersToHumans();
+
 	CurrentRoundState = RoundStatePreparing;
 	CurrentMode = mode;
 	PrepareEndsAt = now + float(GAME_RULES_PREPARE_SECONDS);
@@ -193,6 +227,8 @@ stock EndRound(RoundEndReason:reason)
 		return;
 
 	CurrentRoundState = RoundStateEnding;
+	CurrentMode = Invalid_Mode;
+	GameRulesEndingRound = true;
 
 	switch (reason)
 	{
@@ -205,6 +241,8 @@ stock EndRound(RoundEndReason:reason)
 		default:
 			rg_round_end(GAME_RULES_ROUND_END_DELAY, WINSTATUS_NONE, ROUND_NONE);
 	}
+
+	GameRulesEndingRound = false;
 }
 
 stock Mode:SelectMode(alivePlayers)
@@ -281,6 +319,22 @@ stock CountAliveZombies()
 stock ScheduleWaitCheck(Float:now)
 {
 	NextWaitCheckAt = now + GAME_RULES_WAIT_CHECK_INTERVAL;
+}
+
+stock ResetAlivePlayersToHumans()
+{
+	new Class:class = FindClass(GAME_RULES_DEFAULT_HUMAN_CLASS);
+	if (class == Invalid_Class)
+		set_fail_state("Required class 'human' was not registered.");
+
+	for (new id = 1; id <= MaxClients; id++)
+	{
+		if (!is_user_connected(id) || !is_user_alive(id))
+			continue;
+
+		if (!change_player_class(id, class))
+			set_fail_state("GameRules could not reset player %d to human.", id);
+	}
 }
 
 stock ReportMissingModes()
