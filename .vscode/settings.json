@@ -1,10 +1,10 @@
 {
 	"amxxpawn.compiler.executablePath": "D:/ARQUIVOS IMPORTANTES/REPOSITORIOS/CS 1.6/Compiler/amxxpc.exe",
 	"amxxpawn.compiler.includePaths": [
-		"${workspaceFolder}/include",
+		"${workspaceRoot}/include",
 		"D:/ARQUIVOS IMPORTANTES/REPOSITORIOS/CS 1.6/Compiler/include"
 	],
 	"amxxpawn.compiler.showInfoMessages": false,
 	"amxxpawn.compiler.outputType": "path",
-	"amxxpawn.compiler.outputPath": "${workspaceFolder}/build"
+	"amxxpawn.compiler.outputPath": "${workspaceRoot}/build"
 }
