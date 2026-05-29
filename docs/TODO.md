@@ -74,6 +74,7 @@
 - [x] Criar `get_round_var` para estado publico de round.
 - [x] Evitar contagem duplicada ao iniciar novo round.
 - [x] Evitar entrega duplicada de armas no prepare do modo.
+- [x] Manter delay de fim de round separado do freeze inicial.
 
 ## APIs Modulares
 
