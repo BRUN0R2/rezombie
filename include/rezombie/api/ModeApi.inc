@@ -1,0 +1,343 @@
+#if defined _ModeApi_included
+	#endinput
+#endif
+
+#define _ModeApi_included
+
+#include <amxmodx>
+#include <rezombie>
+#include <rezombie_stock>
+
+const MODE_HANDLE_OFFSET = 4000;
+const MODE_FORWARD_INVALID = -1;
+const MODE_DEFAULT_MIN_PLAYERS = 2;
+const MODE_DEFAULT_CHANCE = 1;
+const Float:MODE_DEFAULT_ROUND_TIME = 180.0;
+
+enum _:ModeData
+{
+	ModeHandle[RZ_MAX_HANDLE_LENGTH],
+	ModeName[RZ_MAX_NAME_LENGTH],
+	ModeNoticeMessage[RZ_MAX_NAME_LENGTH],
+	ModeLaunchForwardName[RZ_MAX_HANDLE_LENGTH],
+	ModeLaunchForward,
+	ModeMinPlayers,
+	ModeChance,
+	Float:ModeRoundTime
+};
+
+new Array:Modes;
+
+stock InitializeModeApi()
+{
+	Modes = ArrayCreate(ModeData);
+}
+
+stock RegisterModeNatives()
+{
+	register_native("create_mode", "NativeCreateMode");
+	register_native("FindMode", "NativeFindMode");
+	register_native("get_mode_var", "NativeGetModeVar");
+	register_native("set_mode_var", "NativeSetModeVar");
+	register_native("launch_mode", "NativeLaunchMode");
+}
+
+stock DestroyModeApi()
+{
+	if (Modes == Invalid_Array)
+		return;
+
+	new data[ModeData];
+	for (new index = 0; index < ArraySize(Modes); index++)
+	{
+		ArrayGetArray(Modes, index, data);
+
+		if (data[ModeLaunchForward] != MODE_FORWARD_INVALID)
+			DestroyForward(data[ModeLaunchForward]);
+	}
+
+	ArrayDestroy(Modes);
+	Modes = Invalid_Array;
+}
+
+public Mode:NativeCreateMode(plugin, params)
+{
+	enum
+	{
+		CreateModeParamHandle = 1,
+		CreateModeParamLaunchForward
+	};
+
+	if (params < CreateModeParamLaunchForward)
+		return Mode:ReportNativeError("create_mode requires handle and launch forward.");
+
+	new handle[RZ_MAX_HANDLE_LENGTH];
+	get_string(CreateModeParamHandle, handle, charsmax(handle));
+
+	if (IsNullString(handle))
+		return Mode:ReportNativeError("Mode handle cannot be empty.");
+
+	if (FindModeByHandle(handle) != Invalid_Mode)
+		return Mode:ReportNativeError("Mode '%s' is already registered.", handle);
+
+	new launchForward[RZ_MAX_HANDLE_LENGTH];
+	get_string(CreateModeParamLaunchForward, launchForward, charsmax(launchForward));
+
+	if (IsNullString(launchForward))
+		return Mode:ReportNativeError("Mode '%s' launch forward cannot be empty.", handle);
+
+	new launchForwardId = CreateOneForward(plugin, launchForward, FP_CELL, FP_CELL);
+	if (launchForwardId == MODE_FORWARD_INVALID)
+		return Mode:ReportNativeError("Mode '%s' launch forward '%s' was not found.", handle, launchForward);
+
+	new data[ModeData];
+	copy(data[ModeHandle], charsmax(data[ModeHandle]), handle);
+	copy(data[ModeName], charsmax(data[ModeName]), handle);
+	data[ModeNoticeMessage][0] = EOS;
+	copy(data[ModeLaunchForwardName], charsmax(data[ModeLaunchForwardName]), launchForward);
+	data[ModeLaunchForward] = launchForwardId;
+	data[ModeMinPlayers] = MODE_DEFAULT_MIN_PLAYERS;
+	data[ModeChance] = MODE_DEFAULT_CHANCE;
+	data[ModeRoundTime] = MODE_DEFAULT_ROUND_TIME;
+
+	ArrayPushArray(Modes, data);
+
+	return MakeModeHandle(ArraySize(Modes) - 1);
+}
+
+public Mode:NativeFindMode(plugin, params)
+{
+	enum
+	{
+		FindModeParamHandle = 1
+	};
+
+	if (params < FindModeParamHandle)
+		return Invalid_Mode;
+
+	new handle[RZ_MAX_HANDLE_LENGTH];
+	get_string(FindModeParamHandle, handle, charsmax(handle));
+
+	if (IsNullString(handle))
+		return Invalid_Mode;
+
+	return FindModeByHandle(handle);
+}
+
+public any:NativeGetModeVar(plugin, params)
+{
+	enum
+	{
+		GetModeVarParamMode = 1,
+		GetModeVarParamKey,
+		GetModeVarParamOutput,
+		GetModeVarParamOutputLength
+	};
+
+	if (params < GetModeVarParamKey)
+		return ReportNativeError("get_mode_var requires mode and property name.");
+
+	new Mode:mode = Mode:get_param(GetModeVarParamMode);
+	new index = GetModeIndex(mode);
+
+	if (!IsValidModeIndex(index))
+		return ReportNativeError("Invalid mode handle %d.", _:mode);
+
+	new key[RZ_MAX_HANDLE_LENGTH];
+	get_string(GetModeVarParamKey, key, charsmax(key));
+
+	new data[ModeData];
+	ArrayGetArray(Modes, index, data);
+
+	if (equal(key, "handle"))
+	{
+		if (params < GetModeVarParamOutputLength)
+			return ReportNativeError("get_mode_var 'handle' requires output buffer and length.");
+
+		set_string(GetModeVarParamOutput, data[ModeHandle], get_param(GetModeVarParamOutputLength));
+		return true;
+	}
+
+	if (equal(key, "name"))
+	{
+		if (params < GetModeVarParamOutputLength)
+			return ReportNativeError("get_mode_var 'name' requires output buffer and length.");
+
+		set_string(GetModeVarParamOutput, data[ModeName], get_param(GetModeVarParamOutputLength));
+		return true;
+	}
+
+	if (equal(key, "notice_message"))
+	{
+		if (params < GetModeVarParamOutputLength)
+			return ReportNativeError("get_mode_var 'notice_message' requires output buffer and length.");
+
+		set_string(GetModeVarParamOutput, data[ModeNoticeMessage], get_param(GetModeVarParamOutputLength));
+		return true;
+	}
+
+	if (equal(key, "launch_forward"))
+	{
+		if (params < GetModeVarParamOutputLength)
+			return ReportNativeError("get_mode_var 'launch_forward' requires output buffer and length.");
+
+		set_string(GetModeVarParamOutput, data[ModeLaunchForwardName], get_param(GetModeVarParamOutputLength));
+		return true;
+	}
+
+	if (equal(key, "min_players"))
+		return data[ModeMinPlayers];
+
+	if (equal(key, "chance"))
+		return data[ModeChance];
+
+	if (equal(key, "round_time"))
+		return data[ModeRoundTime];
+
+	return ReportNativeError("Invalid mode property '%s'.", key);
+}
+
+public bool:NativeSetModeVar(plugin, params)
+{
+	enum
+	{
+		SetModeVarParamMode = 1,
+		SetModeVarParamKey,
+		SetModeVarParamValue
+	};
+
+	if (params < SetModeVarParamValue)
+		return bool:ReportNativeError("set_mode_var requires mode, property name and value.");
+
+	new Mode:mode = Mode:get_param(SetModeVarParamMode);
+	new index = GetModeIndex(mode);
+
+	if (!IsValidModeIndex(index))
+		return bool:ReportNativeError("Invalid mode handle %d.", _:mode);
+
+	new key[RZ_MAX_HANDLE_LENGTH];
+	get_string(SetModeVarParamKey, key, charsmax(key));
+
+	new data[ModeData];
+	ArrayGetArray(Modes, index, data);
+
+	if (equal(key, "name"))
+	{
+		get_string(SetModeVarParamValue, data[ModeName], charsmax(data[ModeName]));
+		ArraySetArray(Modes, index, data);
+		return true;
+	}
+
+	if (equal(key, "notice_message"))
+	{
+		get_string(SetModeVarParamValue, data[ModeNoticeMessage], charsmax(data[ModeNoticeMessage]));
+		ArraySetArray(Modes, index, data);
+		return true;
+	}
+
+	if (equal(key, "min_players"))
+	{
+		new minPlayers = get_param(SetModeVarParamValue);
+		if (minPlayers < 1)
+			return bool:ReportNativeError("Mode min_players must be greater than zero.");
+
+		data[ModeMinPlayers] = minPlayers;
+		ArraySetArray(Modes, index, data);
+		return true;
+	}
+
+	if (equal(key, "chance"))
+	{
+		new chance = get_param(SetModeVarParamValue);
+		if (chance < 1)
+			return bool:ReportNativeError("Mode chance must be greater than zero.");
+
+		data[ModeChance] = chance;
+		ArraySetArray(Modes, index, data);
+		return true;
+	}
+
+	if (equal(key, "round_time"))
+	{
+		new Float:roundTime = get_param_f(SetModeVarParamValue);
+		if (roundTime <= 0.0)
+			return bool:ReportNativeError("Mode round_time must be greater than zero.");
+
+		data[ModeRoundTime] = roundTime;
+		ArraySetArray(Modes, index, data);
+		return true;
+	}
+
+	return bool:ReportNativeError("Invalid or readonly mode property '%s'.", key);
+}
+
+public bool:NativeLaunchMode(plugin, params)
+{
+	enum
+	{
+		LaunchModeParamMode = 1,
+		LaunchModeParamTarget
+	};
+
+	if (params < LaunchModeParamMode)
+		return bool:ReportNativeError("launch_mode requires mode.");
+
+	new Mode:mode = Mode:get_param(LaunchModeParamMode);
+	new target = 0;
+
+	if (params >= LaunchModeParamTarget)
+		target = get_param(LaunchModeParamTarget);
+
+	return LaunchMode(mode, target);
+}
+
+stock bool:LaunchMode(Mode:mode, target)
+{
+	new index = GetModeIndex(mode);
+	if (!IsValidModeIndex(index))
+		return bool:ReportNativeError("Invalid mode handle %d.", _:mode);
+
+	new data[ModeData];
+	ArrayGetArray(Modes, index, data);
+
+	new result;
+	if (!ExecuteForward(data[ModeLaunchForward], result, mode, target))
+		return bool:ReportNativeError("Mode '%s' launch forward could not be executed.", data[ModeHandle]);
+
+	return true;
+}
+
+stock Mode:FindModeByHandle(const handle[])
+{
+	new data[ModeData];
+
+	for (new index = 0; index < ArraySize(Modes); index++)
+	{
+		ArrayGetArray(Modes, index, data);
+
+		if (equal(data[ModeHandle], handle))
+			return MakeModeHandle(index);
+	}
+
+	return Invalid_Mode;
+}
+
+stock Mode:MakeModeHandle(index)
+{
+	return Mode:(MODE_HANDLE_OFFSET + index + 1);
+}
+
+stock GetModeIndex(Mode:mode)
+{
+	return _:mode - MODE_HANDLE_OFFSET - 1;
+}
+
+stock bool:IsValidModeHandle(Mode:mode)
+{
+	return IsValidModeIndex(GetModeIndex(mode));
+}
+
+stock bool:IsValidModeIndex(index)
+{
+	return 0 <= index < ArraySize(Modes);
+}
