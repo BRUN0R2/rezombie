@@ -11,6 +11,7 @@ const PLAYER_FORWARD_INVALID = -1;
 
 new const DEFAULT_HUMAN_CLASS[] = "human";
 new const DEFAULT_ZOMBIE_CLASS[] = "zombie";
+new const DEFAULT_MELEE_WEAPON[] = "weapon_knife";
 
 new ChangeClassPreForward = PLAYER_FORWARD_INVALID;
 new ChangeClassPostForward = PLAYER_FORWARD_INVALID;
@@ -23,6 +24,8 @@ public plugin_natives()
 
 	register_native("get_player_class", "NativeGetPlayerClass");
 	register_native("get_player_subclass", "NativeGetPlayerSubclass");
+	register_native("get_player_var", "NativeGetPlayerVar");
+	register_native("set_player_var", "NativeSetPlayerVar");
 	register_native("change_player_class", "NativeChangePlayerClass");
 
 	register_native("infect_player", "NativeInfectPlayer");
@@ -68,7 +71,8 @@ public OnPlayerSpawnPost(id)
 		return;
 	}
 
-	ApplyPlayerClassProps(id, class, GetPlayerSubclass(id));
+	if (!ApplyPlayerClassRuntime(id, class, GetPlayerSubclass(id)))
+		set_fail_state("ApiPlayers could not reapply class runtime to player %d.", id);
 }
 
 public OnPlayerKilledPost(id, attacker, gib)
@@ -113,6 +117,86 @@ public bool:NativeIsHuman(plugin, params)
 		return false;
 
 	return IsPlayerHuman(id);
+}
+
+public any:NativeGetPlayerVar(plugin, params)
+{
+	enum
+	{
+		GetPlayerVarParamPlayer = 1,
+		GetPlayerVarParamKey
+	};
+
+	if (params < GetPlayerVarParamKey)
+		return ReportNativeError("get_player_var requires player and property name.");
+
+	new id = get_param(GetPlayerVarParamPlayer);
+	if (!IsValidConnectedPlayer(id, "get_player_var"))
+		return null;
+
+	new key[RZ_MAX_HANDLE_LENGTH];
+	get_string(GetPlayerVarParamKey, key, charsmax(key));
+
+	if (equal(key, "connected"))
+		return IsPlayerConnected(id);
+
+	if (equal(key, "alive"))
+		return IsPlayerAlive(id);
+
+	if (equal(key, "zombie"))
+		return IsPlayerZombie(id);
+
+	if (equal(key, "class"))
+		return GetPlayerClass(id);
+
+	if (equal(key, "subclass"))
+		return GetPlayerSubclass(id);
+
+	return ReportNativeError("Invalid player property '%s'.", key);
+}
+
+public bool:NativeSetPlayerVar(plugin, params)
+{
+	enum
+	{
+		SetPlayerVarParamPlayer = 1,
+		SetPlayerVarParamKey,
+		SetPlayerVarParamValue
+	};
+
+	if (params < SetPlayerVarParamValue)
+		return bool:ReportNativeError("set_player_var requires player, property name and value.");
+
+	new id = get_param(SetPlayerVarParamPlayer);
+	if (!IsValidConnectedPlayer(id, "set_player_var"))
+		return false;
+
+	new key[RZ_MAX_HANDLE_LENGTH];
+	get_string(SetPlayerVarParamKey, key, charsmax(key));
+
+	if (equal(key, "class"))
+	{
+		new Class:class = Class:get_param_byref(SetPlayerVarParamValue);
+
+		return ChangePlayerClass(id, class, Invalid_Subclass);
+	}
+
+	if (equal(key, "subclass"))
+	{
+		new Subclass:subclass = Subclass:get_param_byref(SetPlayerVarParamValue);
+
+		if (subclass == Invalid_Subclass)
+			return ClearPlayerSubclass(id);
+
+		new Class:class = Class:get_subclass_var(subclass, "class");
+
+		return ChangePlayerClass(id, class, subclass);
+	}
+
+	if (equal(key, "connected") || equal(key, "alive") || equal(key, "zombie"))
+		return bool:ReportNativeError("Player property '%s' is readonly.", key);
+
+	return bool:ReportNativeError("Invalid player property '%s'.", key);
 }
 
 public Class:NativeGetPlayerClass(plugin, params)
@@ -249,11 +333,21 @@ stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass)
 
 	ApplyPlayerTeam(id, team);
 
-	if (IsPlayerAlive(id))
-		ApplyPlayerClassProps(id, class, subclass);
+	if (IsPlayerAlive(id) && !ApplyPlayerClassRuntime(id, class, subclass))
+		return false;
 
 	ExecuteChangeClassPostForward(id, class, subclass);
 	return true;
+}
+
+stock bool:ClearPlayerSubclass(id)
+{
+	new Class:class = GetPlayerClass(id);
+
+	if (class == Invalid_Class)
+		return bool:ReportNativeError("Player %d has no class to clear subclass.", id);
+
+	return ChangePlayerClass(id, class, Invalid_Subclass);
 }
 
 stock CreatePlayerForwards()
@@ -313,13 +407,24 @@ stock ExecuteInfectPlayerPostForward(id, attacker, Subclass:subclass)
 		ReportNativeError("Could not execute @infect_player_post.");
 }
 
-stock ApplyPlayerClassProps(id, Class:class, Subclass:subclass)
+stock bool:ApplyPlayerClassRuntime(id, Class:class, Subclass:subclass)
+{
+	if (!ApplyPlayerProps(id, class, subclass))
+		return false;
+
+	if (!ApplyPlayerModel(id, class, subclass))
+		return false;
+
+	return ApplyPlayerDefaultItems(id, GetClassTeamValue(class));
+}
+
+stock bool:ApplyPlayerProps(id, Class:class, Subclass:subclass)
 {
 	new Props:props = GetClassRuntimeProps(class, subclass);
 	if (props == Invalid_Props)
 	{
 		ReportNativeError("Invalid runtime props for player %d.", id);
-		return;
+		return false;
 	}
 
 	new health = get_props_var(props, "health");
@@ -329,14 +434,14 @@ stock ApplyPlayerClassProps(id, Class:class, Subclass:subclass)
 	if (health <= 0 || speed <= 0 || gravity <= 0.0)
 	{
 		ReportNativeError("Invalid runtime props values for player %d.", id);
-		return;
+		return false;
 	}
 
 	set_entvar(id, var_health, float(health));
 	set_entvar(id, var_maxspeed, float(speed));
 	set_entvar(id, var_gravity, gravity);
 
-	ApplyPlayerModel(id, class, subclass);
+	return true;
 }
 
 stock ApplyPlayerTeam(id, Team:team)
@@ -352,7 +457,7 @@ stock Props:GetClassRuntimeProps(Class:class, Subclass:subclass)
 	return Props:get_class_var(class, "props");
 }
 
-stock ApplyPlayerModel(id, Class:class, Subclass:subclass)
+stock bool:ApplyPlayerModel(id, Class:class, Subclass:subclass)
 {
 	new Model:model = GetClassRuntimeModel(class, subclass);
 
@@ -361,21 +466,57 @@ stock ApplyPlayerModel(id, Class:class, Subclass:subclass)
 		if (GetClassTeamValue(class) == TEAM_HUMAN)
 		{
 			rg_reset_user_model(id, true);
-			return;
+			return true;
 		}
 
 		ReportNativeError("Missing runtime model for player %d, class %d, subclass %d.", id, _:class, _:subclass);
-		return;
+		return false;
 	}
 
 	new name[RZ_MAX_HANDLE_LENGTH];
 	if (!get_model_var(model, "name", name, charsmax(name)))
 	{
 		ReportNativeError("Invalid runtime model for player %d.", id);
-		return;
+		return false;
 	}
 
 	rg_set_user_model(id, name, true);
+	return true;
+}
+
+stock bool:ApplyPlayerDefaultItems(id, Team:team)
+{
+	if (!rg_remove_all_items(id))
+	{
+		ReportNativeError("Could not remove player %d items.", id);
+		return false;
+	}
+
+	switch (team)
+	{
+		case TEAM_HUMAN:
+		{
+			rg_give_default_items(id);
+			return true;
+		}
+		case TEAM_ZOMBIE:
+		{
+			if (rg_give_item(id, DEFAULT_MELEE_WEAPON) == NULLENT)
+			{
+				ReportNativeError("Could not give default melee weapon to player %d.", id);
+				return false;
+			}
+
+			return true;
+		}
+		default:
+		{
+			ReportNativeError("Invalid default item team %d for player %d.", _:team, id);
+			return false;
+		}
+	}
+
+	return false;
 }
 
 stock Model:GetClassRuntimeModel(Class:class, Subclass:subclass)

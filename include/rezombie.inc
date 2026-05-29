@@ -357,6 +357,28 @@ native Class:get_player_class(id);
 native Subclass:get_player_subclass(id);
 
 /**
+ * Gets a player property.
+ *
+ * @param id        Player index
+ * @param var       Property name
+ *
+ * @return          Property value
+ * @error           Fails on invalid player or property
+ */
+native any:get_player_var(id, const var[], any:...);
+
+/**
+ * Sets a safe player property through the official runtime flow.
+ *
+ * @param id        Player index
+ * @param var       Property name
+ *
+ * @return          true on success, false otherwise
+ * @error           Fails on invalid player, readonly property or value
+ */
+native bool:set_player_var(id, const var[], any:...);
+
+/**
  * Changes the player class and applies its runtime state.
  *
  * @param id        Player index

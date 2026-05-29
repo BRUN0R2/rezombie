@@ -46,6 +46,7 @@
 - [x] Criar `get_subclass_var` e `set_subclass_var`.
 - [x] Criar `get_props_var` e `set_props_var`.
 - [x] Criar `get_player_class` e `get_player_subclass`.
+- [x] Criar `get_player_var` e `set_player_var` com estado seguro.
 - [x] Criar `change_player_class`.
 - [x] Criar `infect_player`.
 - [x] Criar API modular de props para `Props:`.
@@ -68,6 +69,7 @@
 - [x] Criar forwards minimos de player e round.
 - [x] Criar retornos proprios para forwards `pre`.
 - [x] Validar bloqueio de forwards `pre` com `RZ_SUPERCEDE`.
+- [x] Aplicar itens padrao ao trocar classe.
 
 ## APIs Modulares
 
@@ -78,6 +80,7 @@
 - [x] API de subclasses: criar, buscar, exigir e configurar subclasses.
 - [x] API de modos: criar, buscar, configurar e lancar modos.
 - [x] API de jogadores: estado, classe atual, infeccao, humano e zombie.
+- [x] API de jogadores: expor variaveis seguras do estado do jogador.
 - [x] API de jogadores: expor forwards de classe e infeccao.
 - [x] Usar `Trie` para lookup rapido de handles mantendo `Array` como storage.
 - [x] Evitar uma API central acumulando responsabilidades diferentes.
@@ -128,3 +131,4 @@
 - [x] Validar comandos do runtime dev em servidor local.
 - [x] Validar restart de round sem manter skin zombie antiga.
 - [x] Validar fluxo runtime completo pelo `rz_dev_validate_round_flow`.
+- [x] Validar itens padrao de humano e zombie em runtime.

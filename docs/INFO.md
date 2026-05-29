@@ -38,6 +38,10 @@ As bases estudadas servem apenas como referencia:
 - Agrupar natives por categoria no include publico.
 - Manter natives de zombie junto da categoria Zombie.
 - Manter natives de humano junto da categoria Human.
+- `get_player_var` expõe apenas estado real do jogador.
+- `set_player_var` deve usar o fluxo oficial para aplicar classe/subclasse.
+- `connected`, `alive` e `zombie` são variáveis de jogador somente leitura.
+- Troca de classe aplica props, modelo, time e itens padrão.
 
 ## Tags e Tipagem
 
@@ -109,6 +113,8 @@ As APIs devem carregar antes de qualquer classe, modo ou core que use suas nativ
 - Comandos dev devem ser genericos e explicitos.
 - Comandos dev nao devem virar dependencia do gameplay.
 - `rz_dev_restart_round` aceita delay opcional para validar restart temporizado.
+- Apos copiar `.amxx` novo, usar `changelevel` para recarregar plugins sem fechar o servidor.
+- Para validar somente gameplay, usar restart de round.
 
 Comandos iniciais:
 

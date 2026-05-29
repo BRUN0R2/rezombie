@@ -14,11 +14,13 @@ const Float:DEV_ROUND_FLOW_CHECK_INTERVAL = 0.25;
 const Float:DEV_ROUND_FLOW_WAIT_TIMEOUT = 20.0;
 const Float:DEV_ROUND_FLOW_RESTART_WAIT = 1.0;
 const Float:DEV_ROUND_FLOW_RESTART_DELAY = 1.0;
+const DEV_MAX_PLAYER_WEAPONS = 32;
 
 new const DEV_PREFIX[] = "[ReZombie Dev]";
 new const DEV_DEFAULT_HUMAN_CLASS[] = "human";
 new const DEV_DEFAULT_ZOMBIE_CLASS[] = "zombie";
 new const DEV_DEFAULT_ROUND_FLOW_SUBCLASS[] = "fleshpound";
+new const DEV_DEFAULT_MELEE_WEAPON[] = "weapon_knife";
 
 enum DevRoundFlowState
 {
@@ -535,6 +537,15 @@ stock bool:ValidatePlayer(id)
 
 	new Subclass:subclass = get_player_subclass(id);
 
+	if (Class:get_player_var(id, "class") != class)
+		return DevError("Player %d get_player_var class mismatch.", id);
+
+	if (Subclass:get_player_var(id, "subclass") != subclass)
+		return DevError("Player %d get_player_var subclass mismatch.", id);
+
+	if (bool:get_player_var(id, "zombie") != IsZombie(id))
+		return DevError("Player %d get_player_var zombie mismatch.", id);
+
 	if (subclass != Invalid_Subclass)
 	{
 		new Class:parentClass = Class:get_subclass_var(subclass, "class");
@@ -555,6 +566,30 @@ stock bool:ValidatePlayer(id)
 
 	if (IsZombie(id) && GetRuntimeModel(class, subclass) == Invalid_Model)
 		return DevError("Player %d is zombie without runtime model.", id);
+
+	if (is_user_alive(id) && !ValidatePlayerDefaultItems(id))
+		return false;
+
+	return true;
+}
+
+stock bool:ValidatePlayerDefaultItems(id)
+{
+	if (!rg_has_item_by_name(id, DEV_DEFAULT_MELEE_WEAPON))
+		return DevError("Player %d does not have default melee weapon.", id);
+
+	if (!IsZombie(id))
+		return true;
+
+	new weapons[DEV_MAX_PLAYER_WEAPONS];
+	new weaponsCount;
+	get_user_weapons(id, weapons, weaponsCount);
+
+	for (new index = 0; index < weaponsCount; index++)
+	{
+		if (weapons[index] != CSW_KNIFE)
+			return DevError("Zombie player %d kept non-melee weapon id %d.", id, weapons[index]);
+	}
 
 	return true;
 }
