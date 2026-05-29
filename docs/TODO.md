@@ -43,4 +43,3 @@
 - [ ] Validar entrada de jogador humano.
 - [ ] Validar infeccao do primeiro zombie.
 - [ ] Validar fim de round para humanos e zombies.
-- [ ] Marcar uma etapa como `[x]` somente depois de validar sem bugs conhecidos.
