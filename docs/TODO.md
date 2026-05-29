@@ -90,6 +90,7 @@
 - [x] Selecionar e lancar o modo atual pelo core.
 - [x] Deixar Infection responsavel apenas por escolher/aplicar o primeiro zombie.
 - [x] Finalizar o round quando humanos ou zombies vencerem.
+- [x] Resetar jogadores para humano no restart sem atraso visual de modelo.
 
 ## Arquitetura e Visual
 
@@ -119,3 +120,4 @@
 - [x] Validar subclass zombie `fleshpound` em runtime.
 - [x] Validar modelo proprio `rz_fleshpound` da subclass `fleshpound` em runtime.
 - [x] Validar comandos do runtime dev em servidor local.
+- [x] Validar restart de round sem manter skin zombie antiga.
