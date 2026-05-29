@@ -15,7 +15,7 @@ const GAME_RULES_FREEZE_SECONDS = 0;
 const GAME_RULES_LIMIT_TEAMS = 0;
 const GAME_RULES_AUTO_TEAM_BALANCE = 0;
 const GAME_RULES_HOOK_FALSE = 0;
-const GAME_RULES_CHOOSE_TEAM_SLOT_ARG = 2;
+const TeamName:GAME_RULES_DEFAULT_JOIN_TEAM = TEAM_CT;
 const Float:GAME_RULES_WAIT_CHECK_INTERVAL = 1.0;
 const Float:GAME_RULES_WIN_CHECK_INTERVAL = 1.0;
 const Float:GAME_RULES_ROUND_END_DELAY = 5.0;
@@ -45,7 +45,12 @@ public plugin_precache()
 public plugin_init()
 {
 	CreateRoundForwards();
+	register_clcmd("chooseteam", "CommandBlockDefaultTeamMenu");
+	register_clcmd("jointeam", "CommandBlockDefaultTeamMenu");
 	RegisterHookChain(RG_HandleMenu_ChooseTeam, "OnChooseTeamPre", false);
+	RegisterHookChain(RG_HandleMenu_ChooseAppearance, "OnChooseAppearancePre", false);
+	RegisterHookChain(RG_ShowVGUIMenu, "OnShowVguiMenuPre", false);
+	RegisterHookChain(RG_ShowMenu, "OnShowMenuPre", false);
 	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawnPre", false);
 	RegisterHookChain(RG_CSGameRules_FPlayerCanRespawn, "OnPlayerCanRespawnPre", false);
 	RegisterHookChain(RG_CSGameRules_RestartRound, "OnRestartRoundPre", false);
@@ -60,6 +65,14 @@ public plugin_cfg()
 {
 	EnforceGameRuleCvars();
 	SyncRoundVars(0.0);
+}
+
+public CommandBlockDefaultTeamMenu(id)
+{
+	if (is_user_connected(id))
+		AdmitPlayerToDefaultTeam(id);
+
+	return PLUGIN_HANDLED;
 }
 
 public plugin_end()
@@ -128,26 +141,54 @@ public OnChooseTeamPre(id, MenuChooseTeam:slot)
 	if (!is_user_connected(id))
 		return HC_CONTINUE;
 
-	if (slot == MenuChoose_Spec)
+	#pragma unused slot
+
+	AdmitPlayerToDefaultTeam(id);
+	SetHookChainReturn(ATYPE_INTEGER, GAME_RULES_HOOK_FALSE);
+	return HC_SUPERCEDE;
+}
+
+public OnChooseAppearancePre(id, slot)
+{
+	#pragma unused slot
+
+	if (!is_user_connected(id))
 		return HC_CONTINUE;
 
-	if (IsRoundAcceptingHumans())
+	AdmitPlayerToDefaultTeam(id);
+	return HC_SUPERCEDE;
+}
+
+public OnShowVguiMenuPre(id, VGUIMenu:menuType, bitsSlots, oldMenu[])
+{
+	#pragma unused bitsSlots
+	#pragma unused oldMenu
+
+	if (!is_user_connected(id))
+		return HC_CONTINUE;
+
+	if (IsDefaultTeamMenu(menuType))
 	{
-		if (get_member(id, m_iTeam) == TEAM_CT)
-		{
-			SetHookChainReturn(ATYPE_INTEGER, GAME_RULES_HOOK_FALSE);
-			return HC_SUPERCEDE;
-		}
-
-		if (slot != MenuChoose_CT && !SetHookChainArg(GAME_RULES_CHOOSE_TEAM_SLOT_ARG, ATYPE_INTEGER, MenuChoose_CT))
-			set_fail_state("GameRules could not force team choice to CT.");
-
-		return HC_CONTINUE;
+		AdmitPlayerToDefaultTeam(id);
+		return HC_SUPERCEDE;
 	}
 
-	if (IsRoundBlockingAdmission())
+	return HC_CONTINUE;
+}
+
+public OnShowMenuPre(id, bitsSlots, displayTime, needMore, menuText[])
+{
+	#pragma unused bitsSlots
+	#pragma unused displayTime
+	#pragma unused needMore
+	#pragma unused menuText
+
+	if (!is_user_connected(id))
+		return HC_CONTINUE;
+
+	if (IsDefaultTeamMenuState(get_member(id, m_iMenu)))
 	{
-		SetHookChainReturn(ATYPE_INTEGER, GAME_RULES_HOOK_FALSE);
+		AdmitPlayerToDefaultTeam(id);
 		return HC_SUPERCEDE;
 	}
 
@@ -158,6 +199,9 @@ public OnPlayerSpawnPre(id)
 {
 	if (!is_user_connected(id))
 		return HC_CONTINUE;
+
+	if (IsRoundBlockingAdmission() && !is_user_alive(id))
+		return HC_SUPERCEDE;
 
 	if (IsRoundAcceptingHumans() && IsPlayerOnPlayableGameTeam(id) && get_member(id, m_iTeam) != TEAM_CT)
 		ForceSpawnedPlayerToHumanTeam(id);
@@ -529,6 +573,43 @@ stock bool:IsRoundBlockingAdmission()
 	}
 
 	return false;
+}
+
+stock bool:IsDefaultTeamMenu(VGUIMenu:menuType)
+{
+	switch (menuType)
+	{
+		case VGUI_Menu_Team, VGUI_Menu_Class_T, VGUI_Menu_Class_CT:
+			return true;
+	}
+
+	return false;
+}
+
+stock bool:IsDefaultTeamMenuState(menu)
+{
+	switch (menu)
+	{
+		case Menu_ChooseTeam, Menu_IGChooseTeam, Menu_ChooseAppearance:
+			return true;
+	}
+
+	return false;
+}
+
+stock AdmitPlayerToDefaultTeam(id)
+{
+	new TeamName:team = get_member(id, m_iTeam);
+	if (team == TEAM_TERRORIST || team == TEAM_CT)
+		return;
+
+	rg_set_user_team(id, GAME_RULES_DEFAULT_JOIN_TEAM, MODEL_AUTO, true, false);
+
+	if (get_member(id, m_iTeam) != GAME_RULES_DEFAULT_JOIN_TEAM)
+		set_fail_state("GameRules could not admit player %d to the default team.", id);
+
+	if (IsRoundAcceptingHumans() && !is_user_alive(id))
+		rg_round_respawn(id);
 }
 
 stock ForceSpawnedPlayerToHumanTeam(id)

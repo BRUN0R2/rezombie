@@ -52,11 +52,16 @@ As bases estudadas servem apenas como referencia:
 - O delay de fim de round continua separado do freeze inicial.
 - `mp_limitteams` e `mp_autoteambalance` ficam em `0` para o CS padrão não quebrar times do mod.
 - Antes da infecção, qualquer jogador jogável que nascer deve ser humano/CT.
-- Antes da infecção, qualquer escolha jogável no menu de time deve entrar como CT.
+- Menus padrão de time e personagem do CS ficam bloqueados.
+- Jogadores sem time são admitidos pelo core em CT sem depender do menu padrão.
+- Jogadores admitidos antes da infeccao podem receber respawn imediato.
 - Durante `RoundStatePlaying` e `RoundStateEnding`, respawn automático fica bloqueado.
-- Durante `RoundStatePlaying` e `RoundStateEnding`, escolha jogável de time fica bloqueada.
+- Durante `RoundStatePlaying` e `RoundStateEnding`, jogadores já admitidos não podem trocar de time.
+- Durante `RoundStatePlaying` e `RoundStateEnding`, jogador novo pode ser admitido sem respawn automático.
 - A API de players só aplica classe, modelo e itens quando o jogador está vivo e em T/CT.
 - `ApiPlayers` é o único dono de props, modelo e itens no pós-spawn.
+- `ApiPlayers` bloqueia a entrega padrão de itens do GameDLL e entrega apenas itens próprios do ReZombie.
+- Seleção futura de classes deve usar HUD próprio do ReZombie.
 
 ## Tags e Tipagem
 

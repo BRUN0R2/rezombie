@@ -119,12 +119,18 @@
 - [x] Forcar humano/CT para jogador que nasce antes da infeccao.
 - [x] Bloquear respawn automatico durante round em jogo ou finalizando.
 - [x] Corrigir retorno ReAPI do bloqueio de respawn.
-- [x] Forcar escolha jogavel de time para CT antes da infeccao.
-- [x] Bloquear escolha jogavel de time durante round em jogo ou finalizando.
+- [x] Forcar admissao jogavel em CT antes da infeccao.
+- [x] Bloquear troca de time de jogador ja admitido durante round em jogo ou finalizando.
+- [x] Bloquear menus padrao de time e personagem do CS.
+- [x] Admitir jogador sem time em CT sem depender do menu padrao.
+- [x] Respawnar admissao automatica apenas enquanto o round aceita humanos.
 - [x] Bloquear runtime de classe e itens em jogador sem spawn real.
 - [x] Manter `ApiPlayers` como unico dono de runtime pos-spawn.
+- [x] Bloquear entrega padrao de itens do GameDLL fora do runtime de classe.
+- [x] Entregar itens iniciais humanos de forma explicita sem `rg_give_default_items`.
 - [ ] Criar politica explicita de respawn por modo.
 - [ ] Criar API publica de respawn quando a politica estiver definida.
+- [ ] Criar HUD proprio para selecao de classes.
 
 ## Arquitetura e Visual
 
@@ -165,6 +171,8 @@
 - [x] Validar tentativa de escolher Terrorist antes da infeccao mantendo CT.
 - [x] Validar tentativa de trocar para Terrorist sem matar jogador CT.
 - [x] Validar jogador sem time como morto, sem classe e sem runtime aplicado.
+- [x] Validar `jointeam` padrao bloqueado com admissao CT controlada pelo core.
+- [x] Validar fluxo de round depois de bloquear menus padrao do CS.
 - [ ] Confirmar visualmente spawn sem armas duplicadas no HUD.
 - [ ] Confirmar visualmente novo round sem armas duplicadas no HUD.
 - [ ] Confirmar jogador entrando durante `RoundStatePlaying` sem respawn automatico.

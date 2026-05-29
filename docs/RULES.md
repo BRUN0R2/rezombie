@@ -14,6 +14,8 @@
 - Usar nomes claros e sem abreviacoes desnecessarias.
 - Evitar duplicacao, codigo morto e comentarios obsoletos.
 - Preferir contratos explicitos e falhas visiveis.
+- Investigar a fonte real do problema antes de corrigir sintomas.
+- Resolver problemas diretamente na fonte, sem flags temporarias ou contornos escondidos.
 - Evitar numeros magicos, principalmente em parametros posicionais de natives.
 - Parametros posicionais de natives devem usar nomes semanticos via `enum`.
 - Todo plugin `.sma` deve usar `#pragma semicolon 1` e `#pragma compress 1`.
@@ -38,6 +40,8 @@
 - Comentarios de natives devem estar em ingles no padrao AMXX/CS 1.6.
 - Validar nomes de propriedades e tipos sem fallback silencioso.
 - Forwards publicos devem usar retornos proprios da API, como `RZ_CONTINUE` e `RZ_SUPERCEDE`.
+- Bloquear comportamentos padrao do CS/GameDLL que conflitem com o mod antes de aplicar runtime proprio.
+- Nao misturar entrega padrao do jogo com entrega do mod quando o mod for dono do fluxo.
 
 ## Ambiente
 

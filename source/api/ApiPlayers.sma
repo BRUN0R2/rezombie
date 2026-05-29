@@ -12,6 +12,11 @@ const PLAYER_FORWARD_INVALID = -1;
 new const DEFAULT_HUMAN_CLASS[] = "human";
 new const DEFAULT_ZOMBIE_CLASS[] = "zombie";
 new const DEFAULT_MELEE_WEAPON[] = "weapon_knife";
+new const DEFAULT_HUMAN_SECONDARY_WEAPON[] = "weapon_usp";
+
+const WeaponIdType:DEFAULT_HUMAN_SECONDARY_WEAPON_ID = WEAPON_USP;
+const DEFAULT_HUMAN_SECONDARY_CLIP_AMMO = 12;
+const DEFAULT_HUMAN_SECONDARY_BACKPACK_AMMO = 24;
 
 new ChangeClassPreForward = PLAYER_FORWARD_INVALID;
 new ChangeClassPostForward = PLAYER_FORWARD_INVALID;
@@ -41,6 +46,7 @@ public plugin_precache()
 public plugin_init()
 {
 	CreatePlayerForwards();
+	RegisterHookChain(RG_CBasePlayer_GiveDefaultItems, "OnGiveDefaultItemsPre", false);
 	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawnPost", true);
 	RegisterHookChain(RG_CBasePlayer_Killed, "OnPlayerKilledPost", true);
 }
@@ -85,6 +91,13 @@ public OnPlayerSpawnPost(id)
 
 	if (!ApplyPlayerClassRuntime(id, class, GetPlayerSubclass(id)))
 		set_fail_state("ApiPlayers could not reapply class runtime to player %d.", id);
+}
+
+public OnGiveDefaultItemsPre(id)
+{
+	#pragma unused id
+
+	return HC_SUPERCEDE;
 }
 
 public OnPlayerKilledPost(id, attacker, gib)
@@ -513,18 +526,11 @@ stock bool:ApplyPlayerDefaultItems(id, Team:team)
 	{
 		case TEAM_HUMAN:
 		{
-			rg_give_default_items(id);
-			return true;
+			return GiveDefaultHumanItems(id);
 		}
 		case TEAM_ZOMBIE:
 		{
-			if (rg_give_item(id, DEFAULT_MELEE_WEAPON) == NULLENT)
-			{
-				ReportNativeError("Could not give default melee weapon to player %d.", id);
-				return false;
-			}
-
-			return true;
+			return GivePlayerItem(id, DEFAULT_MELEE_WEAPON);
 		}
 		default:
 		{
@@ -534,6 +540,31 @@ stock bool:ApplyPlayerDefaultItems(id, Team:team)
 	}
 
 	return false;
+}
+
+stock bool:GiveDefaultHumanItems(id)
+{
+	if (!GivePlayerItem(id, DEFAULT_MELEE_WEAPON))
+		return false;
+
+	if (!GivePlayerItem(id, DEFAULT_HUMAN_SECONDARY_WEAPON))
+		return false;
+
+	rg_set_user_ammo(id, DEFAULT_HUMAN_SECONDARY_WEAPON_ID, DEFAULT_HUMAN_SECONDARY_CLIP_AMMO);
+	rg_set_user_bpammo(id, DEFAULT_HUMAN_SECONDARY_WEAPON_ID, DEFAULT_HUMAN_SECONDARY_BACKPACK_AMMO);
+
+	return true;
+}
+
+stock bool:GivePlayerItem(id, const item[])
+{
+	if (rg_give_item(id, item, GT_REPLACE) == NULLENT)
+	{
+		ReportNativeError("Could not give item '%s' to player %d.", item, id);
+		return false;
+	}
+
+	return true;
 }
 
 stock Model:GetClassRuntimeModel(Class:class, Subclass:subclass)
