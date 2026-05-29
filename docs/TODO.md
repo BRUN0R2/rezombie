@@ -21,7 +21,7 @@
 - [ ] Reimplementar somente o que fizer sentido para este projeto novo.
 - [x] Separar API de classes e API de modos por responsabilidade.
 - [x] Criar um core de round centralizado antes de recriar o modo Infection.
-- [ ] Recriar Infection como modo fino, sem responsabilidades de round.
+- [x] Recriar Infection como modo fino, sem responsabilidades de round.
 
 ## Base Inicial
 
@@ -50,7 +50,7 @@
 - [x] Criar API modular de modos para `Mode:`.
 - [x] Criar API/registro de modos com `create_mode`, `get_mode_var`, `set_mode_var` e `launch_mode`.
 - [x] Criar leitura de modos registrados com `get_modes_count` e `get_mode`.
-- [ ] Recriar o primeiro modo de jogo: infeccao.
+- [x] Recriar o primeiro modo de jogo: infeccao.
 - [ ] Precachear apenas os recursos usados pela primeira versao.
 
 ## APIs Modulares
@@ -74,7 +74,7 @@
 - [x] Aguardar jogadores suficientes antes de iniciar o round.
 - [x] Iniciar uma contagem curta antes da infeccao.
 - [x] Selecionar e lancar o modo atual pelo core.
-- [ ] Deixar Infection responsavel apenas por escolher/aplicar o primeiro zombie.
+- [x] Deixar Infection responsavel apenas por escolher/aplicar o primeiro zombie.
 - [x] Finalizar o round quando humanos ou zombies vencerem.
 
 ## Arquitetura e Visual
@@ -90,7 +90,7 @@
 - [x] Compilar API e classes iniciais sem erros.
 - [x] Compilar APIs modulares e classes sem erros.
 - [x] Compilar GameRules inicial sem erros.
-- [ ] Compilar GameRules e Infection sem erros.
+- [x] Compilar GameRules e Infection sem erros.
 - [ ] Validar servidor com ReHLDS, ReGameDLL e ReAPI atualizados.
 - [ ] Validar carregamento sem erros no servidor.
 - [ ] Validar entrada de jogador humano.

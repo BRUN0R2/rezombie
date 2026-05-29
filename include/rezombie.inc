@@ -192,7 +192,7 @@ native bool:set_props_var(Props:props, const var[], any:...);
  * Creates a game mode.
  *
  * @param handle         Unique mode handle
- * @param launchForward  Function called when the mode starts
+ * @param launchForward  Function called when the mode starts, must return non-zero on success
  *
  * @return               Mode handle
  * @error                Fails on empty handle, duplicate mode or missing forward
