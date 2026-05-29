@@ -73,8 +73,8 @@ echo Compiling source\classes\Zombie.sma
 "%COMPILER%" "%ROOT%source\classes\Zombie.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\Zombie.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\classes\ZombieSwarm.sma
-"%COMPILER%" "%ROOT%source\classes\ZombieSwarm.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ZombieSwarm.amxx"
+echo Compiling source\classes\Fleshpound.sma
+"%COMPILER%" "%ROOT%source\classes\Fleshpound.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\Fleshpound.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\gamemodes\Infection.sma
@@ -99,7 +99,7 @@ if errorlevel 1 exit /b 1
 >> "%PLUGIN_CONFIG%" echo ; Classes
 >> "%PLUGIN_CONFIG%" echo rezombie/Human.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/Zombie.amxx
->> "%PLUGIN_CONFIG%" echo rezombie/ZombieSwarm.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/Fleshpound.amxx
 >> "%PLUGIN_CONFIG%" echo.
 >> "%PLUGIN_CONFIG%" echo ; Game Modes
 >> "%PLUGIN_CONFIG%" echo rezombie/Infection.amxx

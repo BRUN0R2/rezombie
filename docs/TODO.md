@@ -62,6 +62,7 @@
 - [x] Precachear apenas os recursos usados pela primeira versao.
 - [x] Usar `rz_source` como modelo zombie padrao.
 - [x] Evitar fallback silencioso quando zombie estiver sem modelo runtime.
+- [x] Criar `fleshpound` como primeira subclass zombie com modelo proprio.
 
 ## APIs Modulares
 
@@ -114,4 +115,5 @@
 - [x] Validar fim de round com vitoria zombie.
 - [x] Validar fim de round com vitoria humana.
 - [x] Validar modelo zombie `rz_source` em runtime.
-- [x] Validar subclass zombie `zombie_swarm` em runtime.
+- [x] Validar subclass zombie `fleshpound` em runtime.
+- [x] Validar modelo proprio `rz_fleshpound` da subclass `fleshpound` em runtime.

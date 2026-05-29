@@ -18,7 +18,7 @@ public plugin_precache()
 	register_plugin("Mode: Infection", "0.1.0", "BRUN0");
 
 	ZombieClass = RequireClass("zombie");
-	ZombieSubclass = RequireSubclass("zombie_swarm");
+	ZombieSubclass = RequireSubclass("fleshpound");
 
 	InfectionMode = create_mode("infection", "@LaunchInfection");
 	set_mode_var(InfectionMode, "name", "Infection");

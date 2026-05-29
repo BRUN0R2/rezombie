@@ -55,7 +55,10 @@ new Class:class = RequireClass("zombie");
 new Model:model = create_model("rz_source");
 set_class_var(class, "model", model);
 
-new Subclass:subclass = create_subclass("zombie_swarm", class);
+new Subclass:subclass = create_subclass("fleshpound", class);
+new Model:subclassModel = create_model("rz_fleshpound");
+set_subclass_var(subclass, "model", subclassModel);
+
 new Props:props = get_subclass_var(subclass, "props");
 
 set_props_var(props, "health", 700);
@@ -66,6 +69,7 @@ set_props_var(props, "gravity", 1.0);
 ## Modelos
 
 - `rz_source` e o modelo zombie padrao da primeira base.
+- `rz_fleshpound` e o modelo proprio da subclass `fleshpound`.
 - Subclasses podem configurar um modelo proprio quando necessario.
 - Subclasses sem modelo proprio usam o modelo da classe pai.
 - A classe zombie deve configurar modelo de forma explicita.
