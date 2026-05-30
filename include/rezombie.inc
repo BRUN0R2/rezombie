@@ -334,18 +334,18 @@ native bool:set_mode_var(Mode:mode, const var[], any:...);
 native bool:launch_mode(Mode:mode, target = 0);
 
 /**
- * Round natives.
+ * Game variable natives.
  */
 
 /**
- * Gets a round property.
+ * Gets a game runtime property.
  *
  * @param var       Property name
  *
  * @return          Property value
  * @error           Fails on invalid property
  */
-native any:get_round_var(const var[], any:...);
+native any:get_game_var(const var[], any:...);
 
 /**
  * Player natives.
@@ -510,3 +510,26 @@ forward @round_start(Mode:mode, Float:duration);
  * @param reason    Round end reason
  */
 forward @round_end(RoundEndReason:reason);
+
+/**
+ * Called when the visible round timer changes.
+ *
+ * @param timer     Visible timer in seconds
+ */
+forward @round_timer(timer);
+
+/**
+ * Called when the game state changes.
+ *
+ * @param oldState  Previous game state
+ * @param newState  New game state
+ */
+forward @game_state_changed(GameState:oldState, GameState:newState);
+
+/**
+ * Called when the round state changes.
+ *
+ * @param oldState  Previous round state
+ * @param newState  New round state
+ */
+forward @round_state_changed(RoundState:oldState, RoundState:newState);

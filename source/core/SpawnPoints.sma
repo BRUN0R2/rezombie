@@ -10,6 +10,7 @@ const SPAWN_POINTS_ANCHOR_RESERVED_COUNT = 64;
 const SPAWN_POINTS_SLOT_RESERVED_COUNT = 384;
 const SPAWN_POINTS_CLUSTER_RESERVED_COUNT = 64;
 const SPAWN_POINTS_RESERVATION_RESERVED_COUNT = 64;
+const SPAWN_POINTS_MAX_PLAYERS = 32;
 const SPAWN_POINTS_SCAN_GUARD = 2048;
 const SPAWN_POINTS_TRACE_IGNORE_NONE = 0;
 const SPAWN_POINTS_TRACE_RESULT = 0;
@@ -20,7 +21,8 @@ const SPAWN_POINTS_RECENT_USE_WINDOW = 12;
 const Float:SPAWN_POINTS_EXPANSION_STEP = 128.0;
 const Float:SPAWN_POINTS_DUPLICATE_DISTANCE = 48.0;
 const Float:SPAWN_POINTS_CLUSTER_DISTANCE = 512.0;
-const Float:SPAWN_POINTS_RESERVATION_SECONDS = 2.0;
+const Float:SPAWN_POINTS_RESERVATION_SECONDS = 10.0;
+const Float:SPAWN_POINTS_MIN_DISTANCE = 96.0;
 const Float:SPAWN_POINTS_ORIGIN_OFFSET_Z = 1.0;
 const Float:SPAWN_POINTS_MAX_DISTANCE_SCORE = 999999999.0;
 const Float:SPAWN_POINTS_SCORE_CLUSTER_RESERVATION_WEIGHT = 4.0;
@@ -32,9 +34,7 @@ new const Float:SpawnDistanceSteps[] =
 {
 	160.0,
 	128.0,
-	96.0,
-	72.0,
-	48.0
+	SPAWN_POINTS_MIN_DISTANCE
 };
 
 enum SpawnSource
@@ -114,6 +114,8 @@ new Array:SpawnClusters = Invalid_Array;
 new Array:SpawnSlots = Invalid_Array;
 new Array:SpawnReservations = Invalid_Array;
 new SpawnSelectionOrder;
+new bool:PlayerSpawnAssigned[SPAWN_POINTS_MAX_PLAYERS + 1];
+new PlayerSpawnAssignments[SPAWN_POINTS_MAX_PLAYERS + 1][SpawnSlotData];
 
 public plugin_precache()
 {
@@ -126,6 +128,7 @@ public plugin_init()
 {
 	RegisterHookChain(RG_CSGameRules_RestartRound, "OnRestartRoundPost", true);
 	RegisterHookChain(RG_CSGameRules_GetPlayerSpawnSpot, "OnGetPlayerSpawnSpotPre", false);
+	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawnPost", true);
 	InitializeSpawnPoints();
 }
 
@@ -139,22 +142,42 @@ public OnRestartRoundPost()
 	InitializeSpawnPoints();
 }
 
+public client_disconnected(id)
+{
+	ClearPlayerSpawnAssignment(id);
+}
+
 public OnGetPlayerSpawnSpotPre(id)
 {
-	if (!is_user_connected(id))
-		return HC_CONTINUE;
-
-	if (!IsPlayableGameTeam(id))
+	if (!CanManagePlayerSpawn(id))
 		return HC_CONTINUE;
 
 	new spawnSlot[SpawnSlotData];
 	if (!SelectSpawnSlot(id, spawnSlot))
-		set_fail_state("SpawnPoints could not find a distributed spawn slot for player %d.", id);
+		set_fail_state("SpawnPoints could not reserve a distributed spawn slot for player %d.", id);
 
-	ApplySpawnSlot(id, spawnSlot);
+	AssignPlayerSpawnSlot(id, spawnSlot);
 	SetHookChainReturn(ATYPE_INTEGER, spawnSlot[SpawnSlotEntity]);
 
 	return HC_SUPERCEDE;
+}
+
+public OnPlayerSpawnPost(id)
+{
+	if (!CanManagePlayerSpawn(id))
+		return;
+
+	if (!is_user_alive(id))
+	{
+		ClearPlayerSpawnAssignment(id);
+		return;
+	}
+
+	new spawnSlot[SpawnSlotData];
+	if (!TakePlayerSpawnAssignment(id, spawnSlot) && !SelectSpawnSlot(id, spawnSlot))
+		set_fail_state("SpawnPoints could not find a distributed spawn slot for player %d.", id);
+
+	ApplySpawnSlot(id, spawnSlot);
 }
 
 stock InitializeSpawnStorage()
@@ -211,6 +234,7 @@ stock ResetSpawnState()
 	ArrayClear(SpawnReservations);
 
 	SpawnSelectionOrder = 0;
+	ClearPlayerSpawnAssignments();
 }
 
 stock CollectSpawnAnchors()
@@ -671,6 +695,43 @@ stock TrackSpawnSlotUse(slotIndex, spawnSlot[SpawnSlotData])
 	ArraySetArray(SpawnClusters, clusterIndex, spawnCluster);
 }
 
+stock AssignPlayerSpawnSlot(id, spawnSlot[SpawnSlotData])
+{
+	if (!IsPlayerIndex(id))
+		set_fail_state("SpawnPoints received invalid player index %d for assignment.", id);
+
+	PlayerSpawnAssigned[id] = true;
+	PlayerSpawnAssignments[id] = spawnSlot;
+}
+
+stock bool:TakePlayerSpawnAssignment(id, spawnSlot[SpawnSlotData])
+{
+	if (!IsPlayerIndex(id))
+		return false;
+
+	if (!PlayerSpawnAssigned[id])
+		return false;
+
+	spawnSlot = PlayerSpawnAssignments[id];
+	PlayerSpawnAssigned[id] = false;
+
+	return true;
+}
+
+stock ClearPlayerSpawnAssignment(id)
+{
+	if (!IsPlayerIndex(id))
+		return;
+
+	PlayerSpawnAssigned[id] = false;
+}
+
+stock ClearPlayerSpawnAssignments()
+{
+	for (new id = 1; id <= SPAWN_POINTS_MAX_PLAYERS; id++)
+		ClearPlayerSpawnAssignment(id);
+}
+
 stock ResetExpiredSpawnReservations()
 {
 	new Float:now = get_gametime();
@@ -839,6 +900,16 @@ stock RequireSpawnStorage()
 
 	if (SpawnReservations == Invalid_Array)
 		set_fail_state("SpawnPoints reservation storage is not initialized.");
+}
+
+stock bool:IsPlayerIndex(id)
+{
+	return 1 <= id <= SPAWN_POINTS_MAX_PLAYERS;
+}
+
+stock bool:CanManagePlayerSpawn(id)
+{
+	return IsPlayerIndex(id) && is_user_connected(id) && IsPlayableGameTeam(id);
 }
 
 stock bool:IsPlayableGameTeam(id)

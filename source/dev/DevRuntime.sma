@@ -15,6 +15,7 @@ const Float:DEV_ROUND_FLOW_WAIT_TIMEOUT = 20.0;
 const Float:DEV_ROUND_FLOW_RESTART_WAIT = 1.0;
 const Float:DEV_ROUND_FLOW_RESTART_DELAY = 1.0;
 const DEV_MAX_PLAYER_WEAPONS = 32;
+const DEV_MAX_PLAYERS = 32;
 const DEV_MIN_JOIN_TEAM_SLOT = 1;
 const DEV_MAX_JOIN_TEAM_SLOT = 6;
 const DEV_JOIN_TEAM_SLOT_TEXT_LENGTH = 4;
@@ -45,6 +46,8 @@ new RoundFlowSubclassHandle[RZ_MAX_HANDLE_LENGTH];
 new RoundFlowZombieModelPath[RZ_MAX_RESOURCE_PATH_LENGTH];
 new bool:BlockNextChangeClassPre;
 new bool:BlockNextInfectPlayerPre;
+new bool:SpawnOriginCaptured[DEV_MAX_PLAYERS + 1];
+new Float:CapturedSpawnOrigins[DEV_MAX_PLAYERS + 1][3];
 
 public plugin_precache()
 {
@@ -65,6 +68,8 @@ public plugin_init()
 	register_srvcmd("rz_dev_validate_round_flow", "CommandValidateRoundFlow");
 	register_srvcmd("rz_dev_validate_forward_returns", "CommandValidateForwardReturns");
 	register_srvcmd("rz_dev_validate_round_state", "CommandValidateRoundState");
+	RegisterHookChain(RG_CSGameRules_RestartRound, "OnDevRestartRoundPre", false);
+	RegisterHookChain(RG_CBasePlayer_Spawn, "OnDevPlayerSpawnPost", true);
 	register_forward(FM_StartFrame, "OnDevServerFrame");
 }
 
@@ -304,15 +309,26 @@ public CommandValidateSpawnSpacing()
 			continue;
 
 		alivePlayers++;
+		if (!SpawnOriginCaptured[first])
+		{
+			DevError("Player %d has no captured spawn origin.", first);
+			return;
+		}
 
 		for (new second = first + 1; second <= MaxClients; second++)
 		{
 			if (!IsAlivePlayablePlayer(second))
 				continue;
 
-			if (ArePlayersTooClose(first, second))
+			if (!SpawnOriginCaptured[second])
 			{
-				DevError("Players %d and %d are too close after spawn.", first, second);
+				DevError("Player %d has no captured spawn origin.", second);
+				return;
+			}
+
+			if (AreCapturedSpawnOriginsTooClose(first, second))
+			{
+				ReportSpawnSpacingFailure(first, second);
 				return;
 			}
 		}
@@ -477,6 +493,20 @@ RzReturn:@infect_player_pre(id, attacker, Subclass:subclass)
 
 	BlockNextInfectPlayerPre = false;
 	return RZ_SUPERCEDE;
+}
+
+public OnDevRestartRoundPre()
+{
+	ClearCapturedSpawnOrigins();
+}
+
+public OnDevPlayerSpawnPost(id)
+{
+	if (!IsAlivePlayablePlayer(id))
+		return;
+
+	get_entvar(id, var_origin, CapturedSpawnOrigins[id]);
+	SpawnOriginCaptured[id] = true;
 }
 
 public OnDevServerFrame()
@@ -681,19 +711,19 @@ stock bool:ValidatePlayerTeam(id)
 
 stock bool:ValidateRoundState()
 {
-	new RoundState:roundState = get_round_var("state");
+	new RoundState:roundState = get_game_var("round_state");
 	if (!IsValidRoundState(roundState))
 		return DevError("Round state native returned invalid state %d.", _:roundState);
 
-	new Mode:mode = get_round_var("mode");
-	new Float:timeLeft = get_round_var("time_left");
+	new Mode:mode = get_game_var("mode");
+	new Float:timer = get_game_var("timer");
 
-	if (timeLeft < 0.0)
-		return DevError("Round state native returned negative time_left %.2f.", timeLeft);
+	if (timer < 0.0)
+		return DevError("Round state native returned negative timer %.2f.", timer);
 
 	switch (roundState)
 	{
-		case RoundStatePreparing, RoundStatePlaying:
+		case RoundStatePrepare, RoundStatePlaying:
 		{
 			if (mode == Invalid_Mode)
 				return DevError("Round state native returned invalid mode while active.");
@@ -707,7 +737,7 @@ stock bool:IsValidRoundState(RoundState:roundState)
 {
 	switch (roundState)
 	{
-		case RoundStateFreezing, RoundStateWaiting, RoundStatePreparing, RoundStatePlaying, RoundStateEnding:
+		case RoundStateNone, RoundStatePrepare, RoundStatePlaying, RoundStateTerminate:
 			return true;
 	}
 
@@ -948,15 +978,31 @@ stock bool:IsAlivePlayablePlayer(id)
 	return is_user_connected(id) && is_user_alive(id) && IsPlayerOnPlayableGameTeam(id);
 }
 
-stock bool:ArePlayersTooClose(first, second)
+stock bool:AreCapturedSpawnOriginsTooClose(first, second)
 {
-	new Float:firstOrigin[3];
-	new Float:secondOrigin[3];
+	return GetOriginDistanceSquared(CapturedSpawnOrigins[first], CapturedSpawnOrigins[second]) < (DEV_MIN_SPAWN_DISTANCE * DEV_MIN_SPAWN_DISTANCE);
+}
 
-	get_entvar(first, var_origin, firstOrigin);
-	get_entvar(second, var_origin, secondOrigin);
+stock ReportSpawnSpacingFailure(first, second)
+{
+	new Float:distanceSquared = GetOriginDistanceSquared(CapturedSpawnOrigins[first], CapturedSpawnOrigins[second]);
 
-	return GetOriginDistanceSquared(firstOrigin, secondOrigin) < (DEV_MIN_SPAWN_DISTANCE * DEV_MIN_SPAWN_DISTANCE);
+	DevError("Players %d and %d are too close at captured spawn: distance_squared=%.2f first_origin=(%.2f %.2f %.2f) second_origin=(%.2f %.2f %.2f).",
+		first,
+		second,
+		distanceSquared,
+		CapturedSpawnOrigins[first][0],
+		CapturedSpawnOrigins[first][1],
+		CapturedSpawnOrigins[first][2],
+		CapturedSpawnOrigins[second][0],
+		CapturedSpawnOrigins[second][1],
+		CapturedSpawnOrigins[second][2]);
+}
+
+stock ClearCapturedSpawnOrigins()
+{
+	for (new id = 1; id <= DEV_MAX_PLAYERS; id++)
+		SpawnOriginCaptured[id] = false;
 }
 
 stock Float:GetOriginDistanceSquared(Float:firstOrigin[3], Float:secondOrigin[3])
@@ -999,4 +1045,4 @@ stock FailRoundFlow(const message[], any:...)
 	StopRoundFlow();
 }
 
-#include <rezombie/dev/DevRuntimeSupport>
+#include <rezombie/dev/RuntimeSupport>

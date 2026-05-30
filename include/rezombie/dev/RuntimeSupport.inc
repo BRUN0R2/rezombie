@@ -1,8 +1,8 @@
-#if defined _DevRuntimeSupport_included
+#if defined _RuntimeSupport_included
 	#endinput
 #endif
 
-#define _DevRuntimeSupport_included
+#define _RuntimeSupport_included
 
 stock Props:GetRuntimeProps(Class:class, Subclass:subclass)
 {

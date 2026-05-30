@@ -4,13 +4,20 @@
 
 #define _RoundState_included
 
+enum GameState
+{
+	GameStateWarmup = 0,
+	GameStateNeedPlayers,
+	GameStatePlaying,
+	GameStateOver
+};
+
 enum RoundState
 {
-	RoundStateFreezing = 0,
-	RoundStateWaiting,
-	RoundStatePreparing,
+	RoundStateNone = 0,
+	RoundStatePrepare,
 	RoundStatePlaying,
-	RoundStateEnding
+	RoundStateTerminate
 };
 
 enum RoundEndReason

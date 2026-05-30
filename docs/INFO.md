@@ -42,16 +42,16 @@ As bases estudadas servem apenas como referencia:
 - `set_player_var` deve usar o fluxo oficial para aplicar classe/subclasse.
 - `connected`, `alive` e `zombie` são variáveis de jogador somente leitura.
 - Troca de classe aplica props, modelo, time e itens padrão.
-- `ApiRounds` expoe o estado publico do round somente com `get_round_var`.
-- `ApiRounds` guarda seu estado interno em `RoundApiRuntime`.
-- O estado real do round pertence ao `GameRules`.
-- A escrita do estado publico do round usa `sync_round_runtime` em `include/rezombie/core/RoundRuntime.inc`.
-- `sync_round_runtime` publica um snapshot tipado e deve rejeitar qualquer escritor que nao seja o `GameRules`.
-- O `GameRules` organiza estado interno em `RoundConfig`, `RoundRuntime` e `RoundForwards`.
+- `ApiGameVars` expoe o estado publico do jogo somente com `get_game_var`.
+- `ApiGameVars` guarda seu estado interno em `GameVarsRuntime`.
+- O estado real de jogo e round pertence ao `GameRules`.
+- A escrita do estado publico usa `sync_game_vars` em `include/rezombie/core/GameVars.inc`.
+- `sync_game_vars` publica um snapshot tipado e deve rejeitar qualquer escritor que nao seja o `GameRules`.
+- O `GameRules` organiza estado interno em `GameRulesRuntime` e forwards explicitos.
 - A selecao inicial de modos permanece deterministica e escolhe o primeiro modo elegivel.
-- Variáveis iniciais de round: `"state"`, `"mode"` e `"time_left"`.
+- Variaveis iniciais de jogo: `"game_state"`, `"round_state"`, `"mode"`, `"timer"` e `"team_wins"`.
 - O tempo configurado do round pertence ao modo via `"round_time"`.
-- `time_left` representa somente o tempo ativo sincronizado pelo `GameRules`.
+- `timer` representa somente o tempo visivel sincronizado pelo `GameRules`.
 - `GameCvars` e o dono das cvars criticas do jogo.
 - `GameCvars` aplica e trava cvars criticas com `hook_cvar_change`.
 - `SpawnPoints` e o dono dos spawns jogaveis usados pelo mod.
@@ -63,22 +63,22 @@ As bases estudadas servem apenas como referencia:
 - `SpawnPoints` relaxa distancia minima em etapas quando o mapa nao oferece espaco ideal.
 - `SpawnPoints` reserva slots durante burst de respawn para impedir players nascendo juntos.
 - `SpawnPoints` escolhe onde nascer, mas nao respawna jogadores.
-- `GameRules` respawna explicitamente jogadores conectados no restart do round.
+- `GameRules` reinicia o round quando `RoundStateTerminate` expira.
 - `mp_freezetime` deve ficar em `0` para o fluxo do mod começar direto.
 - O delay de fim de round continua separado do freeze inicial.
 - `mp_limitteams`, `mp_autoteambalance` e `mp_autokick` ficam em `0` para o CS padrão não quebrar times, admissao e fluxo de round do mod.
 - Cvar critica inexistente deve falhar explicitamente com `set_fail_state`.
 - O core de round nao deve acumular responsabilidade de cvars.
-- O core deve bloquear fim de round padrao do CS desde `RoundStateFreezing`.
+- O core deve manter o fluxo proprio de round desde `RoundStateNone`.
 - Antes da infecção, qualquer jogador jogável que nascer deve ser humano/CT.
 - Menus padrão de time e personagem do CS ficam bloqueados.
 - Jogadores sem time são admitidos pelo core em CT sem depender do menu padrão.
 - A admissao controlada finaliza o estado interno de join do CS para evitar cameras de selecao.
 - A admissao controlada tambem reseta intro camera, observer vars e view para o proprio jogador.
 - Jogadores admitidos antes da infeccao podem receber respawn imediato.
-- Durante `RoundStatePlaying` e `RoundStateEnding`, respawn automático fica bloqueado.
-- Durante `RoundStatePlaying` e `RoundStateEnding`, jogadores já admitidos não podem trocar de time.
-- Durante `RoundStatePlaying` e `RoundStateEnding`, jogador novo pode ser admitido sem respawn automático.
+- Durante `RoundStatePlaying` e `RoundStateTerminate`, respawn automatico fica bloqueado.
+- Durante `RoundStatePlaying` e `RoundStateTerminate`, jogadores ja admitidos nao podem trocar de time.
+- Durante `RoundStatePlaying` e `RoundStateTerminate`, jogador novo pode ser admitido sem respawn automatico.
 - A API de players só aplica classe, modelo e itens quando o jogador está vivo e em T/CT.
 - `ApiPlayers` é o único dono de props, modelo e itens no pós-spawn.
 - `ApiPlayers` bloqueia a entrega padrão de itens do GameDLL e entrega apenas itens próprios do ReZombie.
@@ -140,7 +140,7 @@ Ordem inicial esperada dos plugins:
 3. `rezombie/api/ApiClasses.amxx`
 4. `rezombie/api/ApiSubclasses.amxx`
 5. `rezombie/api/ApiModes.amxx`
-6. `rezombie/api/ApiRounds.amxx`
+6. `rezombie/api/ApiGameVars.amxx`
 7. `rezombie/api/ApiPlayers.amxx`
 8. Classes em `rezombie/classes`
 9. Modos em `rezombie/gamemodes`
@@ -156,7 +156,7 @@ O pacote gerado em `build/cstrike` deve manter os plugins separados por modulo, 
 ## Runtime Dev
 
 - `DevRuntime.amxx` e exclusivo para validacao local.
-- Helpers compartilhados do runtime dev ficam em `include/rezombie/dev/DevRuntimeSupport.inc`.
+- Helpers compartilhados do runtime dev ficam em `include/rezombie/dev/RuntimeSupport.inc`.
 - O build gera `plugins-rezombie-dev.ini` separado da lista principal.
 - Comandos dev devem ser genericos e explicitos.
 - Comandos dev nao devem virar dependencia do gameplay.

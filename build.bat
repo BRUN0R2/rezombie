@@ -79,8 +79,8 @@ echo Compiling source\api\ApiModes.sma
 "%COMPILER%" "%ROOT%source\api\ApiModes.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiModes.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\api\ApiRounds.sma
-"%COMPILER%" "%ROOT%source\api\ApiRounds.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiRounds.amxx"
+echo Compiling source\api\ApiGameVars.sma
+"%COMPILER%" "%ROOT%source\api\ApiGameVars.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiGameVars.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\api\ApiPlayers.sma
@@ -132,7 +132,7 @@ if errorlevel 1 exit /b 1
 >> "%PLUGIN_CONFIG%" echo rezombie/api/ApiClasses.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/api/ApiSubclasses.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/api/ApiModes.amxx
->> "%PLUGIN_CONFIG%" echo rezombie/api/ApiRounds.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/api/ApiGameVars.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/api/ApiPlayers.amxx
 >> "%PLUGIN_CONFIG%" echo.
 >> "%PLUGIN_CONFIG%" echo ; Classes
