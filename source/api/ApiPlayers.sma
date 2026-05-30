@@ -18,10 +18,16 @@ const WeaponIdType:DEFAULT_HUMAN_SECONDARY_WEAPON_ID = WEAPON_USP;
 const DEFAULT_HUMAN_SECONDARY_CLIP_AMMO = 12;
 const DEFAULT_HUMAN_SECONDARY_BACKPACK_AMMO = 24;
 
-new ChangeClassPreForward = PLAYER_FORWARD_INVALID;
-new ChangeClassPostForward = PLAYER_FORWARD_INVALID;
-new InfectPlayerPreForward = PLAYER_FORWARD_INVALID;
-new InfectPlayerPostForward = PLAYER_FORWARD_INVALID;
+enum _:PlayerForwardData
+{
+	PlayerForwardChangeClassPre,
+	PlayerForwardChangeClassPost,
+	PlayerForwardInfectPlayerPre,
+	PlayerForwardInfectPlayerPost,
+	PlayerForwardCount
+};
+
+new PlayerForwards[PlayerForwardCount];
 
 public plugin_natives()
 {
@@ -449,18 +455,24 @@ stock bool:ClearPlayerSubclass(id)
 
 stock CreatePlayerForwards()
 {
-	ChangeClassPreForward = CreateMultiForward("@change_class_pre", ET_CONTINUE, FP_CELL, FP_CELL, FP_CELL);
-	ChangeClassPostForward = CreateMultiForward("@change_class_post", ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
-	InfectPlayerPreForward = CreateMultiForward("@infect_player_pre", ET_CONTINUE, FP_CELL, FP_CELL, FP_CELL);
-	InfectPlayerPostForward = CreateMultiForward("@infect_player_post", ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
+	ResetPlayerForwards();
+
+	PlayerForwards[PlayerForwardChangeClassPre] = CreateMultiForward("@change_class_pre", ET_CONTINUE, FP_CELL, FP_CELL, FP_CELL);
+	PlayerForwards[PlayerForwardChangeClassPost] = CreateMultiForward("@change_class_post", ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
+	PlayerForwards[PlayerForwardInfectPlayerPre] = CreateMultiForward("@infect_player_pre", ET_CONTINUE, FP_CELL, FP_CELL, FP_CELL);
+	PlayerForwards[PlayerForwardInfectPlayerPost] = CreateMultiForward("@infect_player_post", ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
+}
+
+stock ResetPlayerForwards()
+{
+	for (new index = 0; index < sizeof PlayerForwards; index++)
+		PlayerForwards[index] = PLAYER_FORWARD_INVALID;
 }
 
 stock DestroyPlayerForwards()
 {
-	DestroyPlayerForward(ChangeClassPreForward);
-	DestroyPlayerForward(ChangeClassPostForward);
-	DestroyPlayerForward(InfectPlayerPreForward);
-	DestroyPlayerForward(InfectPlayerPostForward);
+	for (new index = 0; index < sizeof PlayerForwards; index++)
+		DestroyPlayerForward(PlayerForwards[index]);
 }
 
 stock DestroyPlayerForward(&forwardId)
@@ -474,33 +486,33 @@ stock DestroyPlayerForward(&forwardId)
 
 stock bool:ExecuteChangeClassPreForward(id, Class:class, Subclass:subclass)
 {
-	new result;
-	if (!ExecuteForward(ChangeClassPreForward, result, id, class, subclass))
+	new forwardResult;
+	if (!ExecuteForward(PlayerForwards[PlayerForwardChangeClassPre], forwardResult, id, class, subclass))
 		return bool:ReportNativeError("Could not execute @change_class_pre.");
 
-	return RzReturn:result < RZ_SUPERCEDE;
+	return RzReturn:forwardResult < RZ_SUPERCEDE;
 }
 
 stock ExecuteChangeClassPostForward(id, Class:class, Subclass:subclass)
 {
-	new result;
-	if (!ExecuteForward(ChangeClassPostForward, result, id, class, subclass))
+	new forwardResult;
+	if (!ExecuteForward(PlayerForwards[PlayerForwardChangeClassPost], forwardResult, id, class, subclass))
 		ReportNativeError("Could not execute @change_class_post.");
 }
 
 stock bool:ExecuteInfectPlayerPreForward(id, attacker, Subclass:subclass)
 {
-	new result;
-	if (!ExecuteForward(InfectPlayerPreForward, result, id, attacker, subclass))
+	new forwardResult;
+	if (!ExecuteForward(PlayerForwards[PlayerForwardInfectPlayerPre], forwardResult, id, attacker, subclass))
 		return bool:ReportNativeError("Could not execute @infect_player_pre.");
 
-	return RzReturn:result < RZ_SUPERCEDE;
+	return RzReturn:forwardResult < RZ_SUPERCEDE;
 }
 
 stock ExecuteInfectPlayerPostForward(id, attacker, Subclass:subclass)
 {
-	new result;
-	if (!ExecuteForward(InfectPlayerPostForward, result, id, attacker, subclass))
+	new forwardResult;
+	if (!ExecuteForward(PlayerForwards[PlayerForwardInfectPlayerPost], forwardResult, id, attacker, subclass))
 		ReportNativeError("Could not execute @infect_player_post.");
 }
 

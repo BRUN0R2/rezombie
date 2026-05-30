@@ -3,10 +3,10 @@
 ## Agora
 
 - [ ] Validar late join durante `RoundStatePlaying` sem respawn automatico.
-- [ ] Aplicar padrao `ForwardCount` aos forwards internos de `ApiPlayers`.
 
 ## Concluido Recente
 
+- [x] Aplicar padrao `ForwardCount` aos forwards internos de `ApiPlayers`.
 - [x] Estabilizar admissao automatica apos `changelevel`.
 - [x] Recriar politica explicita de respawn por modo seguindo o fluxo do ReZombie C++.
 - [x] Publicar `GameRules` no pre-restart para resetar classes antes do respawn do GameDLL.
@@ -28,6 +28,7 @@
 ## Validacao
 
 - [x] Compilar pacote local com `build.bat`.
+- [x] Validar build apos aplicar `ForwardCount` em `ApiPlayers`.
 - [x] Recarregar ReHLDS via `changelevel` apos copiar o pacote, sem fechar o HLDS.
 - [x] Validar player vivo, CT e humano apos `changelevel`.
 - [x] Validar `rz_dev_validate_round_flow fleshpound 4`.
