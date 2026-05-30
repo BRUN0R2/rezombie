@@ -10,12 +10,26 @@ const PLAYER_ADMISSION_HOOK_FALSE = 0;
 const PLAYER_ADMISSION_NO_ENTITY = 0;
 const PLAYER_ADMISSION_NO_OBSERVER_TARGET = 0;
 const PLAYER_ADMISSION_MAX_PLAYERS = 32;
-const Float:PLAYER_ADMISSION_SCAN_INTERVAL = 0.25;
+const PLAYER_ADMISSION_PLAYERS_PER_PUMP = 4;
+const Float:PLAYER_ADMISSION_PUMP_INTERVAL = 0.10;
 const Float:PLAYER_ADMISSION_NO_INTRO_CAMERA_TIME = 0.0;
 
 const TeamName:PLAYER_ADMISSION_DEFAULT_TEAM = TEAM_CT;
 
-new Float:NextAdmissionScanAt;
+enum AdmissionState
+{
+	AdmissionStateNone = 0,
+	AdmissionStateWaitingEntity,
+	AdmissionStateAssigningTeam,
+	AdmissionStateCompletingJoin,
+	AdmissionStateWaitingRespawn,
+	AdmissionStateActive,
+	AdmissionStateCount
+};
+
+new AdmissionState:PlayerAdmissionStates[PLAYER_ADMISSION_MAX_PLAYERS + 1];
+new AdmissionPumpCursor = 1;
+new Float:NextAdmissionPumpAt;
 
 public plugin_precache()
 {
@@ -38,21 +52,25 @@ public plugin_init()
 
 public plugin_cfg()
 {
-	NextAdmissionScanAt = 0.0;
-	RunAdmissionScan();
+	AdmissionPumpCursor = 1;
+	NextAdmissionPumpAt = 0.0;
+	QueueConnectedPlayers();
 }
 
 public client_putinserver(id)
 {
-	if (is_user_connected(id))
-		AdmitPlayer(id);
+	QueuePlayerAdmission(id);
+}
+
+public client_disconnected(id)
+{
+	ClearPlayerAdmission(id);
 }
 
 public CommandBlockDefaultJoinFlow(id)
 {
-	if (is_user_connected(id))
-		AdmitPlayer(id);
-
+	QueuePlayerAdmission(id);
+	ProcessPlayerAdmission(id);
 	return PLUGIN_HANDLED;
 }
 
@@ -60,10 +78,11 @@ public OnChooseTeamPre(id, MenuChooseTeam:slot)
 {
 	#pragma unused slot
 
-	if (!is_user_connected(id))
+	if (!IsConnectedPlayer(id))
 		return HC_CONTINUE;
 
-	AdmitPlayer(id);
+	QueuePlayerAdmission(id);
+	ProcessPlayerAdmission(id);
 	SetHookChainReturn(ATYPE_INTEGER, PLAYER_ADMISSION_HOOK_FALSE);
 	return HC_SUPERCEDE;
 }
@@ -72,10 +91,11 @@ public OnChooseAppearancePre(id, slot)
 {
 	#pragma unused slot
 
-	if (!is_user_connected(id))
+	if (!IsConnectedPlayer(id))
 		return HC_CONTINUE;
 
-	AdmitPlayer(id);
+	QueuePlayerAdmission(id);
+	ProcessPlayerAdmission(id);
 	return HC_SUPERCEDE;
 }
 
@@ -84,13 +104,14 @@ public OnShowVguiMenuPre(id, VGUIMenu:menuType, bitsSlots, oldMenu[])
 	#pragma unused bitsSlots
 	#pragma unused oldMenu
 
-	if (!is_user_connected(id))
+	if (!IsConnectedPlayer(id))
 		return HC_CONTINUE;
 
 	if (!IsDefaultTeamMenu(menuType))
 		return HC_CONTINUE;
 
-	AdmitPlayer(id);
+	QueuePlayerAdmission(id);
+	ProcessPlayerAdmission(id);
 	return HC_SUPERCEDE;
 }
 
@@ -98,111 +119,276 @@ public OnShowMenuPre(id, bitsSlots, displayTime, needMore, menuText[])
 {
 	#pragma unused bitsSlots, displayTime, needMore, menuText
 
-	if (!is_user_connected(id))
+	if (!IsConnectedPlayer(id))
 		return HC_CONTINUE;
+
+	if (!IsPlayerEntityReady(id))
+	{
+		QueuePlayerAdmission(id);
+		return HC_CONTINUE;
+	}
 
 	if (!IsDefaultTeamMenuState(get_member(id, m_iMenu)))
 		return HC_CONTINUE;
 
-	AdmitPlayer(id);
+	QueuePlayerAdmission(id);
+	ProcessPlayerAdmission(id);
 	return HC_SUPERCEDE;
 }
 
 public OnPlayerJoiningThinkPre(id)
 {
-	if (!is_user_connected(id))
+	if (!IsConnectedPlayer(id))
 		return HC_CONTINUE;
 
-	AdmitPlayer(id);
+	QueuePlayerAdmission(id);
+	ProcessPlayerAdmission(id);
 	return HC_SUPERCEDE;
 }
 
 public OnServerFrame()
 {
 	new Float:now = get_gametime();
-	if (now < NextAdmissionScanAt)
+	if (now < NextAdmissionPumpAt)
 		return FMRES_IGNORED;
 
-	NextAdmissionScanAt = now + PLAYER_ADMISSION_SCAN_INTERVAL;
-	RunAdmissionScan();
+	NextAdmissionPumpAt = now + PLAYER_ADMISSION_PUMP_INTERVAL;
+	QueueConnectedPlayers();
+	RunAdmissionPump();
 
 	return FMRES_IGNORED;
 }
 
-stock RunAdmissionScan()
+stock QueueConnectedPlayers()
 {
 	for (new id = 1; id <= MaxClients; id++)
 	{
-		if (!NeedsAdmission(id))
+		if (!IsConnectedPlayer(id))
 			continue;
 
-		AdmitPlayer(id);
+		if (PlayerAdmissionStates[id] == AdmissionStateNone)
+			QueuePlayerAdmission(id);
 	}
 }
 
-stock bool:NeedsAdmission(id)
+stock QueuePlayerAdmission(id)
 {
-	if (!IsPlayerIndex(id) || !is_user_connected(id))
-		return false;
+	if (!IsConnectedPlayer(id))
+		return;
 
-	if (!IsPlayerOnPlayableGameTeam(id))
-		return true;
-
-	if (bool:get_member(id, m_bJustConnected))
-		return true;
-
-	if (IsDefaultTeamMenuState(get_member(id, m_iMenu)))
-		return true;
-
-	return !is_user_alive(id) && CanRespawnOnAdmission();
-}
-
-stock AdmitPlayer(id)
-{
-	EnsureAdmissionTeam(id);
-	CompletePlayerAdmission(id);
-
-	if (CanRespawnOnAdmission() && !is_user_alive(id))
+	switch (PlayerAdmissionStates[id])
 	{
-		rg_round_respawn(id);
-		CompletePlayerAdmission(id);
+		case AdmissionStateNone, AdmissionStateActive:
+			PlayerAdmissionStates[id] = AdmissionStateWaitingEntity;
 	}
 }
 
-stock EnsureAdmissionTeam(id)
+stock ClearPlayerAdmission(id)
 {
-	new TeamName:team = get_member(id, m_iTeam);
+	if (!IsPlayerIndex(id))
+		return;
+
+	PlayerAdmissionStates[id] = AdmissionStateNone;
+}
+
+stock RunAdmissionPump()
+{
+	new processedPlayers;
+
+	for (new scannedPlayers = 0; scannedPlayers < PLAYER_ADMISSION_MAX_PLAYERS && processedPlayers < PLAYER_ADMISSION_PLAYERS_PER_PUMP; scannedPlayers++)
+	{
+		new id = AdmissionPumpCursor;
+		AdvanceAdmissionPumpCursor();
+
+		if (!IsPlayerIndex(id))
+			continue;
+
+		if (!IsConnectedPlayer(id))
+		{
+			ClearPlayerAdmission(id);
+			continue;
+		}
+
+		if (ShouldRespawnActivePlayer(id))
+			PlayerAdmissionStates[id] = AdmissionStateWaitingRespawn;
+
+		if (PlayerAdmissionStates[id] == AdmissionStateNone)
+			continue;
+
+		ProcessPlayerAdmission(id);
+		processedPlayers++;
+	}
+}
+
+stock AdvanceAdmissionPumpCursor()
+{
+	AdmissionPumpCursor++;
+
+	if (AdmissionPumpCursor > PLAYER_ADMISSION_MAX_PLAYERS)
+		AdmissionPumpCursor = 1;
+}
+
+stock bool:ProcessPlayerAdmission(id)
+{
+	if (!IsConnectedPlayer(id))
+	{
+		ClearPlayerAdmission(id);
+		return false;
+	}
+
+	if (!IsPlayerEntityReady(id))
+	{
+		PlayerAdmissionStates[id] = AdmissionStateWaitingEntity;
+		return false;
+	}
+
+	for (new step = 0; step < _:AdmissionStateCount; step++)
+	{
+		switch (PlayerAdmissionStates[id])
+		{
+			case AdmissionStateNone:
+			{
+				return true;
+			}
+			case AdmissionStateWaitingEntity:
+			{
+				PlayerAdmissionStates[id] = AdmissionStateAssigningTeam;
+			}
+			case AdmissionStateAssigningTeam:
+			{
+				if (!EnsureAdmissionTeam(id))
+					return false;
+
+				PlayerAdmissionStates[id] = AdmissionStateCompletingJoin;
+			}
+			case AdmissionStateCompletingJoin:
+			{
+				CompletePlayerAdmission(id);
+				PlayerAdmissionStates[id] = ShouldRespawnOnAdmission(id) ? AdmissionStateWaitingRespawn : AdmissionStateActive;
+			}
+			case AdmissionStateWaitingRespawn:
+			{
+				if (!ApplyAdmissionRespawn(id))
+					return false;
+
+				PlayerAdmissionStates[id] = AdmissionStateActive;
+				return true;
+			}
+			case AdmissionStateActive:
+			{
+				return true;
+			}
+		}
+	}
+
+	return PlayerAdmissionStates[id] == AdmissionStateActive;
+}
+
+stock bool:EnsureAdmissionTeam(id)
+{
+	new TeamName:team = TeamName:get_member(id, m_iTeam);
 	if (IsPlayableGameTeam(team))
 	{
 		if (IsAcceptingHumans() && team != PLAYER_ADMISSION_DEFAULT_TEAM)
-			AssignDefaultTeam(id);
+			return AssignDefaultTeam(id);
 
-		return;
+		return true;
 	}
 
-	AssignDefaultTeam(id);
+	return AssignDefaultTeam(id);
 }
 
-stock AssignDefaultTeam(id)
+stock bool:AssignDefaultTeam(id)
 {
 	rg_set_user_team(id, PLAYER_ADMISSION_DEFAULT_TEAM, MODEL_AUTO, true, false);
 
-	if (get_member(id, m_iTeam) != PLAYER_ADMISSION_DEFAULT_TEAM)
+	if (!IsConnectedPlayer(id))
+	{
+		ClearPlayerAdmission(id);
+		return false;
+	}
+
+	if (!IsPlayerEntityReady(id))
+	{
+		PlayerAdmissionStates[id] = AdmissionStateWaitingEntity;
+		return false;
+	}
+
+	if (TeamName:get_member(id, m_iTeam) != PLAYER_ADMISSION_DEFAULT_TEAM)
 		set_fail_state("PlayerAdmission could not admit player %d to the default team.", id);
+
+	return true;
 }
 
 stock CompletePlayerAdmission(id)
 {
+	CompletePlayerJoinState(id);
+
+	if (ShouldResetPlayerJoinCamera(id))
+		ResetPlayerJoinCamera(id);
+}
+
+stock CompletePlayerJoinState(id)
+{
 	set_member(id, m_iJoiningState, JOINED);
 	set_member(id, m_iMenu, Menu_OFF);
 	set_member(id, m_bJustConnected, false);
+}
 
+stock ResetPlayerJoinCamera(id)
+{
 	set_member(id, m_pIntroCamera, PLAYER_ADMISSION_NO_ENTITY);
 	set_member(id, m_fIntroCamTime, PLAYER_ADMISSION_NO_INTRO_CAMERA_TIME);
 	set_entvar(id, var_iuser1, OBS_NONE);
 	set_entvar(id, var_iuser2, PLAYER_ADMISSION_NO_OBSERVER_TARGET);
 	set_entvar(id, var_iuser3, PLAYER_ADMISSION_NO_OBSERVER_TARGET);
 	engset_view(id, id);
+}
+
+stock bool:ApplyAdmissionRespawn(id)
+{
+	if (!IsConnectedPlayer(id))
+	{
+		ClearPlayerAdmission(id);
+		return false;
+	}
+
+	if (!CanRespawnOnAdmission() || is_user_alive(id))
+		return true;
+
+	rg_round_respawn(id);
+
+	if (!IsConnectedPlayer(id))
+	{
+		ClearPlayerAdmission(id);
+		return false;
+	}
+
+	if (!IsPlayerEntityReady(id))
+	{
+		PlayerAdmissionStates[id] = AdmissionStateWaitingEntity;
+		return false;
+	}
+
+	CompletePlayerAdmission(id);
+	return true;
+}
+
+stock bool:ShouldResetPlayerJoinCamera(id)
+{
+	return !is_user_bot(id) && !is_user_hltv(id);
+}
+
+stock bool:ShouldRespawnOnAdmission(id)
+{
+	return CanRespawnOnAdmission() && !is_user_alive(id);
+}
+
+stock bool:ShouldRespawnActivePlayer(id)
+{
+	return PlayerAdmissionStates[id] == AdmissionStateActive
+		&& IsPlayerEntityReady(id)
+		&& ShouldRespawnOnAdmission(id);
 }
 
 stock bool:CanRespawnOnAdmission()
@@ -242,11 +428,6 @@ stock bool:IsDefaultTeamMenuState(menu)
 	return false;
 }
 
-stock bool:IsPlayerOnPlayableGameTeam(id)
-{
-	return IsPlayableGameTeam(TeamName:get_member(id, m_iTeam));
-}
-
 stock bool:IsPlayableGameTeam(TeamName:team)
 {
 	return team == TEAM_TERRORIST || team == TEAM_CT;
@@ -255,4 +436,14 @@ stock bool:IsPlayableGameTeam(TeamName:team)
 stock bool:IsPlayerIndex(id)
 {
 	return 1 <= id <= PLAYER_ADMISSION_MAX_PLAYERS;
+}
+
+stock bool:IsConnectedPlayer(id)
+{
+	return IsPlayerIndex(id) && is_user_connected(id);
+}
+
+stock bool:IsPlayerEntityReady(id)
+{
+	return IsConnectedPlayer(id) && is_entity(id);
 }

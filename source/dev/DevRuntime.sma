@@ -7,8 +7,12 @@
 #pragma compress 1
 
 const DEV_MAX_BOTS_PER_COMMAND = 16;
+const DEV_MAX_BOT_FILL_TARGET = 31;
+const DEV_BOT_FILL_BATCH_SIZE = 4;
 const DEV_NO_ATTACKER = 0;
 const Float:DEV_IMMEDIATE_RESTART_DELAY = 0.0;
+const Float:DEV_BOT_FILL_CHECK_INTERVAL = 2.0;
+const Float:DEV_BOT_FILL_WAIT_TIMEOUT = 90.0;
 const DEV_ROUND_FLOW_DEFAULT_PLAYERS = 1;
 const Float:DEV_ROUND_FLOW_CHECK_INTERVAL = 0.25;
 const Float:DEV_ROUND_FLOW_WAIT_TIMEOUT = 20.0;
@@ -48,6 +52,9 @@ new bool:BlockNextChangeClassPre;
 new bool:BlockNextInfectPlayerPre;
 new bool:SpawnOriginCaptured[DEV_MAX_PLAYERS + 1];
 new Float:CapturedSpawnOrigins[DEV_MAX_PLAYERS + 1][3];
+new BotFillTarget;
+new Float:BotFillNextCheckAt;
+new Float:BotFillTimeoutAt;
 
 public plugin_precache()
 {
@@ -57,6 +64,7 @@ public plugin_precache()
 public plugin_init()
 {
 	register_srvcmd("rz_dev_add_bots", "CommandAddBots");
+	register_srvcmd("rz_dev_fill_bots", "CommandFillBots");
 	register_srvcmd("rz_dev_respawn_player", "CommandRespawnPlayer");
 	register_srvcmd("rz_dev_infect_player", "CommandInfectPlayer");
 	register_srvcmd("rz_dev_change_class", "CommandChangeClass");
@@ -91,10 +99,35 @@ public CommandAddBots()
 	}
 
 	for (new index = 0; index < count; index++)
-		server_cmd("sypb_add");
+		RequestBot();
 
 	server_exec();
 	DevInfo("Requested %d SyPB bot(s).", count);
+}
+
+public CommandFillBots()
+{
+	enum
+	{
+		FillBotsArgTarget = 1
+	};
+
+	if (!RequireArgumentCount(FillBotsArgTarget + 1, "Usage: rz_dev_fill_bots <target_bots>"))
+		return;
+
+	new target = read_argv_int(FillBotsArgTarget);
+	if (target < 0 || target > DEV_MAX_BOT_FILL_TARGET)
+	{
+		DevError("Bot fill target must be between 0 and %d.", DEV_MAX_BOT_FILL_TARGET);
+		return;
+	}
+
+	BotFillTarget = target;
+	BotFillNextCheckAt = 0.0;
+	BotFillTimeoutAt = get_gametime() + DEV_BOT_FILL_WAIT_TIMEOUT;
+
+	DevInfo("Bot fill started for %d SyPB bot(s).", BotFillTarget);
+	UpdateBotFill(get_gametime());
 }
 
 public CommandRespawnPlayer()
@@ -511,17 +544,59 @@ public OnDevPlayerSpawnPost(id)
 
 public OnDevServerFrame()
 {
-	if (RoundFlowState == DevRoundFlowIdle)
-		return FMRES_IGNORED;
-
 	new Float:now = get_gametime();
-	if (now < RoundFlowNextCheckAt)
-		return FMRES_IGNORED;
 
-	RoundFlowNextCheckAt = now + DEV_ROUND_FLOW_CHECK_INTERVAL;
-	UpdateRoundFlow(now);
+	if (IsBotFillRunning() && now >= BotFillNextCheckAt)
+		UpdateBotFill(now);
+
+	if (RoundFlowState != DevRoundFlowIdle && now >= RoundFlowNextCheckAt)
+	{
+		RoundFlowNextCheckAt = now + DEV_ROUND_FLOW_CHECK_INTERVAL;
+		UpdateRoundFlow(now);
+	}
 
 	return FMRES_IGNORED;
+}
+
+stock bool:IsBotFillRunning()
+{
+	return BotFillTarget > 0;
+}
+
+stock UpdateBotFill(Float:now)
+{
+	new connectedBots = CountConnectedBots();
+	if (connectedBots >= BotFillTarget)
+	{
+		DevInfo("Bot fill reached %d SyPB bot(s).", connectedBots);
+		StopBotFill();
+		return;
+	}
+
+	if (now >= BotFillTimeoutAt)
+	{
+		DevError("Bot fill timed out at %d/%d SyPB bot(s).", connectedBots, BotFillTarget);
+		StopBotFill();
+		return;
+	}
+
+	new missingBots = BotFillTarget - connectedBots;
+	new requestCount = min(missingBots, DEV_BOT_FILL_BATCH_SIZE);
+
+	for (new index = 0; index < requestCount; index++)
+		RequestBot();
+
+	server_exec();
+	BotFillNextCheckAt = now + DEV_BOT_FILL_CHECK_INTERVAL;
+
+	DevInfo("Bot fill requested %d SyPB bot(s), current=%d target=%d.", requestCount, connectedBots, BotFillTarget);
+}
+
+stock StopBotFill()
+{
+	BotFillTarget = 0;
+	BotFillNextCheckAt = 0.0;
+	BotFillTimeoutAt = 0.0;
 }
 
 stock UpdateRoundFlow(Float:now)
@@ -856,10 +931,15 @@ stock RequestMissingBots(missingPlayers)
 		missingPlayers = DEV_MAX_BOTS_PER_COMMAND;
 
 	for (new index = 0; index < missingPlayers; index++)
-		server_cmd("sypb_add");
+		RequestBot();
 
 	server_exec();
 	DevInfo("Round flow requested %d missing bot(s).", missingPlayers);
+}
+
+stock RequestBot()
+{
+	server_cmd("sypb_add");
 }
 
 stock bool:ValidateAliveHumans(const stage[])
@@ -956,6 +1036,19 @@ stock CountAlivePlayablePlayers()
 	for (new id = 1; id <= MaxClients; id++)
 	{
 		if (is_user_connected(id) && is_user_alive(id) && IsPlayerOnPlayableGameTeam(id))
+			count++;
+	}
+
+	return count;
+}
+
+stock CountConnectedBots()
+{
+	new count;
+
+	for (new id = 1; id <= MaxClients; id++)
+	{
+		if (is_user_connected(id) && is_user_bot(id))
 			count++;
 	}
 

@@ -78,8 +78,12 @@ As bases estudadas servem apenas como referencia:
 - Antes da infecção, qualquer jogador jogável que nascer deve ser humano/CT.
 - Menus padrão de time e personagem do CS ficam bloqueados.
 - Jogadores sem time são admitidos pelo core em CT sem depender do menu padrão.
+- `PlayerAdmission` usa fila e state machine por jogador para processar admissao de forma gradual.
+- Hooks de menu e join apenas enfileiram admissao; a aplicacao real acontece no pump controlado do modulo.
 - A admissao controlada finaliza o estado interno de join do CS para evitar cameras de selecao.
 - A admissao controlada tambem reseta intro camera, observer vars e view para o proprio jogador.
+- `PlayerAdmission` só acessa member vars quando o ReAPI reconhece a entidade do jogador como valida.
+- `PlayerAdmission` nao aplica reset de camera/view em bots ou HLTV.
 - Jogadores admitidos antes da infeccao podem receber respawn imediato.
 - A politica `respawn` do modo define a equipe aplicada em spawns durante `GameStatePlaying` + `RoundStatePlaying`.
 - Fora do round ativo, todo spawn jogavel volta para humano/CT.
@@ -170,6 +174,7 @@ O pacote gerado em `build/cstrike` deve manter os plugins separados por modulo, 
 - O build gera `plugins-rezombie-dev.ini` separado da lista principal.
 - Comandos dev devem ser genericos e explicitos.
 - Comandos dev nao devem virar dependencia do gameplay.
+- `rz_dev_fill_bots` preenche bots em ondas pequenas para validar carga sem burst artificial.
 - `rz_dev_restart_round` aceita delay opcional para validar restart temporizado.
 - Apos copiar `.amxx` novo, usar `changelevel` para recarregar plugins sem fechar o servidor.
 - Para validar somente gameplay, usar restart de round.
@@ -178,6 +183,7 @@ Comandos iniciais:
 
 ```text
 rz_dev_add_bots <count>
+rz_dev_fill_bots <target_bots>
 rz_dev_respawn_player <id>
 rz_dev_infect_player <id> <subclass>
 rz_dev_change_class <id> <class> [subclass]

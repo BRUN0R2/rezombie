@@ -6,6 +6,9 @@
 
 ## Concluido Recente
 
+- [x] Criar `rz_dev_fill_bots` para preencher bots em ondas controladas.
+- [x] Recriar `PlayerAdmission` com fila e state machine de admissao.
+- [x] Estabilizar `PlayerAdmission` para admissao em massa de bots.
 - [x] Bloquear `sv_filetransfercompression` para evitar arquivos `.ztmp`.
 - [x] Aplicar padrao `ForwardCount` aos forwards internos de `ApiPlayers`.
 - [x] Estabilizar admissao automatica apos `changelevel`.
@@ -29,6 +32,9 @@
 ## Validacao
 
 - [x] Compilar pacote local com `build.bat`.
+- [x] Validar build do preenchimento gradual de bots.
+- [x] Validar build da state machine de `PlayerAdmission`.
+- [x] Validar admissao de bots sem erro native em `PlayerAdmission`.
 - [x] Validar bloqueio de `.ztmp` no runtime.
 - [x] Validar build apos aplicar `ForwardCount` em `ApiPlayers`.
 - [x] Recarregar ReHLDS via `changelevel` apos copiar o pacote, sem fechar o HLDS.
