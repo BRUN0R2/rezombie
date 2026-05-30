@@ -32,19 +32,12 @@ enum _:GameRulesForwardData
 	GameRulesForwardRoundEnd,
 	GameRulesForwardRoundTimer,
 	GameRulesForwardGameStateChanged,
-	GameRulesForwardRoundStateChanged
+	GameRulesForwardRoundStateChanged,
+	GameRulesForwardCount
 };
 
 new GameRulesRuntime[GameRulesRuntimeData];
-new GameRulesForwards[GameRulesForwardData] =
-{
-	GAME_RULES_FORWARD_INVALID,
-	GAME_RULES_FORWARD_INVALID,
-	GAME_RULES_FORWARD_INVALID,
-	GAME_RULES_FORWARD_INVALID,
-	GAME_RULES_FORWARD_INVALID,
-	GAME_RULES_FORWARD_INVALID
-};
+new GameRulesForwards[GameRulesForwardCount];
 
 public plugin_precache()
 {
@@ -405,12 +398,20 @@ stock bool:IsPlayerOnPlayableTeam(id)
 
 stock CreateGameRulesForwards()
 {
+	ResetGameRulesForwards();
+
 	GameRulesForwards[GameRulesForwardRoundPrepare] = CreateMultiForward("@round_prepare", ET_IGNORE, FP_CELL, FP_FLOAT);
 	GameRulesForwards[GameRulesForwardRoundStart] = CreateMultiForward("@round_start", ET_IGNORE, FP_CELL, FP_FLOAT);
 	GameRulesForwards[GameRulesForwardRoundEnd] = CreateMultiForward("@round_end", ET_IGNORE, FP_CELL);
 	GameRulesForwards[GameRulesForwardRoundTimer] = CreateMultiForward("@round_timer", ET_IGNORE, FP_CELL);
 	GameRulesForwards[GameRulesForwardGameStateChanged] = CreateMultiForward("@game_state_changed", ET_IGNORE, FP_CELL, FP_CELL);
 	GameRulesForwards[GameRulesForwardRoundStateChanged] = CreateMultiForward("@round_state_changed", ET_IGNORE, FP_CELL, FP_CELL);
+}
+
+stock ResetGameRulesForwards()
+{
+	for (new index = 0; index < sizeof GameRulesForwards; index++)
+		GameRulesForwards[index] = GAME_RULES_FORWARD_INVALID;
 }
 
 stock DestroyGameRulesForwards()
