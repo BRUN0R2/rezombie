@@ -3,9 +3,17 @@
 ## Agora
 
 - [ ] Validar late join durante `RoundStatePlaying` sem respawn automatico.
+- [ ] Trocar validacoes restantes de entidade em `SpawnPoints` para API ReAPI moderna.
+- [ ] Adicionar suporte a `default_class` e `override_default_class` em `GameRules` e `ApiGameVars`.
+- [ ] Escalar zombies iniciais do modo `Infection` conforme total de jogadores vivos.
+- [ ] Implementar infeccao por ataque melee de zombie no modo `Infection`.
+- [ ] Revisar semantica dos forwards para separar restart, prepare e inicio do modo ativo.
 
 ## Concluido Recente
 
+- [x] Modernizar hooks ReAPI do `GameRules` com enum `GameRulesHookCount`.
+- [x] Reescrever `RG_CSGameRules_CheckWinConditions` como gateway oficial das regras do ReZombie.
+- [x] Validar que matar o ultimo zombie termina o round com vitoria humana sem `Game Commencing`.
 - [x] Criar `rz_dev_fill_bots` para preencher bots em ondas controladas.
 - [x] Recriar `PlayerAdmission` com fila e state machine de admissao.
 - [x] Estabilizar `PlayerAdmission` para admissao em massa de bots.
@@ -28,6 +36,13 @@
 - [x] Ajustar `SpawnPoints` para reservar no pre-spawn e aplicar no post-spawn.
 - [x] Validar snapshot real de spawn com 31 bots no servidor local.
 - [x] Trocar sync de round para snapshot interno tipado.
+- [x] Alinhar `EndRoundEvent` com a semantica do ReZombie C++.
+- [x] Implementar `GameStateWarmup` como sala de espera antes do `RoundStatePrepare`.
+- [x] Exibir countdown de `GameStateWarmup` no HUD.
+- [x] Desacoplar inicio do timer global da conclusao da admissao de todos os jogadores.
+- [x] Centralizar politicas de respawn e admissao no `GameRules`.
+- [x] Fazer `PlayerAdmission` consumir `admission_respawn` do `GameRules`.
+- [x] Fazer `ApiPlayers` consumir `respawn_team` do `GameRules`.
 
 ## Validacao
 
@@ -41,3 +56,4 @@
 - [x] Validar player vivo, CT e humano apos `changelevel`.
 - [x] Validar `rz_dev_validate_round_flow fleshpound 4`.
 - [x] Validar `rz_dev_validate_round_state`.
+- [x] Validar vitoria humana ao matar o ultimo zombie sem `Game Commencing`.

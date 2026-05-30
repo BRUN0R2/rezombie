@@ -20,10 +20,14 @@ enum RoundState
 	RoundStateTerminate
 };
 
-enum RoundEndReason
+enum EndRoundEvent
 {
-	RoundEndReasonNone = 0,
-	RoundEndReasonHumans,
-	RoundEndReasonZombies,
-	RoundEndReasonDraw
+	EndRoundEventNone = 0,
+	EndRoundEventWarmupEnd,
+	EndRoundEventGameCommence,
+	EndRoundEventGameRestart,
+	EndRoundEventGameOver,
+	EndRoundEventHumansWin,
+	EndRoundEventZombiesWin,
+	EndRoundEventEndDraw
 };

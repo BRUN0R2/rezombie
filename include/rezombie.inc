@@ -507,9 +507,9 @@ forward @round_start(Mode:mode, Float:duration);
 /**
  * Called when ReZombie ends the current round.
  *
- * @param reason    Round end reason
+ * @param event     Round end event
  */
-forward @round_end(RoundEndReason:reason);
+forward @round_end(EndRoundEvent:event);
 
 /**
  * Called when the visible round timer changes.

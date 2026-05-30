@@ -16,6 +16,8 @@
  * @param timer       Current visible timer in seconds
  * @param humanWins   Human team win count
  * @param zombieWins  Zombie team win count
+ * @param admissionRespawn  Whether admitted players may respawn now
+ * @param respawnTeam       Team assigned on player respawn
  *
  * @return            true on success, false otherwise
  * @error             Fails on invalid caller or invalid snapshot data
@@ -28,5 +30,7 @@ native bool:sync_game_vars(
 	Mode:mode,
 	Float:timer,
 	humanWins,
-	zombieWins
+	zombieWins,
+	bool:admissionRespawn,
+	Team:respawnTeam
 );

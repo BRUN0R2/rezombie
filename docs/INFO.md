@@ -48,11 +48,26 @@ As bases estudadas servem apenas como referencia:
 - A escrita do estado publico usa `sync_game_vars` em `include/rezombie/core/GameVars.inc`.
 - `sync_game_vars` publica um snapshot tipado e deve rejeitar qualquer escritor que nao seja o `GameRules`.
 - O `GameRules` organiza estado interno em `GameRulesRuntime` e forwards explicitos.
+- O `GameRules` organiza hooks ReAPI internos com enum `GameRulesHookCount`.
+- O `GameRules` bloqueia `RG_CSGameRules_CheckWinConditions` para impedir `Game Commencing` e vitorias padrao do CS.
+- `RG_CSGameRules_CheckWinConditions` funciona apenas como gatilho para `EvaluateRoundWinConditions`.
+- Toda decisao de vitoria do round deve passar por `EvaluateRoundWinConditions`.
+- `GameStateWarmup` representa a sala de espera antes da contagem real do round.
+- `RoundStatePrepare` representa a contagem real antes do modo ativo.
+- O tempo padrao inicial segue a referencia do ReZombie C++: 40 segundos de warmup e 20 segundos de prepare.
+- O timer de `GameRules` deve usar participantes conectados como gatilho de fluxo, nao esperar todos terminarem a admissao.
+- `PlayerAdmission` processa cada jogador em paralelo ao timer global, sem bloquear warmup ou prepare.
+- `get_game_var("admission_respawn")` informa se jogadores admitidos podem receber respawn automatico.
+- `get_game_var("respawn_team")` informa qual time deve ser aplicado no proximo spawn.
+- `get_game_var("human_wins")` e `get_game_var("zombie_wins")` expõem placar direto para diagnostico e HUD.
+- O `GameRules` e o dono das politicas de admissao e respawn.
 - Grupos internos de forwards devem usar enum com item `Count` como tamanho do array, como `GameRulesForwardCount`.
 - Handles de forward em array devem ser inicializados por loop com o valor invalido do modulo.
+- Quando a criacao do grupo for pequena e direta, manter o loop de inicializacao dentro de `Create*Forwards` em vez de criar um `Reset*Forwards` separado sem responsabilidade real.
+- Quando a destruicao de forwards ou hooks em array for pequena e usada apenas em `plugin_end`, manter o loop de destruicao direto no `plugin_end`.
 - O retorno bruto de `ExecuteForward` deve usar nome semantico, como `forwardResult`, em vez de `result`.
 - A selecao inicial de modos permanece deterministica e escolhe o primeiro modo elegivel.
-- Variaveis iniciais de jogo: `"game_state"`, `"round_state"`, `"mode"`, `"timer"` e `"team_wins"`.
+- Variaveis iniciais de jogo: `"game_state"`, `"round_state"`, `"mode"`, `"timer"`, `"team_wins"`, `"human_wins"`, `"zombie_wins"`, `"admission_respawn"` e `"respawn_team"`.
 - O tempo configurado do round pertence ao modo via `"round_time"`.
 - `timer` representa somente o tempo visivel sincronizado pelo `GameRules`.
 - `GameCvars` e o dono das cvars criticas do jogo.
@@ -172,6 +187,7 @@ O pacote gerado em `build/cstrike` deve manter os plugins separados por modulo, 
 - `DevRuntime.amxx` e exclusivo para validacao local.
 - Helpers compartilhados do runtime dev ficam em `include/rezombie/dev/RuntimeSupport.inc`.
 - O build gera `plugins-rezombie-dev.ini` separado da lista principal.
+- `DevRuntime.amxx` deve carregar com `debug` por padrao na lista dev.
 - Comandos dev devem ser genericos e explicitos.
 - Comandos dev nao devem virar dependencia do gameplay.
 - `rz_dev_fill_bots` preenche bots em ondas pequenas para validar carga sem burst artificial.
@@ -185,6 +201,8 @@ Comandos iniciais:
 rz_dev_add_bots <count>
 rz_dev_fill_bots <target_bots>
 rz_dev_respawn_player <id>
+rz_dev_kill_player <id>
+rz_dev_kill_first_zombie
 rz_dev_infect_player <id> <subclass>
 rz_dev_change_class <id> <class> [subclass]
 rz_dev_validate_player <id>
@@ -194,12 +212,14 @@ rz_dev_validate_spawn_spacing
 rz_dev_validate_round_flow [subclass] [required_players]
 rz_dev_validate_forward_returns [player] [subclass]
 rz_dev_validate_round_state
+rz_dev_dump_game_vars
 ```
 
 ## HUD
 
 - `RoundFeedback.amxx` fica em `source/hud`.
 - O modulo HUD escuta forwards de round e infeccao.
+- O HUD exibe countdown separado para `GameStateWarmup` e `RoundStatePrepare`.
 - O core de round nao deve depender de HUD, chat ou mensagens.
 - Countdown HUD usa `FM_StartFrame` com `get_gametime()`.
 - Nao usar `set_task` para feedback de countdown.
@@ -212,6 +232,6 @@ rz_dev_validate_round_state
 - `@infect_player_post(id, attacker, Subclass:subclass)`
 - `@round_prepare(Mode:mode, Float:duration)`
 - `@round_start(Mode:mode, Float:duration)`
-- `@round_end(RoundEndReason:reason)`
+- `@round_end(EndRoundEvent:event)`
 
 Callbacks `pre` usam `RZ_CONTINUE` para permitir e `RZ_SUPERCEDE` para bloquear.

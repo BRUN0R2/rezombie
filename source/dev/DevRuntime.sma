@@ -9,6 +9,7 @@
 const DEV_MAX_BOTS_PER_COMMAND = 16;
 const DEV_MAX_BOT_FILL_TARGET = 31;
 const DEV_BOT_FILL_BATCH_SIZE = 4;
+const DEV_KILL_PLAYER_SILENT = 1;
 const DEV_NO_ATTACKER = 0;
 const Float:DEV_IMMEDIATE_RESTART_DELAY = 0.0;
 const Float:DEV_BOT_FILL_CHECK_INTERVAL = 2.0;
@@ -66,6 +67,8 @@ public plugin_init()
 	register_srvcmd("rz_dev_add_bots", "CommandAddBots");
 	register_srvcmd("rz_dev_fill_bots", "CommandFillBots");
 	register_srvcmd("rz_dev_respawn_player", "CommandRespawnPlayer");
+	register_srvcmd("rz_dev_kill_player", "CommandKillPlayer");
+	register_srvcmd("rz_dev_kill_first_zombie", "CommandKillFirstZombie");
 	register_srvcmd("rz_dev_infect_player", "CommandInfectPlayer");
 	register_srvcmd("rz_dev_change_class", "CommandChangeClass");
 	register_srvcmd("rz_dev_validate_player", "CommandValidatePlayer");
@@ -76,6 +79,7 @@ public plugin_init()
 	register_srvcmd("rz_dev_validate_round_flow", "CommandValidateRoundFlow");
 	register_srvcmd("rz_dev_validate_forward_returns", "CommandValidateForwardReturns");
 	register_srvcmd("rz_dev_validate_round_state", "CommandValidateRoundState");
+	register_srvcmd("rz_dev_dump_game_vars", "CommandDumpGameVars");
 	RegisterHookChain(RG_CSGameRules_RestartRound, "OnDevRestartRoundPre", false);
 	RegisterHookChain(RG_CBasePlayer_Spawn, "OnDevPlayerSpawnPost", true);
 	register_forward(FM_StartFrame, "OnDevServerFrame");
@@ -146,6 +150,37 @@ public CommandRespawnPlayer()
 
 	rg_round_respawn(id);
 	DevInfo("Respawn requested for player %d.", id);
+}
+
+public CommandKillPlayer()
+{
+	enum
+	{
+		KillPlayerArgPlayer = 1
+	};
+
+	if (!RequireArgumentCount(KillPlayerArgPlayer + 1, "Usage: rz_dev_kill_player <id>"))
+		return;
+
+	new id = read_argv_int(KillPlayerArgPlayer);
+	if (!RequireAlivePlayer(id))
+		return;
+
+	user_kill(id, DEV_KILL_PLAYER_SILENT);
+	DevInfo("Kill requested for player %d.", id);
+}
+
+public CommandKillFirstZombie()
+{
+	new id = FindFirstAliveZombie();
+	if (!id)
+	{
+		DevError("No alive zombie found.");
+		return;
+	}
+
+	user_kill(id, DEV_KILL_PLAYER_SILENT);
+	DevInfo("Kill requested for first zombie player %d.", id);
 }
 
 public CommandInfectPlayer()
@@ -500,6 +535,35 @@ public CommandValidateRoundState()
 		return;
 
 	DevInfo("Round state validation passed.");
+}
+
+public CommandDumpGameVars()
+{
+	new GameState:gameState = get_game_var("game_state");
+	new RoundState:roundState = get_game_var("round_state");
+	new Mode:mode = get_game_var("mode");
+	new Float:timer = get_game_var("timer");
+	new humanWins = get_game_var("human_wins");
+	new zombieWins = get_game_var("zombie_wins");
+	new bool:admissionRespawn = bool:get_game_var("admission_respawn");
+	new Team:respawnTeam = Team:get_game_var("respawn_team");
+
+	DevInfo(
+		"Game vars: game_state=%d round_state=%d mode=%d timer=%.0f human_wins=%d zombie_wins=%d admission_respawn=%d respawn_team=%d connected=%d bots=%d alive_playable=%d alive_humans=%d alive_zombies=%d.",
+		_:gameState,
+		_:roundState,
+		_:mode,
+		timer,
+		humanWins,
+		zombieWins,
+		admissionRespawn,
+		_:respawnTeam,
+		CountConnectedPlayers(),
+		CountConnectedBots(),
+		CountAlivePlayablePlayers(),
+		CountAliveHumanPlayers(),
+		CountAliveZombiePlayers()
+	);
 }
 
 RzReturn:@change_class_pre(id, Class:class, Subclass:subclass)
@@ -1042,6 +1106,19 @@ stock CountAlivePlayablePlayers()
 	return count;
 }
 
+stock CountConnectedPlayers()
+{
+	new count;
+
+	for (new id = 1; id <= MaxClients; id++)
+	{
+		if (is_user_connected(id) && !is_user_hltv(id))
+			count++;
+	}
+
+	return count;
+}
+
 stock CountConnectedBots()
 {
 	new count;
@@ -1055,11 +1132,48 @@ stock CountConnectedBots()
 	return count;
 }
 
+stock CountAliveHumanPlayers()
+{
+	new count;
+
+	for (new id = 1; id <= MaxClients; id++)
+	{
+		if (IsAlivePlayablePlayer(id) && IsHuman(id))
+			count++;
+	}
+
+	return count;
+}
+
+stock CountAliveZombiePlayers()
+{
+	new count;
+
+	for (new id = 1; id <= MaxClients; id++)
+	{
+		if (IsAlivePlayablePlayer(id) && IsZombie(id))
+			count++;
+	}
+
+	return count;
+}
+
 stock FindFirstAlivePlayablePlayer()
 {
 	for (new id = 1; id <= MaxClients; id++)
 	{
 		if (IsAlivePlayablePlayer(id))
+			return id;
+	}
+
+	return 0;
+}
+
+stock FindFirstAliveZombie()
+{
+	for (new id = 1; id <= MaxClients; id++)
+	{
+		if (IsAlivePlayablePlayer(id) && IsZombie(id))
 			return id;
 	}
 

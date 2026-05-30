@@ -18,8 +18,15 @@ const Float:ROUND_FEEDBACK_FADE_IN = 0.0;
 const Float:ROUND_FEEDBACK_FADE_OUT = 0.1;
 const Float:ROUND_FEEDBACK_NEXT_COUNTDOWN_DELAY = 1.0;
 
-new bool:PrepareCountdownActive;
-new Float:PrepareEndsAt;
+enum FeedbackCountdown
+{
+	FeedbackCountdownNone = 0,
+	FeedbackCountdownWarmup,
+	FeedbackCountdownPrepare
+};
+
+new FeedbackCountdown:ActiveCountdown;
+new Float:CountdownEndsAt;
 new Float:NextCountdownAt;
 new LastCountdownSeconds;
 
@@ -35,24 +42,35 @@ public plugin_init()
 
 public OnServerFrame()
 {
-	if (!PrepareCountdownActive)
+	RefreshCountdownFromGameVars();
+
+	if (ActiveCountdown == FeedbackCountdownNone)
 		return FMRES_IGNORED;
 
 	new Float:now = get_gametime();
 	if (now < NextCountdownAt)
 		return FMRES_IGNORED;
 
-	ShowPrepareCountdown(now);
+	ShowActiveCountdown(now);
 
 	return FMRES_IGNORED;
 }
 
+public @game_state_changed(GameState:oldState, GameState:newState)
+{
+	if (newState == GameStateWarmup)
+	{
+		StartCountdown(FeedbackCountdownWarmup, 0.0);
+		return;
+	}
+
+	if (oldState == GameStateWarmup && ActiveCountdown == FeedbackCountdownWarmup)
+		StopCountdown();
+}
+
 public @round_prepare(Mode:mode, Float:duration)
 {
-	PrepareCountdownActive = true;
-	PrepareEndsAt = get_gametime() + duration;
-	NextCountdownAt = 0.0;
-	LastCountdownSeconds = 0;
+	StartCountdown(FeedbackCountdownPrepare, get_gametime() + duration);
 
 	new modeName[RZ_MAX_NAME_LENGTH];
 	GetModeDisplayName(mode, modeName, charsmax(modeName));
@@ -64,7 +82,7 @@ public @round_start(Mode:mode, Float:duration)
 {
 	#pragma unused duration
 
-	PrepareCountdownActive = false;
+	StopCountdown();
 
 	new modeName[RZ_MAX_NAME_LENGTH];
 	GetModeDisplayName(mode, modeName, charsmax(modeName));
@@ -72,12 +90,12 @@ public @round_start(Mode:mode, Float:duration)
 	ShowHudMessage("%s started", modeName);
 }
 
-public @round_end(RoundEndReason:reason)
+public @round_end(EndRoundEvent:event)
 {
-	PrepareCountdownActive = false;
+	StopCountdown();
 
 	new message[RZ_MAX_NAME_LENGTH];
-	GetRoundEndMessage(reason, message, charsmax(message));
+	GetRoundEndMessage(event, message, charsmax(message));
 
 	ShowHudMessage("%s", message);
 }
@@ -101,12 +119,45 @@ public @infect_player_post(id, attacker, Subclass:subclass)
 	client_print(0, print_chat, "[ReZombie] %s became the first zombie.", victimName);
 }
 
-stock ShowPrepareCountdown(Float:now)
+stock RefreshCountdownFromGameVars()
 {
-	new seconds = floatround(PrepareEndsAt - now, floatround_ceil);
+	new GameState:gameState = get_game_var("game_state");
+	new RoundState:roundState = get_game_var("round_state");
+
+	if (gameState == GameStateWarmup && roundState == RoundStateNone)
+	{
+		if (ActiveCountdown != FeedbackCountdownWarmup)
+			StartCountdown(FeedbackCountdownWarmup, 0.0);
+
+		return;
+	}
+
+	if (ActiveCountdown == FeedbackCountdownWarmup)
+		StopCountdown();
+}
+
+stock StartCountdown(FeedbackCountdown:countdown, Float:endsAt)
+{
+	ActiveCountdown = countdown;
+	CountdownEndsAt = endsAt;
+	NextCountdownAt = 0.0;
+	LastCountdownSeconds = 0;
+}
+
+stock StopCountdown()
+{
+	ActiveCountdown = FeedbackCountdownNone;
+	CountdownEndsAt = 0.0;
+	NextCountdownAt = 0.0;
+	LastCountdownSeconds = 0;
+}
+
+stock ShowActiveCountdown(Float:now)
+{
+	new seconds = GetActiveCountdownSeconds(now);
 	if (seconds < ROUND_FEEDBACK_MIN_COUNTDOWN_SECONDS)
 	{
-		PrepareCountdownActive = false;
+		StopCountdown();
 		return;
 	}
 
@@ -119,7 +170,31 @@ stock ShowPrepareCountdown(Float:now)
 	LastCountdownSeconds = seconds;
 	NextCountdownAt = now + ROUND_FEEDBACK_NEXT_COUNTDOWN_DELAY;
 
-	ShowHudMessage("Infection starts in %d", seconds);
+	switch (ActiveCountdown)
+	{
+		case FeedbackCountdownWarmup:
+			ShowHudMessage("Warmup ends in %d", seconds);
+		case FeedbackCountdownPrepare:
+			ShowHudMessage("Infection starts in %d", seconds);
+	}
+}
+
+stock GetActiveCountdownSeconds(Float:now)
+{
+	switch (ActiveCountdown)
+	{
+		case FeedbackCountdownWarmup:
+		{
+			new Float:timer = get_game_var("timer");
+			return floatround(timer, floatround_ceil);
+		}
+		case FeedbackCountdownPrepare:
+		{
+			return floatround(CountdownEndsAt - now, floatround_ceil);
+		}
+	}
+
+	return 0;
 }
 
 stock GetModeDisplayName(Mode:mode, output[], length)
@@ -134,19 +209,19 @@ stock GetModeDisplayName(Mode:mode, output[], length)
 		set_fail_state("RoundFeedback could not read mode name.");
 }
 
-stock GetRoundEndMessage(RoundEndReason:reason, output[], length)
+stock GetRoundEndMessage(EndRoundEvent:event, output[], length)
 {
-	switch (reason)
+	switch (event)
 	{
-		case RoundEndReasonHumans:
+		case EndRoundEventHumansWin:
 		{
 			copy(output, length, "Humans win");
 		}
-		case RoundEndReasonZombies:
+		case EndRoundEventZombiesWin:
 		{
 			copy(output, length, "Zombies win");
 		}
-		case RoundEndReasonDraw:
+		case EndRoundEventEndDraw:
 		{
 			copy(output, length, "Round draw");
 		}

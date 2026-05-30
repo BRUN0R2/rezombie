@@ -289,7 +289,7 @@ stock bool:EnsureAdmissionTeam(id)
 	new TeamName:team = TeamName:get_member(id, m_iTeam);
 	if (IsPlayableGameTeam(team))
 	{
-		if (IsAcceptingHumans() && team != PLAYER_ADMISSION_DEFAULT_TEAM)
+		if (CanRespawnOnAdmission() && team != PLAYER_ADMISSION_DEFAULT_TEAM)
 			return AssignDefaultTeam(id);
 
 		return true;
@@ -393,17 +393,7 @@ stock bool:ShouldRespawnActivePlayer(id)
 
 stock bool:CanRespawnOnAdmission()
 {
-	return IsAcceptingHumans();
-}
-
-stock bool:IsAcceptingHumans()
-{
-	new GameState:gameState = get_game_var("game_state");
-	if (gameState != GameStatePlaying)
-		return true;
-
-	new RoundState:roundState = get_game_var("round_state");
-	return roundState == RoundStateNone || roundState == RoundStatePrepare;
+	return bool:get_game_var("admission_respawn");
 }
 
 stock bool:IsDefaultTeamMenu(VGUIMenu:menuType)

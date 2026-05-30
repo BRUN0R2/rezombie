@@ -59,7 +59,14 @@ public plugin_init()
 
 public plugin_end()
 {
-	DestroyPlayerForwards();
+	for (new index = 0; index < sizeof PlayerForwards; index++)
+	{
+		if (PlayerForwards[index] == PLAYER_FORWARD_INVALID)
+			continue;
+
+		DestroyForward(PlayerForwards[index]);
+		PlayerForwards[index] = PLAYER_FORWARD_INVALID;
+	}
 }
 
 public client_putinserver(id)
@@ -341,55 +348,11 @@ stock ApplySpawnClass(id)
 
 stock Team:GetRespawnTeam()
 {
-	new GameState:gameState = get_game_var("game_state");
-	new RoundState:roundState = get_game_var("round_state");
+	new Team:team = get_game_var("respawn_team");
+	if (!IsPlayablePlayerTeam(team))
+		set_fail_state("ApiPlayers received invalid respawn team %d.", _:team);
 
-	if (gameState != GameStatePlaying || roundState != RoundStatePlaying)
-		return TEAM_HUMAN;
-
-	new Mode:mode = get_game_var("mode");
-	if (mode == Invalid_Mode)
-		set_fail_state("ApiPlayers could not resolve respawn team without an active mode.");
-
-	new RespawnType:respawn = get_mode_var(mode, "respawn");
-	switch (respawn)
-	{
-		case Respawn_ToZombiesTeam:
-			return TEAM_ZOMBIE;
-		case Respawn_Balance:
-			return GetBalancedRespawnTeam();
-		case Respawn_Off, Respawn_ToHumansTeam:
-			return TEAM_HUMAN;
-	}
-
-	set_fail_state("ApiPlayers received invalid respawn policy %d.", _:respawn);
-	return TEAM_NONE;
-}
-
-stock Team:GetBalancedRespawnTeam()
-{
-	if (CountAliveTeamPlayers(TEAM_HUMAN) >= CountAliveTeamPlayers(TEAM_ZOMBIE))
-		return TEAM_ZOMBIE;
-
-	return TEAM_HUMAN;
-}
-
-stock CountAliveTeamPlayers(Team:team)
-{
-	new count;
-
-	for (new id = 1; id <= MaxClients; id++)
-	{
-		if (!IsValidAlivePlayablePlayer(id))
-			continue;
-
-		if (team == TEAM_HUMAN && IsPlayerHuman(id))
-			count++;
-		else if (team == TEAM_ZOMBIE && IsPlayerZombie(id))
-			count++;
-	}
-
-	return count;
+	return team;
 }
 
 stock Class:GetDefaultClassForTeam(Team:team)
@@ -455,33 +418,13 @@ stock bool:ClearPlayerSubclass(id)
 
 stock CreatePlayerForwards()
 {
-	ResetPlayerForwards();
+	for (new index = 0; index < sizeof PlayerForwards; index++)
+		PlayerForwards[index] = PLAYER_FORWARD_INVALID;
 
 	PlayerForwards[PlayerForwardChangeClassPre] = CreateMultiForward("@change_class_pre", ET_CONTINUE, FP_CELL, FP_CELL, FP_CELL);
 	PlayerForwards[PlayerForwardChangeClassPost] = CreateMultiForward("@change_class_post", ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
 	PlayerForwards[PlayerForwardInfectPlayerPre] = CreateMultiForward("@infect_player_pre", ET_CONTINUE, FP_CELL, FP_CELL, FP_CELL);
 	PlayerForwards[PlayerForwardInfectPlayerPost] = CreateMultiForward("@infect_player_post", ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
-}
-
-stock ResetPlayerForwards()
-{
-	for (new index = 0; index < sizeof PlayerForwards; index++)
-		PlayerForwards[index] = PLAYER_FORWARD_INVALID;
-}
-
-stock DestroyPlayerForwards()
-{
-	for (new index = 0; index < sizeof PlayerForwards; index++)
-		DestroyPlayerForward(PlayerForwards[index]);
-}
-
-stock DestroyPlayerForward(&forwardId)
-{
-	if (forwardId == PLAYER_FORWARD_INVALID)
-		return;
-
-	DestroyForward(forwardId);
-	forwardId = PLAYER_FORWARD_INVALID;
 }
 
 stock bool:ExecuteChangeClassPreForward(id, Class:class, Subclass:subclass)
@@ -702,11 +645,6 @@ stock bool:IsPlayerOnGameTeam(id)
 	new TeamName:team = get_member(id, m_iTeam);
 
 	return team == TEAM_TERRORIST || team == TEAM_CT;
-}
-
-stock bool:IsValidAlivePlayablePlayer(id)
-{
-	return IsPlayerIndex(id) && is_user_connected(id) && is_user_alive(id) && IsPlayerOnGameTeam(id);
 }
 
 stock bool:IsValidConnectedPlayer(id, const nativeName[])
