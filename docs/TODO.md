@@ -6,6 +6,7 @@
 
 ## Concluido Recente
 
+- [x] Bloquear `sv_filetransfercompression` para evitar arquivos `.ztmp`.
 - [x] Aplicar padrao `ForwardCount` aos forwards internos de `ApiPlayers`.
 - [x] Estabilizar admissao automatica apos `changelevel`.
 - [x] Recriar politica explicita de respawn por modo seguindo o fluxo do ReZombie C++.
@@ -28,6 +29,7 @@
 ## Validacao
 
 - [x] Compilar pacote local com `build.bat`.
+- [x] Validar bloqueio de `.ztmp` no runtime.
 - [x] Validar build apos aplicar `ForwardCount` em `ApiPlayers`.
 - [x] Recarregar ReHLDS via `changelevel` apos copiar o pacote, sem fechar o HLDS.
 - [x] Validar player vivo, CT e humano apos `changelevel`.

@@ -70,6 +70,7 @@ As bases estudadas servem apenas como referencia:
 - `mp_freezetime` deve ficar em `0` para o fluxo do mod começar direto.
 - O delay de fim de round continua separado do freeze inicial.
 - `mp_limitteams`, `mp_autoteambalance` e `mp_autokick` ficam em `0` para o CS padrão não quebrar times, admissao e fluxo de round do mod.
+- `sv_filetransfercompression` fica em `0` para impedir cache `.ztmp` gerado por downloads do servidor.
 - Cvar critica inexistente deve falhar explicitamente com `set_fail_state`.
 - O core de round nao deve acumular responsabilidade de cvars.
 - `PlayerAdmission` e o dono da admissao automatica, bloqueio de menus padrao e reset de camera de join.

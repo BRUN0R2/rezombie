@@ -19,7 +19,8 @@ new const GameCvarDefinitions[][GameCvarDefinition] =
 	{ "mp_freezetime", "0" },
 	{ "mp_limitteams", "0" },
 	{ "mp_autoteambalance", "0" },
-	{ "mp_autokick", "0" }
+	{ "mp_autokick", "0" },
+	{ "sv_filetransfercompression", "0" }
 };
 
 new GameCvarPointers[sizeof GameCvarDefinitions];
