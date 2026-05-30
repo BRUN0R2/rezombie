@@ -431,42 +431,42 @@ stock DestroyGameRulesForward(&forwardId)
 
 stock ExecuteRoundPrepare(Mode:mode, Float:duration)
 {
-	new result;
-	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundPrepare], result, mode, duration))
+	new forwardResult;
+	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundPrepare], forwardResult, mode, duration))
 		set_fail_state("GameRules could not execute @round_prepare.");
 }
 
 stock ExecuteRoundStart(Mode:mode, Float:duration)
 {
-	new result;
-	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundStart], result, mode, duration))
+	new forwardResult;
+	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundStart], forwardResult, mode, duration))
 		set_fail_state("GameRules could not execute @round_start.");
 }
 
 stock ExecuteRoundEnd(RoundEndReason:reason)
 {
-	new result;
-	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundEnd], result, reason))
+	new forwardResult;
+	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundEnd], forwardResult, reason))
 		set_fail_state("GameRules could not execute @round_end.");
 }
 
 stock ExecuteRoundTimer(timer)
 {
-	new result;
-	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundTimer], result, timer))
+	new forwardResult;
+	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundTimer], forwardResult, timer))
 		set_fail_state("GameRules could not execute @round_timer.");
 }
 
 stock ExecuteGameStateChanged(GameState:oldState, GameState:newState)
 {
-	new result;
-	if (!ExecuteForward(GameRulesForwards[GameRulesForwardGameStateChanged], result, oldState, newState))
+	new forwardResult;
+	if (!ExecuteForward(GameRulesForwards[GameRulesForwardGameStateChanged], forwardResult, oldState, newState))
 		set_fail_state("GameRules could not execute @game_state_changed.");
 }
 
 stock ExecuteRoundStateChanged(RoundState:oldState, RoundState:newState)
 {
-	new result;
-	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundStateChanged], result, oldState, newState))
+	new forwardResult;
+	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundStateChanged], forwardResult, oldState, newState))
 		set_fail_state("GameRules could not execute @round_state_changed.");
 }
