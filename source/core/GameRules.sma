@@ -2,6 +2,7 @@
 #include <fakemeta>
 #include <reapi>
 #include <rezombie>
+#include <rezombie/core/RoundRuntime>
 #include <rezombie_stock>
 #include <rezombie/core/RoundState>
 
@@ -724,12 +725,12 @@ stock ReportMissingModes()
 
 stock SyncRoundVars(Float:timeLeft)
 {
-	if (!set_round_var(GAME_RULES_ROUND_VAR_STATE, RoundRuntimeData[RoundRuntimeState]))
+	if (!set_round_runtime_var(GAME_RULES_ROUND_VAR_STATE, RoundRuntimeData[RoundRuntimeState]))
 		set_fail_state("GameRules could not sync round state.");
 
-	if (!set_round_var(GAME_RULES_ROUND_VAR_MODE, RoundRuntimeData[RoundRuntimeMode]))
+	if (!set_round_runtime_var(GAME_RULES_ROUND_VAR_MODE, RoundRuntimeData[RoundRuntimeMode]))
 		set_fail_state("GameRules could not sync round mode.");
 
-	if (!set_round_var(GAME_RULES_ROUND_VAR_TIME_LEFT, timeLeft))
+	if (!set_round_runtime_var(GAME_RULES_ROUND_VAR_TIME_LEFT, timeLeft))
 		set_fail_state("GameRules could not sync round time_left.");
 }

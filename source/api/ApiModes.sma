@@ -7,7 +7,6 @@
 const MODE_HANDLE_OFFSET = 4000;
 const MODE_FORWARD_INVALID = -1;
 const MODE_DEFAULT_MIN_PLAYERS = 2;
-const MODE_DEFAULT_CHANCE = 1;
 const Float:MODE_DEFAULT_ROUND_TIME = 180.0;
 
 enum _:ModeData
@@ -18,7 +17,6 @@ enum _:ModeData
 	ModeLaunchForwardName[RZ_MAX_HANDLE_LENGTH],
 	ModeLaunchForward,
 	ModeMinPlayers,
-	ModeChance,
 	Float:ModeRoundTime
 };
 
@@ -104,7 +102,6 @@ public Mode:NativeCreateMode(plugin, params)
 	copy(data[ModeLaunchForwardName], charsmax(data[ModeLaunchForwardName]), launchForward);
 	data[ModeLaunchForward] = launchForwardId;
 	data[ModeMinPlayers] = MODE_DEFAULT_MIN_PLAYERS;
-	data[ModeChance] = MODE_DEFAULT_CHANCE;
 	data[ModeRoundTime] = MODE_DEFAULT_ROUND_TIME;
 
 	new index = ArraySize(Modes);
@@ -228,9 +225,6 @@ public any:NativeGetModeVar(plugin, params)
 	if (equal(key, "min_players"))
 		return data[ModeMinPlayers];
 
-	if (equal(key, "chance"))
-		return data[ModeChance];
-
 	if (equal(key, "round_time"))
 		return data[ModeRoundTime];
 
@@ -282,17 +276,6 @@ public bool:NativeSetModeVar(plugin, params)
 			return bool:ReportNativeError("Mode min_players must be greater than zero.");
 
 		data[ModeMinPlayers] = minPlayers;
-		ArraySetArray(Modes, index, data);
-		return true;
-	}
-
-	if (equal(key, "chance"))
-	{
-		new chance = get_param_byref(SetModeVarParamValue);
-		if (chance < 1)
-			return bool:ReportNativeError("Mode chance must be greater than zero.");
-
-		data[ModeChance] = chance;
 		ArraySetArray(Modes, index, data);
 		return true;
 	}

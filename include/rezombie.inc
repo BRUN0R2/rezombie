@@ -348,18 +348,6 @@ native bool:launch_mode(Mode:mode, target = 0);
 native any:get_round_var(const var[], any:...);
 
 /**
- * Sets a round property.
- *
- * @param var       Property name
- *
- * @return          true on success, false otherwise
- * @error           Fails on invalid property or value
- *
- * @note            Intended for GameRules ownership only
- */
-native bool:set_round_var(const var[], any:...);
-
-/**
  * Player natives.
  */
 

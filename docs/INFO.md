@@ -42,10 +42,13 @@ As bases estudadas servem apenas como referencia:
 - `set_player_var` deve usar o fluxo oficial para aplicar classe/subclasse.
 - `connected`, `alive` e `zombie` são variáveis de jogador somente leitura.
 - Troca de classe aplica props, modelo, time e itens padrão.
-- `ApiRounds` expoe o estado publico do round com `get_round_var` e `set_round_var`.
+- `ApiRounds` expoe o estado publico do round somente com `get_round_var`.
 - `ApiRounds` guarda seu estado interno em `RoundApiRuntime`.
-- O estado real do round pertence ao `GameRules`; somente ele deve escrever em `set_round_var`.
+- O estado real do round pertence ao `GameRules`.
+- A escrita do estado publico do round usa `set_round_runtime_var` em `include/rezombie/core/RoundRuntime.inc`.
+- `set_round_runtime_var` e interno e deve rejeitar qualquer escritor que nao seja o `GameRules`.
 - O `GameRules` organiza estado interno em `RoundConfig`, `RoundRuntime` e `RoundForwards`.
+- A selecao inicial de modos permanece deterministica e escolhe o primeiro modo elegivel.
 - Variáveis iniciais de round: `"state"`, `"mode"` e `"time_left"`.
 - O tempo configurado do round pertence ao modo via `"round_time"`.
 - `time_left` representa somente o tempo ativo sincronizado pelo `GameRules`.
@@ -149,6 +152,7 @@ O pacote gerado em `build/cstrike` deve manter os plugins separados por modulo, 
 ## Runtime Dev
 
 - `DevRuntime.amxx` e exclusivo para validacao local.
+- Helpers compartilhados do runtime dev ficam em `include/rezombie/dev/DevRuntimeSupport.inc`.
 - O build gera `plugins-rezombie-dev.ini` separado da lista principal.
 - Comandos dev devem ser genericos e explicitos.
 - Comandos dev nao devem virar dependencia do gameplay.
