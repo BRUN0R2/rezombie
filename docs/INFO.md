@@ -43,6 +43,7 @@ As bases estudadas servem apenas como referencia:
 - `connected`, `alive` e `zombie` são variáveis de jogador somente leitura.
 - Troca de classe aplica props, modelo, time e itens padrão.
 - `ApiRounds` expoe o estado publico do round com `get_round_var` e `set_round_var`.
+- `ApiRounds` guarda seu estado interno em `RoundApiRuntime`.
 - O estado real do round pertence ao `GameRules`; somente ele deve escrever em `set_round_var`.
 - O `GameRules` organiza estado interno em `RoundConfig`, `RoundRuntime` e `RoundForwards`.
 - Variáveis iniciais de round: `"state"`, `"mode"` e `"time_left"`.

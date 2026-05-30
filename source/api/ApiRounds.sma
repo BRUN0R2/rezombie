@@ -5,12 +5,23 @@
 #pragma semicolon 1
 #pragma compress 1
 
-new RoundState:CurrentRoundState = RoundStateFreezing;
-new Mode:CurrentRoundMode = Invalid_Mode;
-new Float:CurrentRoundDeadlineAt;
+new const ROUND_API_VAR_STATE[] = "state";
+new const ROUND_API_VAR_MODE[] = "mode";
+new const ROUND_API_VAR_TIME_LEFT[] = "time_left";
+
+enum _:RoundApiRuntime
+{
+	RoundState:RoundApiRuntimeState,
+	Mode:RoundApiRuntimeMode,
+	Float:RoundApiRuntimeDeadlineAt
+};
+
+new RoundApiRuntimeData[RoundApiRuntime];
 
 public plugin_natives()
 {
+	InitializeRoundApiRuntime();
+
 	register_library("rezombie");
 
 	register_native("get_round_var", "NativeGetRoundVar");
@@ -35,13 +46,13 @@ public any:NativeGetRoundVar(plugin, params)
 	new key[RZ_MAX_HANDLE_LENGTH];
 	get_string(GetRoundVarParamKey, key, charsmax(key));
 
-	if (equal(key, "state"))
-		return CurrentRoundState;
+	if (equal(key, ROUND_API_VAR_STATE))
+		return RoundApiRuntimeData[RoundApiRuntimeState];
 
-	if (equal(key, "mode"))
-		return CurrentRoundMode;
+	if (equal(key, ROUND_API_VAR_MODE))
+		return RoundApiRuntimeData[RoundApiRuntimeMode];
 
-	if (equal(key, "time_left"))
+	if (equal(key, ROUND_API_VAR_TIME_LEFT))
 		return GetRoundTimeLeft();
 
 	return ReportNativeError("Invalid round property '%s'.", key);
@@ -61,41 +72,48 @@ public bool:NativeSetRoundVar(plugin, params)
 	new key[RZ_MAX_HANDLE_LENGTH];
 	get_string(SetRoundVarParamKey, key, charsmax(key));
 
-	if (equal(key, "state"))
+	if (equal(key, ROUND_API_VAR_STATE))
 	{
 		new RoundState:roundState = RoundState:get_param_byref(SetRoundVarParamValue);
 		if (!IsValidRoundState(roundState))
 			return bool:ReportNativeError("Invalid round state %d.", _:roundState);
 
-		CurrentRoundState = roundState;
+		RoundApiRuntimeData[RoundApiRuntimeState] = roundState;
 		return true;
 	}
 
-	if (equal(key, "mode"))
+	if (equal(key, ROUND_API_VAR_MODE))
 	{
 		new Mode:mode = Mode:get_param_byref(SetRoundVarParamValue);
-		if (_:mode < _:Invalid_Mode)
+		if (mode < Invalid_Mode)
 			return bool:ReportNativeError("Invalid round mode %d.", _:mode);
 
-		CurrentRoundMode = mode;
+		RoundApiRuntimeData[RoundApiRuntimeMode] = mode;
 		return true;
 	}
 
-	if (equal(key, "time_left"))
+	if (equal(key, ROUND_API_VAR_TIME_LEFT))
 	{
 		new Float:timeLeft = get_float_byref(SetRoundVarParamValue);
 		if (timeLeft < 0.0)
 			return bool:ReportNativeError("Round time_left cannot be negative.");
 
 		if (timeLeft > 0.0)
-			CurrentRoundDeadlineAt = get_gametime() + timeLeft;
+			RoundApiRuntimeData[RoundApiRuntimeDeadlineAt] = get_gametime() + timeLeft;
 		else
-			CurrentRoundDeadlineAt = 0.0;
+			RoundApiRuntimeData[RoundApiRuntimeDeadlineAt] = 0.0;
 
 		return true;
 	}
 
 	return bool:ReportNativeError("Invalid round property '%s'.", key);
+}
+
+stock InitializeRoundApiRuntime()
+{
+	RoundApiRuntimeData[RoundApiRuntimeState] = RoundStateFreezing;
+	RoundApiRuntimeData[RoundApiRuntimeMode] = Invalid_Mode;
+	RoundApiRuntimeData[RoundApiRuntimeDeadlineAt] = 0.0;
 }
 
 stock bool:IsValidRoundState(RoundState:roundState)
@@ -105,10 +123,10 @@ stock bool:IsValidRoundState(RoundState:roundState)
 
 stock Float:GetRoundTimeLeft()
 {
-	if (CurrentRoundDeadlineAt <= 0.0)
+	if (RoundApiRuntimeData[RoundApiRuntimeDeadlineAt] <= 0.0)
 		return 0.0;
 
-	new Float:timeLeft = CurrentRoundDeadlineAt - get_gametime();
+	new Float:timeLeft = RoundApiRuntimeData[RoundApiRuntimeDeadlineAt] - get_gametime();
 	if (timeLeft < 0.0)
 		return 0.0;
 

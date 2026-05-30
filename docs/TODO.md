@@ -90,6 +90,7 @@
 - [x] API de subclasses: criar, buscar, exigir e configurar subclasses.
 - [x] API de modos: criar, buscar, configurar e lancar modos.
 - [x] API de rounds: expor estado publico do round.
+- [x] API de rounds: organizar runtime interno em estrutura semantica.
 - [x] API de jogadores: estado, classe atual, infeccao, humano e zombie.
 - [x] API de jogadores: expor variaveis seguras do estado do jogador.
 - [x] API de jogadores: expor forwards de classe e infeccao.
