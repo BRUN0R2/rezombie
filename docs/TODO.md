@@ -14,8 +14,9 @@
 - [x] Validar `Mode:` registrado ao sincronizar estado publico de round.
 - [x] Remover `chance` da API de modos enquanto nao existe selecao ponderada real.
 - [x] Separar helpers compartilhados do runtime dev.
+- [x] Recriar `SpawnPoints` com selecao global dinamica por score.
 
 ## Validacao
 
 - [x] Compilar pacote local com `build.bat`.
-- [ ] Validar runtime em servidor local ReHLDS apos copiar o pacote.
+- [x] Validar runtime em servidor local ReHLDS apos copiar o pacote.

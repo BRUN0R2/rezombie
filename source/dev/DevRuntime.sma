@@ -18,7 +18,7 @@ const DEV_MAX_PLAYER_WEAPONS = 32;
 const DEV_MIN_JOIN_TEAM_SLOT = 1;
 const DEV_MAX_JOIN_TEAM_SLOT = 6;
 const DEV_JOIN_TEAM_SLOT_TEXT_LENGTH = 4;
-const Float:DEV_MIN_SPAWN_DISTANCE = 36.0;
+const Float:DEV_MIN_SPAWN_DISTANCE = 96.0;
 
 new const DEV_PREFIX[] = "[ReZombie Dev]";
 new const DEV_DEFAULT_HUMAN_CLASS[] = "human";

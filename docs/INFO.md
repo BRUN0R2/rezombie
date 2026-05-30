@@ -56,7 +56,11 @@ As bases estudadas servem apenas como referencia:
 - `GameCvars` aplica e trava cvars criticas com `hook_cvar_change`.
 - `SpawnPoints` e o dono dos spawns jogaveis usados pelo mod.
 - `SpawnPoints` combina spawns de CT e TR para permitir humanos em massa antes da infeccao.
-- `SpawnPoints` usa anchors do mapa para gerar slots jogaveis validados por hull.
+- `SpawnPoints` cataloga spawns nativos e slots expandidos validados por hull.
+- `SpawnPoints` agrupa slots por cluster para distribuir respawns entre regioes do mapa.
+- `SpawnPoints` escolhe o melhor slot global por score de distancia, cluster, uso recente e reservas.
+- `SpawnPoints` prefere spawn nativo quando ele satisfaz a distancia dinamica atual.
+- `SpawnPoints` relaxa distancia minima em etapas quando o mapa nao oferece espaco ideal.
 - `SpawnPoints` reserva slots durante burst de respawn para impedir players nascendo juntos.
 - `SpawnPoints` escolhe onde nascer, mas nao respawna jogadores.
 - `GameRules` respawna explicitamente jogadores conectados no restart do round.
