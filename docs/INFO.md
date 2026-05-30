@@ -49,10 +49,20 @@ As bases estudadas servem apenas como referencia:
 - Variáveis iniciais de round: `"state"`, `"mode"` e `"time_left"`.
 - O tempo configurado do round pertence ao modo via `"round_time"`.
 - `time_left` representa somente o tempo ativo sincronizado pelo `GameRules`.
-- O core usa estado explícito de freeze para não iniciar contagem durante `mp_freezetime`.
+- `GameCvars` e o dono das cvars criticas do jogo.
+- `GameCvars` aplica e trava cvars criticas com `hook_cvar_change`.
+- `SpawnPoints` e o dono dos spawns jogaveis usados pelo mod.
+- `SpawnPoints` combina spawns de CT e TR para permitir humanos em massa antes da infeccao.
+- `SpawnPoints` usa anchors do mapa para gerar slots jogaveis validados por hull.
+- `SpawnPoints` reserva slots durante burst de respawn para impedir players nascendo juntos.
+- `SpawnPoints` escolhe onde nascer, mas nao respawna jogadores.
+- `GameRules` respawna explicitamente jogadores conectados no restart do round.
 - `mp_freezetime` deve ficar em `0` para o fluxo do mod começar direto.
 - O delay de fim de round continua separado do freeze inicial.
 - `mp_limitteams`, `mp_autoteambalance` e `mp_autokick` ficam em `0` para o CS padrão não quebrar times, admissao e fluxo de round do mod.
+- Cvar critica inexistente deve falhar explicitamente com `set_fail_state`.
+- O core de round nao deve acumular responsabilidade de cvars.
+- O core deve bloquear fim de round padrao do CS desde `RoundStateFreezing`.
 - Antes da infecção, qualquer jogador jogável que nascer deve ser humano/CT.
 - Menus padrão de time e personagem do CS ficam bloqueados.
 - Jogadores sem time são admitidos pelo core em CT sem depender do menu padrão.
@@ -127,8 +137,10 @@ Ordem inicial esperada dos plugins:
 7. `rezombie/api/ApiPlayers.amxx`
 8. Classes em `rezombie/classes`
 9. Modos em `rezombie/gamemodes`
-10. Core de round em `rezombie/core`
-11. HUD em `rezombie/hud`
+10. `rezombie/core/GameCvars.amxx`
+11. `rezombie/core/SpawnPoints.amxx`
+12. `rezombie/core/GameRules.amxx`
+13. HUD em `rezombie/hud`
 
 As APIs devem carregar antes de qualquer classe, modo ou core que use suas natives.
 Modulos de HUD devem escutar forwards publicos e nao devem colocar regras dentro do core.
@@ -154,6 +166,7 @@ rz_dev_change_class <id> <class> [subclass]
 rz_dev_validate_player <id>
 rz_dev_dump_player <id>
 rz_dev_restart_round [delay]
+rz_dev_validate_spawn_spacing
 rz_dev_validate_round_flow [subclass] [required_players]
 rz_dev_validate_forward_returns [player] [subclass]
 rz_dev_validate_round_state

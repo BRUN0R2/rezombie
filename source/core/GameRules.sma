@@ -22,10 +22,6 @@ enum _:RoundConfig
 {
 	RoundConfigMinAlivePlayers,
 	RoundConfigPrepareSeconds,
-	RoundConfigFreezeSeconds,
-	RoundConfigLimitTeams,
-	RoundConfigAutoTeamBalance,
-	RoundConfigAutoKick,
 	TeamName:RoundConfigDefaultJoinTeam,
 	Float:RoundConfigWaitCheckInterval,
 	Float:RoundConfigWinCheckInterval,
@@ -93,10 +89,6 @@ stock InitializeRoundConfig()
 {
 	RoundConfigData[RoundConfigMinAlivePlayers] = 2;
 	RoundConfigData[RoundConfigPrepareSeconds] = 10;
-	RoundConfigData[RoundConfigFreezeSeconds] = 0;
-	RoundConfigData[RoundConfigLimitTeams] = 0;
-	RoundConfigData[RoundConfigAutoTeamBalance] = 0;
-	RoundConfigData[RoundConfigAutoKick] = 0;
 	RoundConfigData[RoundConfigDefaultJoinTeam] = TEAM_CT;
 	RoundConfigData[RoundConfigWaitCheckInterval] = 1.0;
 	RoundConfigData[RoundConfigWinCheckInterval] = 1.0;
@@ -118,7 +110,6 @@ stock InitializeRoundRuntime()
 
 public plugin_cfg()
 {
-	EnforceGameRuleCvars();
 	SyncRoundVars(0.0);
 }
 
@@ -137,15 +128,14 @@ public plugin_end()
 
 public OnRestartRoundPre()
 {
-	EnforceGameRuleCvars();
 	EnterFreezingRound();
 	ResetPlayablePlayersToHumans();
 }
 
 public OnRestartRoundPost()
 {
-	if (get_cvar_float("mp_freezetime") <= 0.0)
-		ResetRoundState(get_gametime());
+	ResetRoundState(get_gametime());
+	RespawnNewRoundPlayers();
 }
 
 public OnRoundFreezeEndPost()
@@ -181,7 +171,7 @@ public OnRoundEndPre(WinStatus:status, ScenarioEventEndRound:event, Float:delay)
 
 	switch (RoundRuntimeData[RoundRuntimeState])
 	{
-		case RoundStateWaiting, RoundStatePreparing, RoundStatePlaying:
+		case RoundStateFreezing, RoundStateWaiting, RoundStatePreparing, RoundStatePlaying:
 		{
 			SetHookChainReturn(ATYPE_BOOL, false);
 			return HC_SUPERCEDE;
@@ -588,12 +578,15 @@ stock ScheduleWaitCheck(Float:now)
 	RoundRuntimeData[RoundRuntimeNextWaitCheckAt] = now + RoundConfigData[RoundConfigWaitCheckInterval];
 }
 
-stock EnforceGameRuleCvars()
+stock RespawnNewRoundPlayers()
 {
-	set_cvar_num("mp_freezetime", RoundConfigData[RoundConfigFreezeSeconds]);
-	set_cvar_num("mp_limitteams", RoundConfigData[RoundConfigLimitTeams]);
-	set_cvar_num("mp_autoteambalance", RoundConfigData[RoundConfigAutoTeamBalance]);
-	set_cvar_num("mp_autokick", RoundConfigData[RoundConfigAutoKick]);
+	for (new id = 1; id <= MaxClients; id++)
+	{
+		if (!is_user_connected(id))
+			continue;
+
+		AdmitPlayerToDefaultTeam(id);
+	}
 }
 
 stock ResetPlayablePlayersToHumans()

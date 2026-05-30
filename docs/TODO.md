@@ -75,6 +75,11 @@
 - [x] Criar `get_round_var` para estado publico de round.
 - [x] Criar `set_round_var` para sincronizacao explicita pelo `GameRules`.
 - [x] Mover `get_round_var` para `ApiRounds`.
+- [x] Criar `GameCvars` para travar cvars criticas do jogo.
+- [x] Remover responsabilidade de cvars do `GameRules`.
+- [x] Criar core de spawn points para permitir humanos em massa no mesmo time.
+- [x] Recriar `SpawnPoints` com catalogo estruturado e selecao deterministica.
+- [x] Recriar `SpawnPoints` com anchors, slots expandidos e reservas contra spawn sobreposto.
 - [x] Evitar contagem duplicada ao iniciar novo round.
 - [x] Evitar entrega duplicada de armas no prepare do modo.
 - [x] Manter delay de fim de round separado do freeze inicial.
@@ -119,6 +124,9 @@
 - [x] Tratar freeze do CS como estado explicito antes do prepare.
 - [x] Forcar cvars essenciais do round no core.
 - [x] Desativar `mp_autokick` no core para impedir kick idle do CS padrao.
+- [x] Tornar cvars criticas imutaveis com `hook_cvar_change`.
+- [x] Bloquear fim de round padrao do CS tambem durante `RoundStateFreezing`.
+- [x] Respawnar explicitamente jogadores conectados no restart do round.
 - [x] Forcar humano/CT para jogador que nasce antes da infeccao.
 - [x] Bloquear respawn automatico durante round em jogo ou finalizando.
 - [x] Corrigir retorno ReAPI do bloqueio de respawn.

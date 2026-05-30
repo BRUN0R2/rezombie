@@ -18,6 +18,7 @@ const DEV_MAX_PLAYER_WEAPONS = 32;
 const DEV_MIN_JOIN_TEAM_SLOT = 1;
 const DEV_MAX_JOIN_TEAM_SLOT = 6;
 const DEV_JOIN_TEAM_SLOT_TEXT_LENGTH = 4;
+const Float:DEV_MIN_SPAWN_DISTANCE = 36.0;
 
 new const DEV_PREFIX[] = "[ReZombie Dev]";
 new const DEV_DEFAULT_HUMAN_CLASS[] = "human";
@@ -60,6 +61,7 @@ public plugin_init()
 	register_srvcmd("rz_dev_dump_player", "CommandDumpPlayer");
 	register_srvcmd("rz_dev_join_team", "CommandJoinTeam");
 	register_srvcmd("rz_dev_restart_round", "CommandRestartRound");
+	register_srvcmd("rz_dev_validate_spawn_spacing", "CommandValidateSpawnSpacing");
 	register_srvcmd("rz_dev_validate_round_flow", "CommandValidateRoundFlow");
 	register_srvcmd("rz_dev_validate_forward_returns", "CommandValidateForwardReturns");
 	register_srvcmd("rz_dev_validate_round_state", "CommandValidateRoundState");
@@ -290,6 +292,33 @@ public CommandRestartRound()
 	}
 
 	DevInfo("Round restart scheduled with %.2f second delay.", delay);
+}
+
+public CommandValidateSpawnSpacing()
+{
+	new alivePlayers;
+
+	for (new first = 1; first <= MaxClients; first++)
+	{
+		if (!IsAlivePlayablePlayer(first))
+			continue;
+
+		alivePlayers++;
+
+		for (new second = first + 1; second <= MaxClients; second++)
+		{
+			if (!IsAlivePlayablePlayer(second))
+				continue;
+
+			if (ArePlayersTooClose(first, second))
+			{
+				DevError("Players %d and %d are too close after spawn.", first, second);
+				return;
+			}
+		}
+	}
+
+	DevInfo("Spawn spacing validation passed for %d alive playable player(s).", alivePlayers);
 }
 
 public CommandValidateRoundFlow()
@@ -907,11 +936,36 @@ stock FindFirstAlivePlayablePlayer()
 {
 	for (new id = 1; id <= MaxClients; id++)
 	{
-		if (is_user_connected(id) && is_user_alive(id) && IsPlayerOnPlayableGameTeam(id))
+		if (IsAlivePlayablePlayer(id))
 			return id;
 	}
 
 	return 0;
+}
+
+stock bool:IsAlivePlayablePlayer(id)
+{
+	return is_user_connected(id) && is_user_alive(id) && IsPlayerOnPlayableGameTeam(id);
+}
+
+stock bool:ArePlayersTooClose(first, second)
+{
+	new Float:firstOrigin[3];
+	new Float:secondOrigin[3];
+
+	get_entvar(first, var_origin, firstOrigin);
+	get_entvar(second, var_origin, secondOrigin);
+
+	return GetOriginDistanceSquared(firstOrigin, secondOrigin) < (DEV_MIN_SPAWN_DISTANCE * DEV_MIN_SPAWN_DISTANCE);
+}
+
+stock Float:GetOriginDistanceSquared(Float:firstOrigin[3], Float:secondOrigin[3])
+{
+	new Float:deltaX = firstOrigin[0] - secondOrigin[0];
+	new Float:deltaY = firstOrigin[1] - secondOrigin[1];
+	new Float:deltaZ = firstOrigin[2] - secondOrigin[2];
+
+	return (deltaX * deltaX) + (deltaY * deltaY) + (deltaZ * deltaZ);
 }
 
 stock bool:IsPlayerOnPlayableGameTeam(id)
