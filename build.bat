@@ -2,8 +2,10 @@
 setlocal EnableExtensions
 
 set "ROOT=%~dp0"
-set "COMPILER=D:\ARQUIVOS IMPORTANTES\REPOSITORIOS\CS 1.6\Compiler\amxxpc.exe"
-set "COMPILER_INCLUDE=D:\ARQUIVOS IMPORTANTES\REPOSITORIOS\CS 1.6\Compiler\include"
+for %%I in ("%ROOT%..\..") do set "CS_ROOT=%%~fI"
+
+set "COMPILER=%CS_ROOT%\Compiler\amxxpc.exe"
+set "COMPILER_INCLUDE=%CS_ROOT%\Compiler\include"
 set "PROJECT_INCLUDE=%ROOT%include"
 set "PACKAGE_ROOT=%ROOT%build\cstrike"
 set "PLUGIN_ROOT=%PACKAGE_ROOT%\addons\amxmodx\plugins\rezombie"

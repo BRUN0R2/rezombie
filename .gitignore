@@ -1,3 +1,5 @@
 *.amxx
+.env
+*.local.bat
 /build/*
 !/build/.gitkeep

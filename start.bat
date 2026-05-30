@@ -1,11 +1,20 @@
 @echo off
 setlocal EnableExtensions
 
-set "SERVER_DIR=D:\ARQUIVOS IMPORTANTES\REPOSITORIOS\CS 1.6\REHLDS-Rezombie"
+set "ROOT=%~dp0"
+for %%I in ("%ROOT%..\..") do set "CS_ROOT=%%~fI"
+
+set "SERVER_DIR=%CS_ROOT%\REHLDS-Rezombie"
 set "SERVER_EXE=%SERVER_DIR%\hlds.exe"
 set "SERVER_PORT=27027"
-set "RCON_PASSWORD=REDACTED_RCON_PASSWORD"
 set "SERVER_MAP=de_dust2"
+
+if "%REZOMBIE_RCON_PASSWORD%"=="" (
+	echo ERROR: REZOMBIE_RCON_PASSWORD environment variable is required.
+	exit /b 1
+)
+
+set "RCON_PASSWORD=%REZOMBIE_RCON_PASSWORD%"
 
 if not exist "%SERVER_EXE%" (
 	echo ERROR: HLDS executable was not found: %SERVER_EXE%
