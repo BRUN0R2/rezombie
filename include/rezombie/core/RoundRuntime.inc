@@ -8,13 +8,15 @@
 #include <rezombie/core/RoundState>
 
 /**
- * Sets an internal round runtime property.
+ * Publishes the internal round runtime snapshot.
  *
- * @param var       Property name
+ * @param roundState  Current round state
+ * @param mode        Current round mode
+ * @param timeLeft    Current round time left in seconds
  *
- * @return          true on success, false otherwise
- * @error           Fails on invalid caller, property or value
+ * @return            true on success, false otherwise
+ * @error             Fails on invalid caller or invalid snapshot data
  *
- * @note            Owned by GameRules only.
+ * @note              Owned by GameRules only.
  */
-native bool:set_round_runtime_var(const var[], any:...);
+native bool:sync_round_runtime(RoundState:roundState, Mode:mode, Float:timeLeft);

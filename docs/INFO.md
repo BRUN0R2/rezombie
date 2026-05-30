@@ -45,8 +45,8 @@ As bases estudadas servem apenas como referencia:
 - `ApiRounds` expoe o estado publico do round somente com `get_round_var`.
 - `ApiRounds` guarda seu estado interno em `RoundApiRuntime`.
 - O estado real do round pertence ao `GameRules`.
-- A escrita do estado publico do round usa `set_round_runtime_var` em `include/rezombie/core/RoundRuntime.inc`.
-- `set_round_runtime_var` e interno e deve rejeitar qualquer escritor que nao seja o `GameRules`.
+- A escrita do estado publico do round usa `sync_round_runtime` em `include/rezombie/core/RoundRuntime.inc`.
+- `sync_round_runtime` publica um snapshot tipado e deve rejeitar qualquer escritor que nao seja o `GameRules`.
 - O `GameRules` organiza estado interno em `RoundConfig`, `RoundRuntime` e `RoundForwards`.
 - A selecao inicial de modos permanece deterministica e escolhe o primeiro modo elegivel.
 - Variáveis iniciais de round: `"state"`, `"mode"` e `"time_left"`.

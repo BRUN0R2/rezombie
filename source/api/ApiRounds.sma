@@ -29,7 +29,7 @@ public plugin_natives()
 	register_library("rezombie");
 
 	register_native("get_round_var", "NativeGetRoundVar");
-	register_native("set_round_runtime_var", "NativeSetRoundRuntimeVar");
+	register_native("sync_round_runtime", "NativeSyncRoundRuntime");
 }
 
 public plugin_precache()
@@ -62,58 +62,38 @@ public any:NativeGetRoundVar(plugin, params)
 	return ReportNativeError("Invalid round property '%s'.", key);
 }
 
-public bool:NativeSetRoundRuntimeVar(plugin, params)
+public bool:NativeSyncRoundRuntime(plugin, params)
 {
 	enum
 	{
-		SetRoundRuntimeVarParamKey = 1,
-		SetRoundRuntimeVarParamValue
+		SyncRoundRuntimeParamState = 1,
+		SyncRoundRuntimeParamMode,
+		SyncRoundRuntimeParamTimeLeft
 	};
 
 	if (!IsRoundRuntimeWriter(plugin))
-		return bool:ReportNativeError("set_round_runtime_var can only be called by GameRules.");
+		return bool:ReportNativeError("sync_round_runtime can only be called by GameRules.");
 
-	if (params < SetRoundRuntimeVarParamValue)
-		return bool:ReportNativeError("set_round_runtime_var requires property name and value.");
+	if (params < SyncRoundRuntimeParamTimeLeft)
+		return bool:ReportNativeError("sync_round_runtime requires state, mode and time_left.");
 
-	new key[RZ_MAX_HANDLE_LENGTH];
-	get_string(SetRoundRuntimeVarParamKey, key, charsmax(key));
+	new RoundState:roundState = RoundState:get_param(SyncRoundRuntimeParamState);
+	if (!IsValidRoundState(roundState))
+		return bool:ReportNativeError("Invalid round state %d.", _:roundState);
 
-	if (equal(key, ROUND_API_VAR_STATE))
-	{
-		new RoundState:roundState = RoundState:get_param_byref(SetRoundRuntimeVarParamValue);
-		if (!IsValidRoundState(roundState))
-			return bool:ReportNativeError("Invalid round state %d.", _:roundState);
+	new Mode:mode = Mode:get_param(SyncRoundRuntimeParamMode);
+	if (!IsValidRoundMode(mode))
+		return bool:ReportNativeError("Invalid round mode %d.", _:mode);
 
-		RoundApiRuntimeData[RoundApiRuntimeState] = roundState;
-		return true;
-	}
+	new Float:timeLeft = get_param_f(SyncRoundRuntimeParamTimeLeft);
+	if (timeLeft < 0.0)
+		return bool:ReportNativeError("Round time_left cannot be negative.");
 
-	if (equal(key, ROUND_API_VAR_MODE))
-	{
-		new Mode:mode = Mode:get_param_byref(SetRoundRuntimeVarParamValue);
-		if (!IsValidRoundMode(mode))
-			return bool:ReportNativeError("Invalid round mode %d.", _:mode);
+	RoundApiRuntimeData[RoundApiRuntimeState] = roundState;
+	RoundApiRuntimeData[RoundApiRuntimeMode] = mode;
+	SyncRoundRuntimeDeadline(timeLeft);
 
-		RoundApiRuntimeData[RoundApiRuntimeMode] = mode;
-		return true;
-	}
-
-	if (equal(key, ROUND_API_VAR_TIME_LEFT))
-	{
-		new Float:timeLeft = get_float_byref(SetRoundRuntimeVarParamValue);
-		if (timeLeft < 0.0)
-			return bool:ReportNativeError("Round time_left cannot be negative.");
-
-		if (timeLeft > 0.0)
-			RoundApiRuntimeData[RoundApiRuntimeDeadlineAt] = get_gametime() + timeLeft;
-		else
-			RoundApiRuntimeData[RoundApiRuntimeDeadlineAt] = 0.0;
-
-		return true;
-	}
-
-	return bool:ReportNativeError("Invalid round property '%s'.", key);
+	return true;
 }
 
 stock InitializeRoundApiRuntime()
@@ -145,6 +125,17 @@ stock bool:IsRoundRuntimeWriter(plugin)
 	return equal(filename, ROUND_API_RUNTIME_WRITER_FILENAME)
 		|| containi(filename, ROUND_API_RUNTIME_WRITER_PATH) != -1
 		|| containi(filename, ROUND_API_RUNTIME_WRITER_WINDOWS_PATH) != -1;
+}
+
+stock SyncRoundRuntimeDeadline(Float:timeLeft)
+{
+	if (timeLeft > 0.0)
+	{
+		RoundApiRuntimeData[RoundApiRuntimeDeadlineAt] = get_gametime() + timeLeft;
+		return;
+	}
+
+	RoundApiRuntimeData[RoundApiRuntimeDeadlineAt] = 0.0;
 }
 
 stock Float:GetRoundTimeLeft()

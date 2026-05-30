@@ -15,9 +15,6 @@ const GAME_RULES_NO_ENTITY = 0;
 const GAME_RULES_NO_OBSERVER_TARGET = 0;
 
 new const GAME_RULES_DEFAULT_HUMAN_CLASS[] = "human";
-new const GAME_RULES_ROUND_VAR_STATE[] = "state";
-new const GAME_RULES_ROUND_VAR_MODE[] = "mode";
-new const GAME_RULES_ROUND_VAR_TIME_LEFT[] = "time_left";
 
 enum _:RoundConfig
 {
@@ -725,12 +722,6 @@ stock ReportMissingModes()
 
 stock SyncRoundVars(Float:timeLeft)
 {
-	if (!set_round_runtime_var(GAME_RULES_ROUND_VAR_STATE, RoundRuntimeData[RoundRuntimeState]))
-		set_fail_state("GameRules could not sync round state.");
-
-	if (!set_round_runtime_var(GAME_RULES_ROUND_VAR_MODE, RoundRuntimeData[RoundRuntimeMode]))
-		set_fail_state("GameRules could not sync round mode.");
-
-	if (!set_round_runtime_var(GAME_RULES_ROUND_VAR_TIME_LEFT, timeLeft))
-		set_fail_state("GameRules could not sync round time_left.");
+	if (!sync_round_runtime(RoundRuntimeData[RoundRuntimeState], RoundRuntimeData[RoundRuntimeMode], timeLeft))
+		set_fail_state("GameRules could not sync round runtime.");
 }

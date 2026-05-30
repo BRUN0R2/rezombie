@@ -15,6 +15,7 @@
 - [x] Remover `chance` da API de modos enquanto nao existe selecao ponderada real.
 - [x] Separar helpers compartilhados do runtime dev.
 - [x] Recriar `SpawnPoints` com selecao global dinamica por score.
+- [x] Trocar sync de round para snapshot interno tipado.
 
 ## Validacao
 
