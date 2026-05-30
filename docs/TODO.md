@@ -2,10 +2,12 @@
 
 ## Agora
 
-- [ ] Recriar politica explicita de respawn por modo.
+- [ ] Estabilizar admissao automatica apos `changelevel`.
 
 ## Concluido Recente
 
+- [x] Recriar politica explicita de respawn por modo seguindo o fluxo do ReZombie C++.
+- [x] Publicar `GameRules` no pre-restart para resetar classes antes do respawn do GameDLL.
 - [x] Criar `ApiGameVars.sma` com facade publica `get_game_var`.
 - [x] Remover referencias ao contrato antigo de rounds.
 - [x] Recriar `GameRules` como state machine explicita e dona unica das transicoes.
@@ -25,3 +27,5 @@
 
 - [x] Compilar pacote local com `build.bat`.
 - [x] Recarregar ReHLDS via `changelevel` apos copiar o pacote, sem fechar o HLDS.
+- [x] Validar `rz_dev_validate_round_flow fleshpound 4`.
+- [x] Validar `rz_dev_validate_round_state`.

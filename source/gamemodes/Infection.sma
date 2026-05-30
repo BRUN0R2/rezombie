@@ -25,6 +25,7 @@ public plugin_precache()
 	set_mode_var(InfectionMode, "notice_message", "Infection");
 	set_mode_var(InfectionMode, "min_players", INFECTION_MIN_PLAYERS);
 	set_mode_var(InfectionMode, "round_time", INFECTION_ROUND_TIME);
+	set_mode_var(InfectionMode, "respawn", Respawn_ToZombiesTeam);
 }
 
 @LaunchInfection(Mode:mode, target)

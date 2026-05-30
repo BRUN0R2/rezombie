@@ -82,15 +82,7 @@ public OnPlayerSpawnPost(id)
 
 	SpawnPlayerState(id);
 
-	new Class:class = GetPlayerClass(id);
-	if (class == Invalid_Class)
-	{
-		ApplyDefaultHumanClass(id);
-		return;
-	}
-
-	if (!ApplyPlayerClassRuntime(id, class, GetPlayerSubclass(id)))
-		set_fail_state("ApiPlayers could not reapply class runtime to player %d.", id);
+	ApplySpawnClass(id);
 }
 
 public OnGiveDefaultItemsPre(id)
@@ -332,14 +324,89 @@ public bool:NativeInfectPlayer(plugin, params)
 	return true;
 }
 
-stock ApplyDefaultHumanClass(id)
+stock ApplySpawnClass(id)
 {
-	new Class:class = FindClass(DEFAULT_HUMAN_CLASS);
-	if (class == Invalid_Class)
-		set_fail_state("Required class 'human' was not registered.");
+	new Team:team = GetRespawnTeam();
+	new Class:class = GetDefaultClassForTeam(team);
 
 	if (!ChangePlayerClass(id, class, Invalid_Subclass))
-		set_fail_state("ApiPlayers could not apply default human class to player %d.", id);
+		set_fail_state("ApiPlayers could not apply spawn class %d to player %d.", _:class, id);
+}
+
+stock Team:GetRespawnTeam()
+{
+	new GameState:gameState = get_game_var("game_state");
+	new RoundState:roundState = get_game_var("round_state");
+
+	if (gameState != GameStatePlaying || roundState != RoundStatePlaying)
+		return TEAM_HUMAN;
+
+	new Mode:mode = get_game_var("mode");
+	if (mode == Invalid_Mode)
+		set_fail_state("ApiPlayers could not resolve respawn team without an active mode.");
+
+	new RespawnType:respawn = get_mode_var(mode, "respawn");
+	switch (respawn)
+	{
+		case Respawn_ToZombiesTeam:
+			return TEAM_ZOMBIE;
+		case Respawn_Balance:
+			return GetBalancedRespawnTeam();
+		case Respawn_Off, Respawn_ToHumansTeam:
+			return TEAM_HUMAN;
+	}
+
+	set_fail_state("ApiPlayers received invalid respawn policy %d.", _:respawn);
+	return TEAM_NONE;
+}
+
+stock Team:GetBalancedRespawnTeam()
+{
+	if (CountAliveTeamPlayers(TEAM_HUMAN) >= CountAliveTeamPlayers(TEAM_ZOMBIE))
+		return TEAM_ZOMBIE;
+
+	return TEAM_HUMAN;
+}
+
+stock CountAliveTeamPlayers(Team:team)
+{
+	new count;
+
+	for (new id = 1; id <= MaxClients; id++)
+	{
+		if (!IsValidAlivePlayablePlayer(id))
+			continue;
+
+		if (team == TEAM_HUMAN && IsPlayerHuman(id))
+			count++;
+		else if (team == TEAM_ZOMBIE && IsPlayerZombie(id))
+			count++;
+	}
+
+	return count;
+}
+
+stock Class:GetDefaultClassForTeam(Team:team)
+{
+	switch (team)
+	{
+		case TEAM_HUMAN:
+			return RequireDefaultClass(DEFAULT_HUMAN_CLASS);
+		case TEAM_ZOMBIE:
+			return RequireDefaultClass(DEFAULT_ZOMBIE_CLASS);
+	}
+
+	set_fail_state("ApiPlayers received invalid default class team %d.", _:team);
+	return Invalid_Class;
+}
+
+stock Class:RequireDefaultClass(const handle[])
+{
+	new Class:class = FindClass(handle);
+	if (class == Invalid_Class)
+		set_fail_state("Required class '%s' was not registered.", handle);
+
+	return class;
 }
 
 stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass, bool:applyRuntime = true)
@@ -623,6 +690,11 @@ stock bool:IsPlayerOnGameTeam(id)
 	new TeamName:team = get_member(id, m_iTeam);
 
 	return team == TEAM_TERRORIST || team == TEAM_CT;
+}
+
+stock bool:IsValidAlivePlayablePlayer(id)
+{
+	return IsPlayerIndex(id) && is_user_connected(id) && is_user_alive(id) && IsPlayerOnGameTeam(id);
 }
 
 stock bool:IsValidConnectedPlayer(id, const nativeName[])

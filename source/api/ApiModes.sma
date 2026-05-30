@@ -17,7 +17,8 @@ enum _:ModeData
 	ModeLaunchForwardName[RZ_MAX_HANDLE_LENGTH],
 	ModeLaunchForward,
 	ModeMinPlayers,
-	Float:ModeRoundTime
+	Float:ModeRoundTime,
+	RespawnType:ModeRespawn
 };
 
 new Array:Modes;
@@ -103,6 +104,7 @@ public Mode:NativeCreateMode(plugin, params)
 	data[ModeLaunchForward] = launchForwardId;
 	data[ModeMinPlayers] = MODE_DEFAULT_MIN_PLAYERS;
 	data[ModeRoundTime] = MODE_DEFAULT_ROUND_TIME;
+	data[ModeRespawn] = Respawn_Off;
 
 	new index = ArraySize(Modes);
 	if (!TrieSetCell(ModesByHandle, handle, index, false))
@@ -228,6 +230,9 @@ public any:NativeGetModeVar(plugin, params)
 	if (equal(key, "round_time"))
 		return data[ModeRoundTime];
 
+	if (equal(key, "respawn"))
+		return data[ModeRespawn];
+
 	return ReportNativeError("Invalid mode property '%s'.", key);
 }
 
@@ -287,6 +292,17 @@ public bool:NativeSetModeVar(plugin, params)
 			return bool:ReportNativeError("Mode round_time must be greater than zero.");
 
 		data[ModeRoundTime] = roundTime;
+		ArraySetArray(Modes, index, data);
+		return true;
+	}
+
+	if (equal(key, "respawn"))
+	{
+		new RespawnType:respawn = RespawnType:get_param_byref(SetModeVarParamValue);
+		if (!IsValidRespawnType(respawn))
+			return bool:ReportNativeError("Invalid mode respawn policy %d.", _:respawn);
+
+		data[ModeRespawn] = respawn;
 		ArraySetArray(Modes, index, data);
 		return true;
 	}
@@ -357,4 +373,15 @@ stock bool:IsValidModeHandle(Mode:mode)
 stock bool:IsValidModeIndex(index)
 {
 	return 0 <= index < ArraySize(Modes);
+}
+
+stock bool:IsValidRespawnType(RespawnType:respawn)
+{
+	switch (respawn)
+	{
+		case Respawn_Off, Respawn_ToHumansTeam, Respawn_ToZombiesTeam, Respawn_Balance:
+			return true;
+	}
+
+	return false;
 }

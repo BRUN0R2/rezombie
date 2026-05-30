@@ -76,6 +76,9 @@ As bases estudadas servem apenas como referencia:
 - A admissao controlada finaliza o estado interno de join do CS para evitar cameras de selecao.
 - A admissao controlada tambem reseta intro camera, observer vars e view para o proprio jogador.
 - Jogadores admitidos antes da infeccao podem receber respawn imediato.
+- A politica `respawn` do modo define a equipe aplicada em spawns durante `GameStatePlaying` + `RoundStatePlaying`.
+- Fora do round ativo, todo spawn jogavel volta para humano/CT.
+- `Respawn_ToZombiesTeam` deve ser usado por modos onde mortos retornam como zombies durante o round.
 - Durante `RoundStatePlaying` e `RoundStateTerminate`, respawn automatico fica bloqueado.
 - Durante `RoundStatePlaying` e `RoundStateTerminate`, jogadores ja admitidos nao podem trocar de time.
 - Durante `RoundStatePlaying` e `RoundStateTerminate`, jogador novo pode ser admitido sem respawn automatico.
@@ -102,6 +105,7 @@ Subclass:
 Props:
 Mode:
 Model:
+RespawnType:
 ```
 
 Exemplo esperado:

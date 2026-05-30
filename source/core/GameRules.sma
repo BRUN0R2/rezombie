@@ -44,7 +44,7 @@ public plugin_init()
 	CreateGameRulesForwards();
 
 	register_forward(FM_StartFrame, "OnServerFrame");
-	RegisterHookChain(RG_CSGameRules_RestartRound, "OnRestartRoundPost", true);
+	RegisterHookChain(RG_CSGameRules_RestartRound, "OnRestartRoundPre", false);
 }
 
 public plugin_cfg()
@@ -58,7 +58,7 @@ public plugin_end()
 	DestroyGameRulesForwards();
 }
 
-public OnRestartRoundPost()
+public OnRestartRoundPre()
 {
 	RefreshRoundFlow();
 }
