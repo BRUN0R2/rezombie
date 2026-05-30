@@ -25,14 +25,26 @@ enum _:GameRulesRuntimeData
 	GameRulesZombieWins
 };
 
-new GameRulesRuntime[GameRulesRuntimeData];
+enum _:GameRulesForwardData
+{
+	GameRulesForwardRoundPrepare,
+	GameRulesForwardRoundStart,
+	GameRulesForwardRoundEnd,
+	GameRulesForwardRoundTimer,
+	GameRulesForwardGameStateChanged,
+	GameRulesForwardRoundStateChanged
+};
 
-new RoundPrepareForward = GAME_RULES_FORWARD_INVALID;
-new RoundStartForward = GAME_RULES_FORWARD_INVALID;
-new RoundEndForward = GAME_RULES_FORWARD_INVALID;
-new RoundTimerForward = GAME_RULES_FORWARD_INVALID;
-new GameStateChangedForward = GAME_RULES_FORWARD_INVALID;
-new RoundStateChangedForward = GAME_RULES_FORWARD_INVALID;
+new GameRulesRuntime[GameRulesRuntimeData];
+new GameRulesForwards[GameRulesForwardData] =
+{
+	GAME_RULES_FORWARD_INVALID,
+	GAME_RULES_FORWARD_INVALID,
+	GAME_RULES_FORWARD_INVALID,
+	GAME_RULES_FORWARD_INVALID,
+	GAME_RULES_FORWARD_INVALID,
+	GAME_RULES_FORWARD_INVALID
+};
 
 public plugin_precache()
 {
@@ -393,22 +405,18 @@ stock bool:IsPlayerOnPlayableTeam(id)
 
 stock CreateGameRulesForwards()
 {
-	RoundPrepareForward = CreateMultiForward("@round_prepare", ET_IGNORE, FP_CELL, FP_FLOAT);
-	RoundStartForward = CreateMultiForward("@round_start", ET_IGNORE, FP_CELL, FP_FLOAT);
-	RoundEndForward = CreateMultiForward("@round_end", ET_IGNORE, FP_CELL);
-	RoundTimerForward = CreateMultiForward("@round_timer", ET_IGNORE, FP_CELL);
-	GameStateChangedForward = CreateMultiForward("@game_state_changed", ET_IGNORE, FP_CELL, FP_CELL);
-	RoundStateChangedForward = CreateMultiForward("@round_state_changed", ET_IGNORE, FP_CELL, FP_CELL);
+	GameRulesForwards[GameRulesForwardRoundPrepare] = CreateMultiForward("@round_prepare", ET_IGNORE, FP_CELL, FP_FLOAT);
+	GameRulesForwards[GameRulesForwardRoundStart] = CreateMultiForward("@round_start", ET_IGNORE, FP_CELL, FP_FLOAT);
+	GameRulesForwards[GameRulesForwardRoundEnd] = CreateMultiForward("@round_end", ET_IGNORE, FP_CELL);
+	GameRulesForwards[GameRulesForwardRoundTimer] = CreateMultiForward("@round_timer", ET_IGNORE, FP_CELL);
+	GameRulesForwards[GameRulesForwardGameStateChanged] = CreateMultiForward("@game_state_changed", ET_IGNORE, FP_CELL, FP_CELL);
+	GameRulesForwards[GameRulesForwardRoundStateChanged] = CreateMultiForward("@round_state_changed", ET_IGNORE, FP_CELL, FP_CELL);
 }
 
 stock DestroyGameRulesForwards()
 {
-	DestroyGameRulesForward(RoundPrepareForward);
-	DestroyGameRulesForward(RoundStartForward);
-	DestroyGameRulesForward(RoundEndForward);
-	DestroyGameRulesForward(RoundTimerForward);
-	DestroyGameRulesForward(GameStateChangedForward);
-	DestroyGameRulesForward(RoundStateChangedForward);
+	for (new index = 0; index < sizeof GameRulesForwards; index++)
+		DestroyGameRulesForward(GameRulesForwards[index]);
 }
 
 stock DestroyGameRulesForward(&forwardId)
@@ -423,41 +431,41 @@ stock DestroyGameRulesForward(&forwardId)
 stock ExecuteRoundPrepare(Mode:mode, Float:duration)
 {
 	new result;
-	if (!ExecuteForward(RoundPrepareForward, result, mode, duration))
+	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundPrepare], result, mode, duration))
 		set_fail_state("GameRules could not execute @round_prepare.");
 }
 
 stock ExecuteRoundStart(Mode:mode, Float:duration)
 {
 	new result;
-	if (!ExecuteForward(RoundStartForward, result, mode, duration))
+	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundStart], result, mode, duration))
 		set_fail_state("GameRules could not execute @round_start.");
 }
 
 stock ExecuteRoundEnd(RoundEndReason:reason)
 {
 	new result;
-	if (!ExecuteForward(RoundEndForward, result, reason))
+	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundEnd], result, reason))
 		set_fail_state("GameRules could not execute @round_end.");
 }
 
 stock ExecuteRoundTimer(timer)
 {
 	new result;
-	if (!ExecuteForward(RoundTimerForward, result, timer))
+	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundTimer], result, timer))
 		set_fail_state("GameRules could not execute @round_timer.");
 }
 
 stock ExecuteGameStateChanged(GameState:oldState, GameState:newState)
 {
 	new result;
-	if (!ExecuteForward(GameStateChangedForward, result, oldState, newState))
+	if (!ExecuteForward(GameRulesForwards[GameRulesForwardGameStateChanged], result, oldState, newState))
 		set_fail_state("GameRules could not execute @game_state_changed.");
 }
 
 stock ExecuteRoundStateChanged(RoundState:oldState, RoundState:newState)
 {
 	new result;
-	if (!ExecuteForward(RoundStateChangedForward, result, oldState, newState))
+	if (!ExecuteForward(GameRulesForwards[GameRulesForwardRoundStateChanged], result, oldState, newState))
 		set_fail_state("GameRules could not execute @round_state_changed.");
 }
