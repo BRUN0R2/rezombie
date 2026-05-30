@@ -50,6 +50,7 @@ As bases estudadas servem apenas como referencia:
 - O `GameRules` organiza estado interno em `GameRulesRuntime` e forwards explicitos.
 - Grupos internos de forwards devem usar enum com item `Count` como tamanho do array, como `GameRulesForwardCount`.
 - Handles de forward em array devem ser inicializados por loop com o valor invalido do modulo.
+- O retorno bruto de `ExecuteForward` deve usar nome semantico, como `forwardResult`, em vez de `result`.
 - A selecao inicial de modos permanece deterministica e escolhe o primeiro modo elegivel.
 - Variaveis iniciais de jogo: `"game_state"`, `"round_state"`, `"mode"`, `"timer"` e `"team_wins"`.
 - O tempo configurado do round pertence ao modo via `"round_time"`.
