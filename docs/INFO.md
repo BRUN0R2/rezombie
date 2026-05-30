@@ -48,6 +48,8 @@ As bases estudadas servem apenas como referencia:
 - A escrita do estado publico usa `sync_game_vars` em `include/rezombie/core/GameVars.inc`.
 - `sync_game_vars` publica um snapshot tipado e deve rejeitar qualquer escritor que nao seja o `GameRules`.
 - O `GameRules` organiza estado interno em `GameRulesRuntime` e forwards explicitos.
+- Grupos internos de forwards devem usar enum com item `Count` como tamanho do array, como `GameRulesForwardCount`.
+- Handles de forward em array devem ser inicializados por loop com o valor invalido do modulo.
 - A selecao inicial de modos permanece deterministica e escolhe o primeiro modo elegivel.
 - Variaveis iniciais de jogo: `"game_state"`, `"round_state"`, `"mode"`, `"timer"` e `"team_wins"`.
 - O tempo configurado do round pertence ao modo via `"round_time"`.

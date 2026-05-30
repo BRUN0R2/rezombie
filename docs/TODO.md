@@ -3,6 +3,7 @@
 ## Agora
 
 - [ ] Validar late join durante `RoundStatePlaying` sem respawn automatico.
+- [ ] Aplicar padrao `ForwardCount` aos forwards internos de `ApiPlayers`.
 
 ## Concluido Recente
 

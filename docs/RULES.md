@@ -18,6 +18,8 @@
 - Resolver problemas diretamente na fonte, sem flags temporarias ou contornos escondidos.
 - Evitar numeros magicos, principalmente em parametros posicionais de natives.
 - Parametros posicionais de natives devem usar nomes semanticos via `enum`.
+- Grupos internos indexados devem usar `enum` com item sentinela `Count` para dimensionar arrays.
+- Evitar listas duplicadas de inicializacao quando um array puder ser inicializado por loop com valor invalido semantico.
 - Todo plugin `.sma` deve usar `#pragma semicolon 1` e `#pragma compress 1`.
 
 ## API
