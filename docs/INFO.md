@@ -118,20 +118,21 @@ set_props_var(props, "gravity", 1.0);
 
 Ordem inicial esperada dos plugins:
 
-1. `ApiProps.amxx`
-2. `ApiModels.amxx`
-3. `ApiClasses.amxx`
-4. `ApiSubclasses.amxx`
-5. `ApiModes.amxx`
-6. `ApiRounds.amxx`
-7. `ApiPlayers.amxx`
-8. Classes em `source/classes`
-9. Modos em `source/gamemodes`
-10. Core de round em `source/core`
-11. HUD em `source/hud`
+1. `rezombie/api/ApiProps.amxx`
+2. `rezombie/api/ApiModels.amxx`
+3. `rezombie/api/ApiClasses.amxx`
+4. `rezombie/api/ApiSubclasses.amxx`
+5. `rezombie/api/ApiModes.amxx`
+6. `rezombie/api/ApiRounds.amxx`
+7. `rezombie/api/ApiPlayers.amxx`
+8. Classes em `rezombie/classes`
+9. Modos em `rezombie/gamemodes`
+10. Core de round em `rezombie/core`
+11. HUD em `rezombie/hud`
 
 As APIs devem carregar antes de qualquer classe, modo ou core que use suas natives.
 Modulos de HUD devem escutar forwards publicos e nao devem colocar regras dentro do core.
+O pacote gerado em `build/cstrike` deve manter os plugins separados por modulo, igual ao `source`.
 
 ## Runtime Dev
 

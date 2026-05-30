@@ -6,7 +6,13 @@ set "COMPILER=D:\ARQUIVOS IMPORTANTES\REPOSITORIOS\CS 1.6\Compiler\amxxpc.exe"
 set "COMPILER_INCLUDE=D:\ARQUIVOS IMPORTANTES\REPOSITORIOS\CS 1.6\Compiler\include"
 set "PROJECT_INCLUDE=%ROOT%include"
 set "PACKAGE_ROOT=%ROOT%build\cstrike"
-set "PLUGIN_DIR=%PACKAGE_ROOT%\addons\amxmodx\plugins\rezombie"
+set "PLUGIN_ROOT=%PACKAGE_ROOT%\addons\amxmodx\plugins\rezombie"
+set "PLUGIN_API_DIR=%PLUGIN_ROOT%\api"
+set "PLUGIN_CLASSES_DIR=%PLUGIN_ROOT%\classes"
+set "PLUGIN_CORE_DIR=%PLUGIN_ROOT%\core"
+set "PLUGIN_DEV_DIR=%PLUGIN_ROOT%\dev"
+set "PLUGIN_GAMEMODES_DIR=%PLUGIN_ROOT%\gamemodes"
+set "PLUGIN_HUD_DIR=%PLUGIN_ROOT%\hud"
 set "CONFIG_DIR=%PACKAGE_ROOT%\addons\amxmodx\configs"
 set "PLUGIN_CONFIG=%CONFIG_DIR%\plugins-rezombie.ini"
 set "DEV_PLUGIN_CONFIG=%CONFIG_DIR%\plugins-rezombie-dev.ini"
@@ -30,99 +36,108 @@ if exist "%PACKAGE_ROOT%" (
 	)
 )
 
-mkdir "%PLUGIN_DIR%" >nul 2>nul
-if errorlevel 1 (
-	echo ERROR: Failed to create plugin directory: %PLUGIN_DIR%
-	exit /b 1
-)
+call :EnsureDirectory "%PLUGIN_API_DIR%"
+if errorlevel 1 exit /b 1
 
-mkdir "%CONFIG_DIR%" >nul 2>nul
-if errorlevel 1 (
-	echo ERROR: Failed to create config directory: %CONFIG_DIR%
-	exit /b 1
-)
+call :EnsureDirectory "%PLUGIN_CLASSES_DIR%"
+if errorlevel 1 exit /b 1
+
+call :EnsureDirectory "%PLUGIN_CORE_DIR%"
+if errorlevel 1 exit /b 1
+
+call :EnsureDirectory "%PLUGIN_DEV_DIR%"
+if errorlevel 1 exit /b 1
+
+call :EnsureDirectory "%PLUGIN_GAMEMODES_DIR%"
+if errorlevel 1 exit /b 1
+
+call :EnsureDirectory "%PLUGIN_HUD_DIR%"
+if errorlevel 1 exit /b 1
+
+call :EnsureDirectory "%CONFIG_DIR%"
+if errorlevel 1 exit /b 1
 
 echo Compiling source\api\ApiProps.sma
-"%COMPILER%" "%ROOT%source\api\ApiProps.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ApiProps.amxx"
+"%COMPILER%" "%ROOT%source\api\ApiProps.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiProps.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\api\ApiModels.sma
-"%COMPILER%" "%ROOT%source\api\ApiModels.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ApiModels.amxx"
+"%COMPILER%" "%ROOT%source\api\ApiModels.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiModels.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\api\ApiClasses.sma
-"%COMPILER%" "%ROOT%source\api\ApiClasses.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ApiClasses.amxx"
+"%COMPILER%" "%ROOT%source\api\ApiClasses.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiClasses.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\api\ApiSubclasses.sma
-"%COMPILER%" "%ROOT%source\api\ApiSubclasses.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ApiSubclasses.amxx"
+"%COMPILER%" "%ROOT%source\api\ApiSubclasses.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiSubclasses.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\api\ApiModes.sma
-"%COMPILER%" "%ROOT%source\api\ApiModes.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ApiModes.amxx"
+"%COMPILER%" "%ROOT%source\api\ApiModes.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiModes.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\api\ApiRounds.sma
-"%COMPILER%" "%ROOT%source\api\ApiRounds.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ApiRounds.amxx"
+"%COMPILER%" "%ROOT%source\api\ApiRounds.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiRounds.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\api\ApiPlayers.sma
-"%COMPILER%" "%ROOT%source\api\ApiPlayers.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\ApiPlayers.amxx"
+"%COMPILER%" "%ROOT%source\api\ApiPlayers.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiPlayers.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\classes\Human.sma
-"%COMPILER%" "%ROOT%source\classes\Human.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\Human.amxx"
+"%COMPILER%" "%ROOT%source\classes\Human.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CLASSES_DIR%\Human.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\classes\Zombie.sma
-"%COMPILER%" "%ROOT%source\classes\Zombie.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\Zombie.amxx"
+"%COMPILER%" "%ROOT%source\classes\Zombie.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CLASSES_DIR%\Zombie.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\classes\Fleshpound.sma
-"%COMPILER%" "%ROOT%source\classes\Fleshpound.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\Fleshpound.amxx"
+"%COMPILER%" "%ROOT%source\classes\Fleshpound.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CLASSES_DIR%\Fleshpound.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\gamemodes\Infection.sma
-"%COMPILER%" "%ROOT%source\gamemodes\Infection.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\Infection.amxx"
+"%COMPILER%" "%ROOT%source\gamemodes\Infection.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_GAMEMODES_DIR%\Infection.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\core\GameRules.sma
-"%COMPILER%" "%ROOT%source\core\GameRules.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\GameRules.amxx"
+"%COMPILER%" "%ROOT%source\core\GameRules.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\GameRules.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\hud\RoundFeedback.sma
-"%COMPILER%" "%ROOT%source\hud\RoundFeedback.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\RoundFeedback.amxx"
+"%COMPILER%" "%ROOT%source\hud\RoundFeedback.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_HUD_DIR%\RoundFeedback.amxx"
 if errorlevel 1 exit /b 1
 
 echo Compiling source\dev\DevRuntime.sma
-"%COMPILER%" "%ROOT%source\dev\DevRuntime.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DIR%\DevRuntime.amxx"
+"%COMPILER%" "%ROOT%source\dev\DevRuntime.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DEV_DIR%\DevRuntime.amxx"
 if errorlevel 1 exit /b 1
 
 > "%PLUGIN_CONFIG%" echo ; ReZombie Plugins
 >> "%PLUGIN_CONFIG%" echo ; Generated by build.bat.
 >> "%PLUGIN_CONFIG%" echo.
->> "%PLUGIN_CONFIG%" echo ; Core APIs
->> "%PLUGIN_CONFIG%" echo rezombie/ApiProps.amxx
->> "%PLUGIN_CONFIG%" echo rezombie/ApiModels.amxx
->> "%PLUGIN_CONFIG%" echo rezombie/ApiClasses.amxx
->> "%PLUGIN_CONFIG%" echo rezombie/ApiSubclasses.amxx
->> "%PLUGIN_CONFIG%" echo rezombie/ApiModes.amxx
->> "%PLUGIN_CONFIG%" echo rezombie/ApiRounds.amxx
->> "%PLUGIN_CONFIG%" echo rezombie/ApiPlayers.amxx
+>> "%PLUGIN_CONFIG%" echo ; APIs
+>> "%PLUGIN_CONFIG%" echo rezombie/api/ApiProps.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/api/ApiModels.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/api/ApiClasses.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/api/ApiSubclasses.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/api/ApiModes.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/api/ApiRounds.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/api/ApiPlayers.amxx
 >> "%PLUGIN_CONFIG%" echo.
 >> "%PLUGIN_CONFIG%" echo ; Classes
->> "%PLUGIN_CONFIG%" echo rezombie/Human.amxx
->> "%PLUGIN_CONFIG%" echo rezombie/Zombie.amxx
->> "%PLUGIN_CONFIG%" echo rezombie/Fleshpound.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/classes/Human.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/classes/Zombie.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/classes/Fleshpound.amxx
 >> "%PLUGIN_CONFIG%" echo.
 >> "%PLUGIN_CONFIG%" echo ; Game Modes
->> "%PLUGIN_CONFIG%" echo rezombie/Infection.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/gamemodes/Infection.amxx
 >> "%PLUGIN_CONFIG%" echo.
 >> "%PLUGIN_CONFIG%" echo ; Game Rules
->> "%PLUGIN_CONFIG%" echo rezombie/GameRules.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/core/GameRules.amxx
 >> "%PLUGIN_CONFIG%" echo.
 >> "%PLUGIN_CONFIG%" echo ; HUD
->> "%PLUGIN_CONFIG%" echo rezombie/RoundFeedback.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/hud/RoundFeedback.amxx
 if errorlevel 1 (
 	echo ERROR: Failed to write plugin config: %PLUGIN_CONFIG%
 	exit /b 1
@@ -132,7 +147,7 @@ if errorlevel 1 (
 >> "%DEV_PLUGIN_CONFIG%" echo ; Generated by build.bat.
 >> "%DEV_PLUGIN_CONFIG%" echo ; Load only on local validation servers.
 >> "%DEV_PLUGIN_CONFIG%" echo.
->> "%DEV_PLUGIN_CONFIG%" echo rezombie/DevRuntime.amxx
+>> "%DEV_PLUGIN_CONFIG%" echo rezombie/dev/DevRuntime.amxx
 if errorlevel 1 (
 	echo ERROR: Failed to write dev plugin config: %DEV_PLUGIN_CONFIG%
 	exit /b 1
@@ -147,4 +162,12 @@ if exist "%RESOURCES_DIR%" (
 )
 
 echo Build completed: %PACKAGE_ROOT%
+exit /b 0
+
+:EnsureDirectory
+mkdir "%~1" >nul 2>nul
+if errorlevel 1 (
+	echo ERROR: Failed to create directory: %~1
+	exit /b 1
+)
 exit /b 0

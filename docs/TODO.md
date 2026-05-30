@@ -18,6 +18,7 @@
 - [x] Criar `start.bat` para abrir o servidor visivel em primeiro plano.
 - [x] Gerar `plugins-rezombie.ini` com a ordem correta do mod.
 - [x] Organizar `plugins-rezombie.ini` por categorias.
+- [x] Organizar plugins do build em subpastas modulares.
 - [x] Corrigir leitura de parametros `any:...` nas APIs modulares.
 
 ## Proxima Meta
