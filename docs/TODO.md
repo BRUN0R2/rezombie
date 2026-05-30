@@ -2,10 +2,11 @@
 
 ## Agora
 
-- [ ] Estabilizar admissao automatica apos `changelevel`.
+- [ ] Validar late join durante `RoundStatePlaying` sem respawn automatico.
 
 ## Concluido Recente
 
+- [x] Estabilizar admissao automatica apos `changelevel`.
 - [x] Recriar politica explicita de respawn por modo seguindo o fluxo do ReZombie C++.
 - [x] Publicar `GameRules` no pre-restart para resetar classes antes do respawn do GameDLL.
 - [x] Criar `ApiGameVars.sma` com facade publica `get_game_var`.
@@ -27,5 +28,6 @@
 
 - [x] Compilar pacote local com `build.bat`.
 - [x] Recarregar ReHLDS via `changelevel` apos copiar o pacote, sem fechar o HLDS.
+- [x] Validar player vivo, CT e humano apos `changelevel`.
 - [x] Validar `rz_dev_validate_round_flow fleshpound 4`.
 - [x] Validar `rz_dev_validate_round_state`.

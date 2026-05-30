@@ -69,6 +69,7 @@ As bases estudadas servem apenas como referencia:
 - `mp_limitteams`, `mp_autoteambalance` e `mp_autokick` ficam em `0` para o CS padrão não quebrar times, admissao e fluxo de round do mod.
 - Cvar critica inexistente deve falhar explicitamente com `set_fail_state`.
 - O core de round nao deve acumular responsabilidade de cvars.
+- `PlayerAdmission` e o dono da admissao automatica, bloqueio de menus padrao e reset de camera de join.
 - O core deve manter o fluxo proprio de round desde `RoundStateNone`.
 - Antes da infecção, qualquer jogador jogável que nascer deve ser humano/CT.
 - Menus padrão de time e personagem do CS ficam bloqueados.
@@ -150,8 +151,9 @@ Ordem inicial esperada dos plugins:
 9. Modos em `rezombie/gamemodes`
 10. `rezombie/core/GameCvars.amxx`
 11. `rezombie/core/SpawnPoints.amxx`
-12. `rezombie/core/GameRules.amxx`
-13. HUD em `rezombie/hud`
+12. `rezombie/core/PlayerAdmission.amxx`
+13. `rezombie/core/GameRules.amxx`
+14. HUD em `rezombie/hud`
 
 As APIs devem carregar antes de qualquer classe, modo ou core que use suas natives.
 Modulos de HUD devem escutar forwards publicos e nao devem colocar regras dentro do core.

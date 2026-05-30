@@ -111,6 +111,10 @@ echo Compiling source\core\SpawnPoints.sma
 "%COMPILER%" "%ROOT%source\core\SpawnPoints.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\SpawnPoints.amxx"
 if errorlevel 1 exit /b 1
 
+echo Compiling source\core\PlayerAdmission.sma
+"%COMPILER%" "%ROOT%source\core\PlayerAdmission.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\PlayerAdmission.amxx"
+if errorlevel 1 exit /b 1
+
 echo Compiling source\core\GameRules.sma
 "%COMPILER%" "%ROOT%source\core\GameRules.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\GameRules.amxx"
 if errorlevel 1 exit /b 1
@@ -146,6 +150,7 @@ if errorlevel 1 exit /b 1
 >> "%PLUGIN_CONFIG%" echo ; Core
 >> "%PLUGIN_CONFIG%" echo rezombie/core/GameCvars.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/core/SpawnPoints.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/core/PlayerAdmission.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/core/GameRules.amxx
 >> "%PLUGIN_CONFIG%" echo.
 >> "%PLUGIN_CONFIG%" echo ; HUD
