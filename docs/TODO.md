@@ -118,6 +118,7 @@
 - [x] Organizar `GameRules` em `RoundConfig`, `RoundRuntime` e `RoundForwards`.
 - [x] Tratar freeze do CS como estado explicito antes do prepare.
 - [x] Forcar cvars essenciais do round no core.
+- [x] Desativar `mp_autokick` no core para impedir kick idle do CS padrao.
 - [x] Forcar humano/CT para jogador que nasce antes da infeccao.
 - [x] Bloquear respawn automatico durante round em jogo ou finalizando.
 - [x] Corrigir retorno ReAPI do bloqueio de respawn.

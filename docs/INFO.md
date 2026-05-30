@@ -52,7 +52,7 @@ As bases estudadas servem apenas como referencia:
 - O core usa estado explícito de freeze para não iniciar contagem durante `mp_freezetime`.
 - `mp_freezetime` deve ficar em `0` para o fluxo do mod começar direto.
 - O delay de fim de round continua separado do freeze inicial.
-- `mp_limitteams` e `mp_autoteambalance` ficam em `0` para o CS padrão não quebrar times do mod.
+- `mp_limitteams`, `mp_autoteambalance` e `mp_autokick` ficam em `0` para o CS padrão não quebrar times, admissao e fluxo de round do mod.
 - Antes da infecção, qualquer jogador jogável que nascer deve ser humano/CT.
 - Menus padrão de time e personagem do CS ficam bloqueados.
 - Jogadores sem time são admitidos pelo core em CT sem depender do menu padrão.

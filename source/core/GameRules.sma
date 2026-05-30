@@ -25,6 +25,7 @@ enum _:RoundConfig
 	RoundConfigFreezeSeconds,
 	RoundConfigLimitTeams,
 	RoundConfigAutoTeamBalance,
+	RoundConfigAutoKick,
 	TeamName:RoundConfigDefaultJoinTeam,
 	Float:RoundConfigWaitCheckInterval,
 	Float:RoundConfigWinCheckInterval,
@@ -95,6 +96,7 @@ stock InitializeRoundConfig()
 	RoundConfigData[RoundConfigFreezeSeconds] = 0;
 	RoundConfigData[RoundConfigLimitTeams] = 0;
 	RoundConfigData[RoundConfigAutoTeamBalance] = 0;
+	RoundConfigData[RoundConfigAutoKick] = 0;
 	RoundConfigData[RoundConfigDefaultJoinTeam] = TEAM_CT;
 	RoundConfigData[RoundConfigWaitCheckInterval] = 1.0;
 	RoundConfigData[RoundConfigWinCheckInterval] = 1.0;
@@ -591,6 +593,7 @@ stock EnforceGameRuleCvars()
 	set_cvar_num("mp_freezetime", RoundConfigData[RoundConfigFreezeSeconds]);
 	set_cvar_num("mp_limitteams", RoundConfigData[RoundConfigLimitTeams]);
 	set_cvar_num("mp_autoteambalance", RoundConfigData[RoundConfigAutoTeamBalance]);
+	set_cvar_num("mp_autokick", RoundConfigData[RoundConfigAutoKick]);
 }
 
 stock ResetPlayablePlayersToHumans()
