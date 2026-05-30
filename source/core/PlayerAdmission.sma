@@ -96,10 +96,7 @@ public OnShowVguiMenuPre(id, VGUIMenu:menuType, bitsSlots, oldMenu[])
 
 public OnShowMenuPre(id, bitsSlots, displayTime, needMore, menuText[])
 {
-	#pragma unused bitsSlots
-	#pragma unused displayTime
-	#pragma unused needMore
-	#pragma unused menuText
+	#pragma unused bitsSlots, displayTime, needMore, menuText
 
 	if (!is_user_connected(id))
 		return HC_CONTINUE;
