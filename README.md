@@ -64,6 +64,8 @@ The package is generated in:
 build/cstrike
 ```
 
+The `build` folder is generated locally and is not versioned.
+
 Plugin output is modular:
 
 ```text
@@ -87,24 +89,6 @@ addons/amxmodx/configs/plugins-rezombie-dev.ini
 ```
 
 `plugins-rezombie-dev.ini` is only for local validation and should not be loaded on production servers.
-
-## Local server
-
-`start.bat` expects this local folder structure:
-
-```text
-CS 1.6/
-  Compiler/
-  Mods/rezombie/
-  REHLDS-Rezombie/
-```
-
-Set your local RCON password through the environment before starting:
-
-```bat
-set REZOMBIE_RCON_PASSWORD=your-local-password
-start.bat
-```
 
 ## How can I help?
 
