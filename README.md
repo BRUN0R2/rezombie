@@ -1,4 +1,4 @@
-# ReZombie
+# REZOMBIE
 
 ## What is this?
 
@@ -131,6 +131,7 @@ Thanks to the projects that keep Counter-Strike 1.6 modding alive:
 Thanks to people who contributed directly or indirectly:
 
 * [fl0werD](https://github.com/fl0werD/)
+* [PerfectScrash](https://github.com/PerfectScrash/)
 * [wilianmaique](https://github.com/wilianmaique)
 
 Thanks to the Zombie Plague and ReZombie communities for the years of ideas, experiments and references that helped shape this project.
