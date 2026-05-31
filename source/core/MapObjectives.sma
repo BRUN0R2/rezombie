@@ -4,13 +4,10 @@
 #pragma semicolon 1
 #pragma compress 1
 
-const MAP_OBJECTIVES_SCAN_GUARD = 2048;
-
 enum _:MapObjectivesHookData
 {
 	MapObjectivesHookGetEntityInit,
 	MapObjectivesHookCheckMapConditions,
-	MapObjectivesHookCleanUpMap,
 	MapObjectivesHookGiveC4,
 	MapObjectivesHookCount
 };
@@ -32,6 +29,8 @@ new const MapObjectiveClasses[][] =
 	"env_rain",
 	"env_snow",
 	"monster_scientist",
+	"item_longjump",
+	"game_text",
 	"func_buyzone"
 };
 
@@ -47,7 +46,6 @@ public plugin_precache()
 public plugin_cfg()
 {
 	DisableDefaultMapRules();
-	RemoveMapObjectives();
 }
 
 public plugin_end()
@@ -77,12 +75,6 @@ public OnCheckMapConditionsPre()
 	return HC_SUPERCEDE;
 }
 
-public OnCleanUpMapPost()
-{
-	DisableDefaultMapRules();
-	RemoveMapObjectives();
-}
-
 public OnGiveC4Pre()
 {
 	return HC_SUPERCEDE;
@@ -103,12 +95,6 @@ stock CreateMapObjectivesHooks()
 		RG_CSGameRules_CheckMapConditions,
 		"OnCheckMapConditionsPre",
 		false
-	);
-
-	MapObjectivesHooks[MapObjectivesHookCleanUpMap] = RegisterRequiredMapObjectivesHook(
-		RG_CSGameRules_CleanUpMap,
-		"OnCleanUpMapPost",
-		true
 	);
 
 	MapObjectivesHooks[MapObjectivesHookGiveC4] = RegisterRequiredMapObjectivesHook(
@@ -137,30 +123,6 @@ stock DisableDefaultMapRules()
 	set_member_game(m_bMapHasVIPSafetyZone, false);
 	set_member_game(m_bCTCantBuy, true);
 	set_member_game(m_bTCantBuy, true);
-}
-
-stock RemoveMapObjectives()
-{
-	for (new index = 0; index < sizeof MapObjectiveClasses; index++)
-		RemoveMapObjectivesByClass(MapObjectiveClasses[index]);
-}
-
-stock RemoveMapObjectivesByClass(const classname[])
-{
-	new entity = NULLENT;
-	new scannedEntities;
-
-	while ((entity = rg_find_ent_by_class(entity, classname)) > 0)
-	{
-		scannedEntities++;
-		if (scannedEntities > MAP_OBJECTIVES_SCAN_GUARD)
-			set_fail_state("MapObjectives scan exceeded guard for class '%s'.", classname);
-
-		if (!is_entity(entity))
-			set_fail_state("MapObjectives received invalid entity %d for class '%s'.", entity, classname);
-
-		rg_remove_entity(entity);
-	}
 }
 
 stock bool:IsMapObjectiveClass(const classname[])

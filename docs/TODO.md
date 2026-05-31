@@ -12,6 +12,7 @@
 
 ## Concluido Recente
 
+- [x] Simplificar `MapObjectives` seguindo a ideia enxuta do Zombie Plague Next com hook moderno ReHLDS.
 - [x] Criar `MapObjectives` para neutralizar objetivos padrao, buyzones e C4 do CS.
 - [x] Modernizar hooks ReAPI do `GameRules` com enum `GameRulesHookCount`.
 - [x] Reescrever `RG_CSGameRules_CheckWinConditions` como gateway oficial das regras do ReZombie.

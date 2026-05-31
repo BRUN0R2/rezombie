@@ -73,8 +73,8 @@ As bases estudadas servem apenas como referencia:
 - `GameCvars` e o dono das cvars criticas do jogo.
 - `GameCvars` aplica e trava cvars criticas com `hook_cvar_change`.
 - `MapObjectives` e o dono da neutralizacao de objetivos padrao do mapa.
-- `MapObjectives` segue a ideia `useless_entities` do ReZombie C++ e adiciona `func_buyzone` porque o ReZombie tera menu de compras proprio.
-- `MapObjectives` usa `RH_GetEntityInit` para vetar entidades cedo e `rg_remove_entity` como limpeza apos `CleanUpMap`.
+- `MapObjectives` segue a ideia `useless_entities` do ReZombie C++ e Zombie Plague Next, adicionando `func_buyzone` porque o ReZombie tera menu de compras proprio.
+- `MapObjectives` usa `RH_GetEntityInit` para vetar entidades cedo, sem varredura pos-spawn.
 - `MapObjectives` bloqueia `RG_CSGameRules_CheckMapConditions` e `RG_CSGameRules_GiveC4` para manter objetivos padrao do CS inertes.
 - Zonas de compra nativas nao fazem parte do fluxo do ReZombie.
 - `SpawnPoints` e o dono dos spawns jogaveis usados pelo mod.
