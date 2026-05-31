@@ -2,6 +2,7 @@
 
 ## Agora
 
+- [ ] Validar live que objetivos padrao e buyzones nao aparecem apos `changelevel`.
 - [ ] Validar late join durante `RoundStatePlaying` sem respawn automatico.
 - [ ] Trocar validacoes restantes de entidade em `SpawnPoints` para API ReAPI moderna.
 - [ ] Adicionar suporte a `default_class` e `override_default_class` em `GameRules` e `ApiGameVars`.
@@ -11,6 +12,7 @@
 
 ## Concluido Recente
 
+- [x] Criar `MapObjectives` para neutralizar objetivos padrao, buyzones e C4 do CS.
 - [x] Modernizar hooks ReAPI do `GameRules` com enum `GameRulesHookCount`.
 - [x] Reescrever `RG_CSGameRules_CheckWinConditions` como gateway oficial das regras do ReZombie.
 - [x] Validar que matar o ultimo zombie termina o round com vitoria humana sem `Game Commencing`.

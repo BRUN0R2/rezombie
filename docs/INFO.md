@@ -72,6 +72,11 @@ As bases estudadas servem apenas como referencia:
 - `timer` representa somente o tempo visivel sincronizado pelo `GameRules`.
 - `GameCvars` e o dono das cvars criticas do jogo.
 - `GameCvars` aplica e trava cvars criticas com `hook_cvar_change`.
+- `MapObjectives` e o dono da neutralizacao de objetivos padrao do mapa.
+- `MapObjectives` segue a ideia `useless_entities` do ReZombie C++ e adiciona `func_buyzone` porque o ReZombie tera menu de compras proprio.
+- `MapObjectives` usa `RH_GetEntityInit` para vetar entidades cedo e `rg_remove_entity` como limpeza apos `CleanUpMap`.
+- `MapObjectives` bloqueia `RG_CSGameRules_CheckMapConditions` e `RG_CSGameRules_GiveC4` para manter objetivos padrao do CS inertes.
+- Zonas de compra nativas nao fazem parte do fluxo do ReZombie.
 - `SpawnPoints` e o dono dos spawns jogaveis usados pelo mod.
 - `SpawnPoints` combina spawns de CT e TR para permitir humanos em massa antes da infeccao.
 - `SpawnPoints` cataloga spawns nativos e slots expandidos validados por hull.
@@ -173,10 +178,11 @@ Ordem inicial esperada dos plugins:
 8. Classes em `rezombie/classes`
 9. Modos em `rezombie/gamemodes`
 10. `rezombie/core/GameCvars.amxx`
-11. `rezombie/core/SpawnPoints.amxx`
-12. `rezombie/core/PlayerAdmission.amxx`
-13. `rezombie/core/GameRules.amxx`
-14. HUD em `rezombie/hud`
+11. `rezombie/core/MapObjectives.amxx`
+12. `rezombie/core/SpawnPoints.amxx`
+13. `rezombie/core/PlayerAdmission.amxx`
+14. `rezombie/core/GameRules.amxx`
+15. HUD em `rezombie/hud`
 
 As APIs devem carregar antes de qualquer classe, modo ou core que use suas natives.
 Modulos de HUD devem escutar forwards publicos e nao devem colocar regras dentro do core.
