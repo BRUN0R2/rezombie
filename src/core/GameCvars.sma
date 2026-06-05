@@ -1,4 +1,4 @@
-#include <amxmodx>
+#include <rezombie>
 
 #pragma semicolon 1
 #pragma compress 1

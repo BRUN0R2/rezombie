@@ -1,4 +1,3 @@
-#include <amxmodx>
 #include <rezombie>
 
 #pragma semicolon 1
@@ -48,7 +47,7 @@ public plugin_precache()
 
 stock SelectFirstZombie(target)
 {
-	if (IsEligibleFirstZombie(target))
+	if (IsEligible(target))
 		return target;
 
 	new players[MAX_PLAYERS];
@@ -56,7 +55,7 @@ stock SelectFirstZombie(target)
 
 	for (new id = 1; id <= MaxClients; id++)
 	{
-		if (!IsEligibleFirstZombie(id))
+		if (!IsEligible(id))
 			continue;
 
 		players[playersCount] = id;
@@ -69,7 +68,7 @@ stock SelectFirstZombie(target)
 	return players[random(playersCount)];
 }
 
-stock bool:IsEligibleFirstZombie(id)
+stock bool:IsEligible(id)
 {
 	return is_user_connected(id) && is_user_alive(id) && IsHuman(id);
 }

@@ -25,9 +25,9 @@
 
 ## API
 
-- APIs modulares devem ficar em `source/api`.
+- APIs modulares devem ficar em `src/api`.
 - Includes internos modulares devem ficar em `include/rezombie/<modulo>`.
-- Codigo em `source` deve usar includes padrao, sem caminhos relativos entre pastas.
+- Codigo em `src` deve usar includes padrao, sem caminhos relativos entre pastas.
 - Stocks genericos reutilizaveis devem ficar em `include/rezombie_stock.inc`.
 - `rezombie_stock.inc` nao deve receber regras de negocio ou estado de modulo.
 - A API publica deve ser simples, elegante e facil de usar.
@@ -63,7 +63,7 @@
 ## Tags e Tipagem
 
 - Todo handle publico deve possuir tag Pawn explicita.
-- `null` deve ser tipado como `any:null = 0`.
+- `null` deve ser tipado como `any:null = any:0`.
 - `0` nao deve ser usado diretamente como handle invalido.
 - Retornos `any:` devem preservar tags Pawn quando o valor original for tipado.
 - Nao usar `_:` em retornos `any:` apenas para remover warnings ou simplificar.

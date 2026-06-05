@@ -16,6 +16,8 @@ const Subclass:Invalid_Subclass = Subclass:0;
 const Props:Invalid_Props = Props:0;
 const Mode:Invalid_Mode = Mode:0;
 const Model:Invalid_Model = Model:0;
+const ModelsPack:Invalid_ModelsPack = ModelsPack:0;
+const Weapon:Invalid_Weapon = Weapon:0;
 
 enum RzReturn
 {

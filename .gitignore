@@ -1,5 +1,4 @@
 *.amxx
 .env
 *.local.bat
-start.bat
 /build/

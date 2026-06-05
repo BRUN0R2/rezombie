@@ -1,6 +1,4 @@
-#include <amxmodx>
 #include <rezombie>
-#include <rezombie_stock>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -13,7 +11,8 @@ enum _:SubclassData
 	SubclassName[RZ_MAX_NAME_LENGTH],
 	Model:SubclassModel,
 	Class:SubclassClass,
-	Props:SubclassProps
+	Props:SubclassProps,
+	Weapon:SubclassMelee
 };
 
 new Array:Subclasses;
@@ -21,7 +20,7 @@ new Trie:SubclassesByHandle;
 
 public plugin_natives()
 {
-	register_library("rezombie");
+	register_library("ApiSubclasses");
 
 	Subclasses = ArrayCreate(SubclassData);
 	SubclassesByHandle = TrieCreate();
@@ -77,12 +76,17 @@ public Subclass:NativeCreateSubclass(plugin, params)
 	if (props == Invalid_Props)
 		return Subclass:ReportNativeError("Subclass '%s' props were not created.", handle);
 
+	new Weapon:melee = create_weapon(handle);
+	if (melee == Invalid_Weapon)
+		return Subclass:ReportNativeError("Subclass '%s' melee weapon was not created.", handle);
+
 	new data[SubclassData];
 	copy(data[SubclassHandle], charsmax(data[SubclassHandle]), handle);
 	copy(data[SubclassName], charsmax(data[SubclassName]), handle);
 	data[SubclassModel] = Invalid_Model;
 	data[SubclassClass] = class;
 	data[SubclassProps] = props;
+	data[SubclassMelee] = melee;
 
 	new index = ArraySize(Subclasses);
 	if (!TrieSetCell(SubclassesByHandle, handle, index, false))
@@ -164,6 +168,9 @@ public any:NativeGetSubclassVar(plugin, params)
 	if (equal(key, "model"))
 		return data[SubclassModel];
 
+	if (equal(key, "melee"))
+		return data[SubclassMelee];
+
 	return ReportNativeError("Invalid subclass property '%s'.", key);
 }
 
@@ -222,6 +229,18 @@ public bool:NativeSetSubclassVar(plugin, params)
 		return true;
 	}
 
+	if (equal(key, "melee"))
+	{
+		new Weapon:melee = Weapon:get_param_byref(SetSubclassVarParamValue);
+
+		if (melee != Invalid_Weapon && !IsRegisteredWeapon(melee))
+			return bool:ReportNativeError("Invalid melee weapon handle %d.", _:melee);
+
+		data[SubclassMelee] = melee;
+		ArraySetArray(Subclasses, index, data);
+		return true;
+	}
+
 	return bool:ReportNativeError("Invalid or readonly subclass property '%s'.", key);
 }
 
@@ -272,6 +291,15 @@ stock bool:IsRegisteredModel(Model:model)
 	if (model == Invalid_Model)
 		return false;
 
+	new path[RZ_MAX_RESOURCE_PATH_LENGTH];
+	return bool:get_model_var(model, "path", path, charsmax(path));
+}
+
+stock bool:IsRegisteredWeapon(Weapon:weapon)
+{
+	if (weapon == Invalid_Weapon)
+		return false;
+
 	new handle[RZ_MAX_HANDLE_LENGTH];
-	return bool:get_model_var(model, "handle", handle, charsmax(handle));
+	return bool:get_weapon_var(weapon, "handle", handle, charsmax(handle));
 }

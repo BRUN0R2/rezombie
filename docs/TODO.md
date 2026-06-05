@@ -2,12 +2,13 @@
 
 ## Agora
 
-- [ ] Validar live que objetivos padrao e buyzones nao aparecem apos `changelevel`.
+- [ ] Validar live que objetivos padrao e buyzones nao aparecem apos restart do servidor local.
 - [ ] Validar late join durante `RoundStatePlaying` sem respawn automatico.
 - [ ] Trocar validacoes restantes de entidade em `SpawnPoints` para API ReAPI moderna.
 - [ ] Adicionar suporte a `default_class` e `override_default_class` em `GameRules` e `ApiGameVars`.
 - [ ] Escalar zombies iniciais do modo `Infection` conforme total de jogadores vivos.
 - [ ] Implementar infeccao por ataque melee de zombie no modo `Infection`.
+- [ ] Evoluir `ApiWeapons` para suportar sons e futuras propriedades melee.
 - [ ] Revisar semantica dos forwards para separar restart, prepare e inicio do modo ativo.
 
 ## Concluido Recente
@@ -22,7 +23,7 @@
 - [x] Estabilizar `PlayerAdmission` para admissao em massa de bots.
 - [x] Bloquear `sv_filetransfercompression` para evitar arquivos `.ztmp`.
 - [x] Aplicar padrao `ForwardCount` aos forwards internos de `ApiPlayers`.
-- [x] Estabilizar admissao automatica apos `changelevel`.
+- [x] Estabilizar admissao automatica apos restart do servidor local.
 - [x] Recriar politica explicita de respawn por modo seguindo o fluxo do ReZombie C++.
 - [x] Publicar `GameRules` no pre-restart para resetar classes antes do respawn do GameDLL.
 - [x] Criar `ApiGameVars.sma` com facade publica `get_game_var`.
@@ -55,8 +56,11 @@
 - [x] Validar admissao de bots sem erro native em `PlayerAdmission`.
 - [x] Validar bloqueio de `.ztmp` no runtime.
 - [x] Validar build apos aplicar `ForwardCount` em `ApiPlayers`.
-- [x] Recarregar ReHLDS via `changelevel` apos copiar o pacote, sem fechar o HLDS.
-- [x] Validar player vivo, CT e humano apos `changelevel`.
+- [x] Recarregar ReHLDS via restart do servidor apos copiar o pacote.
+- [x] Validar player vivo, CT e humano apos restart do servidor.
 - [x] Validar `rz_dev_validate_round_flow fleshpound 4`.
 - [x] Validar `rz_dev_validate_round_state`.
 - [x] Validar vitoria humana ao matar o ultimo zombie sem `Game Commencing`.
+- [x] Aplicar modelos de melee no deploy da faca seguindo a referencia do ReZombie C++.
+- [x] Adicionar `world_model` ao contrato inicial de `ApiWeapons`.
+- [x] Criar `ApiWeapons` simples com `Weapon:` de melee por classe/subclass, `"view_model"` e `"player_model"`.

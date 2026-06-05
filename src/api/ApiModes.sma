@@ -1,5 +1,4 @@
-#include <amxmodx>
-#include <rezombie_stock>
+#include <rezombie>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -26,7 +25,7 @@ new Trie:ModesByHandle;
 
 public plugin_natives()
 {
-	register_library("rezombie");
+	register_library("ApiModes");
 
 	Modes = ArrayCreate(ModeData);
 	ModesByHandle = TrieCreate();

@@ -1,7 +1,6 @@
-#include <amxmodx>
-#include <fakemeta>
-#include <reapi>
 #include <rezombie>
+#include <reapi>
+#include <fakemeta>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -421,11 +420,6 @@ stock bool:IsDefaultTeamMenuState(menu)
 stock bool:IsPlayableGameTeam(TeamName:team)
 {
 	return team == TEAM_TERRORIST || team == TEAM_CT;
-}
-
-stock bool:IsPlayerIndex(id)
-{
-	return 1 <= id <= PLAYER_ADMISSION_MAX_PLAYERS;
 }
 
 stock bool:IsConnectedPlayer(id)

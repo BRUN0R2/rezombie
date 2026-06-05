@@ -1,6 +1,4 @@
-#include <amxmodx>
 #include <rezombie>
-#include <rezombie_stock>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -23,7 +21,7 @@ new GameVarsRuntime[GameVarsRuntimeData];
 
 public plugin_natives()
 {
-	register_library("rezombie");
+	register_library("ApiGameVars");
 
 	register_native("get_game_var", "NativeGetGameVar");
 	register_native("sync_game_vars", "NativeSyncGameVars");

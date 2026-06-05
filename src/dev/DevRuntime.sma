@@ -1,7 +1,6 @@
-#include <amxmodx>
-#include <fakemeta>
-#include <reapi>
 #include <rezombie>
+#include <reapi>
+#include <fakemeta>
 
 #pragma semicolon 1
 #pragma compress 1

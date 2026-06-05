@@ -5,6 +5,7 @@
 #define _GameVars_included
 
 #include <rezombie_const>
+#include <rezombie/api/GameVars>
 #include <rezombie/core/RoundState>
 
 /**

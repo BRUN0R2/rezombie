@@ -59,76 +59,80 @@ if errorlevel 1 exit /b 1
 call :EnsureDirectory "%CONFIG_DIR%"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\api\ApiProps.sma
-"%COMPILER%" "%ROOT%source\api\ApiProps.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiProps.amxx"
+echo Compiling src\api\ApiProps.sma
+"%COMPILER%" "%ROOT%src\api\ApiProps.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiProps.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\api\ApiModels.sma
-"%COMPILER%" "%ROOT%source\api\ApiModels.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiModels.amxx"
+echo Compiling src\api\ApiModels.sma
+"%COMPILER%" "%ROOT%src\api\ApiModels.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiModels.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\api\ApiClasses.sma
-"%COMPILER%" "%ROOT%source\api\ApiClasses.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiClasses.amxx"
+echo Compiling src\api\ApiWeapons.sma
+"%COMPILER%" "%ROOT%src\api\ApiWeapons.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiWeapons.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\api\ApiSubclasses.sma
-"%COMPILER%" "%ROOT%source\api\ApiSubclasses.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiSubclasses.amxx"
+echo Compiling src\api\ApiClasses.sma
+"%COMPILER%" "%ROOT%src\api\ApiClasses.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiClasses.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\api\ApiModes.sma
-"%COMPILER%" "%ROOT%source\api\ApiModes.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiModes.amxx"
+echo Compiling src\api\ApiSubclasses.sma
+"%COMPILER%" "%ROOT%src\api\ApiSubclasses.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiSubclasses.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\api\ApiGameVars.sma
-"%COMPILER%" "%ROOT%source\api\ApiGameVars.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiGameVars.amxx"
+echo Compiling src\api\ApiModes.sma
+"%COMPILER%" "%ROOT%src\api\ApiModes.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiModes.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\api\ApiPlayers.sma
-"%COMPILER%" "%ROOT%source\api\ApiPlayers.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiPlayers.amxx"
+echo Compiling src\api\ApiGameVars.sma
+"%COMPILER%" "%ROOT%src\api\ApiGameVars.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiGameVars.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\classes\Human.sma
-"%COMPILER%" "%ROOT%source\classes\Human.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CLASSES_DIR%\Human.amxx"
+echo Compiling src\api\ApiPlayers.sma
+"%COMPILER%" "%ROOT%src\api\ApiPlayers.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_API_DIR%\ApiPlayers.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\classes\Zombie.sma
-"%COMPILER%" "%ROOT%source\classes\Zombie.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CLASSES_DIR%\Zombie.amxx"
+echo Compiling src\classes\Human.sma
+"%COMPILER%" "%ROOT%src\classes\Human.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CLASSES_DIR%\Human.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\classes\Fleshpound.sma
-"%COMPILER%" "%ROOT%source\classes\Fleshpound.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CLASSES_DIR%\Fleshpound.amxx"
+echo Compiling src\classes\Zombie.sma
+"%COMPILER%" "%ROOT%src\classes\Zombie.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CLASSES_DIR%\Zombie.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\gamemodes\Infection.sma
-"%COMPILER%" "%ROOT%source\gamemodes\Infection.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_GAMEMODES_DIR%\Infection.amxx"
+echo Compiling src\classes\ZombieFleshpound.sma
+"%COMPILER%" "%ROOT%src\classes\ZombieFleshpound.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CLASSES_DIR%\ZombieFleshpound.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\core\GameCvars.sma
-"%COMPILER%" "%ROOT%source\core\GameCvars.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\GameCvars.amxx"
+echo Compiling src\gamemodes\Infection.sma
+"%COMPILER%" "%ROOT%src\gamemodes\Infection.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_GAMEMODES_DIR%\Infection.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\core\MapObjectives.sma
-"%COMPILER%" "%ROOT%source\core\MapObjectives.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\MapObjectives.amxx"
+echo Compiling src\core\GameCvars.sma
+"%COMPILER%" "%ROOT%src\core\GameCvars.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\GameCvars.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\core\SpawnPoints.sma
-"%COMPILER%" "%ROOT%source\core\SpawnPoints.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\SpawnPoints.amxx"
+echo Compiling src\core\MapObjectives.sma
+"%COMPILER%" "%ROOT%src\core\MapObjectives.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\MapObjectives.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\core\PlayerAdmission.sma
-"%COMPILER%" "%ROOT%source\core\PlayerAdmission.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\PlayerAdmission.amxx"
+echo Compiling src\core\SpawnPoints.sma
+"%COMPILER%" "%ROOT%src\core\SpawnPoints.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\SpawnPoints.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\core\GameRules.sma
-"%COMPILER%" "%ROOT%source\core\GameRules.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\GameRules.amxx"
+echo Compiling src\core\PlayerAdmission.sma
+"%COMPILER%" "%ROOT%src\core\PlayerAdmission.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\PlayerAdmission.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\hud\RoundFeedback.sma
-"%COMPILER%" "%ROOT%source\hud\RoundFeedback.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_HUD_DIR%\RoundFeedback.amxx"
+echo Compiling src\core\GameRules.sma
+"%COMPILER%" "%ROOT%src\core\GameRules.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_CORE_DIR%\GameRules.amxx"
 if errorlevel 1 exit /b 1
 
-echo Compiling source\dev\DevRuntime.sma
-"%COMPILER%" "%ROOT%source\dev\DevRuntime.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DEV_DIR%\DevRuntime.amxx"
+echo Compiling src\hud\RoundFeedback.sma
+"%COMPILER%" "%ROOT%src\hud\RoundFeedback.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_HUD_DIR%\RoundFeedback.amxx"
+if errorlevel 1 exit /b 1
+
+echo Compiling src\dev\DevRuntime.sma
+"%COMPILER%" "%ROOT%src\dev\DevRuntime.sma" "-i%PROJECT_INCLUDE%" "-i%COMPILER_INCLUDE%" "-o%PLUGIN_DEV_DIR%\DevRuntime.amxx"
 if errorlevel 1 exit /b 1
 
 > "%PLUGIN_CONFIG%" echo ; ReZombie Plugins
@@ -137,6 +141,7 @@ if errorlevel 1 exit /b 1
 >> "%PLUGIN_CONFIG%" echo ; APIs
 >> "%PLUGIN_CONFIG%" echo rezombie/api/ApiProps.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/api/ApiModels.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/api/ApiWeapons.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/api/ApiClasses.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/api/ApiSubclasses.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/api/ApiModes.amxx
@@ -146,7 +151,7 @@ if errorlevel 1 exit /b 1
 >> "%PLUGIN_CONFIG%" echo ; Classes
 >> "%PLUGIN_CONFIG%" echo rezombie/classes/Human.amxx
 >> "%PLUGIN_CONFIG%" echo rezombie/classes/Zombie.amxx
->> "%PLUGIN_CONFIG%" echo rezombie/classes/Fleshpound.amxx
+>> "%PLUGIN_CONFIG%" echo rezombie/classes/ZombieFleshpound.amxx
 >> "%PLUGIN_CONFIG%" echo.
 >> "%PLUGIN_CONFIG%" echo ; Game Modes
 >> "%PLUGIN_CONFIG%" echo rezombie/gamemodes/Infection.amxx

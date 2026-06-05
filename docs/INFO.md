@@ -28,10 +28,11 @@ As bases estudadas servem apenas como referencia:
 
 ## Direcao da API
 
-- APIs modulares ficam em `source/api`.
+- APIs modulares ficam em `src/api`.
 - A API deve ser simples, bonita, tipada e facil de manter.
 - Criar novas classes, subclasses e modos deve ser muito facil.
 - Usar handles tipados como `Class:`, `Subclass:`, `Props:`, `Mode:` e `Model:`.
+- Usar `Weapon:` para o contrato simples de armas por classe e subclass.
 - Manter propriedades por string, como `"props"`, `"health"`, `"speed"` e `"gravity"`.
 - Usar `RequireClass` quando uma classe for obrigatoria.
 - Usar `FindClass` apenas para buscas opcionais.
@@ -113,6 +114,7 @@ As bases estudadas servem apenas como referencia:
 - Durante `RoundStatePlaying` e `RoundStateTerminate`, jogador novo pode ser admitido sem respawn automatico.
 - A API de players só aplica classe, modelo e itens quando o jogador está vivo e em T/CT.
 - `ApiPlayers` é o único dono de props, modelo e itens no pós-spawn.
+- O runtime interno de jogador (`connected`, `alive`, `zombie`, `class`, `subclass`) pertence ao `ApiPlayers` e nao deve ficar em include compartilhado.
 - `ApiPlayers` bloqueia a entrega padrão de itens do GameDLL e entrega apenas itens próprios do ReZombie.
 - Seleção futura de classes deve usar HUD próprio do ReZombie.
 
@@ -141,14 +143,16 @@ Exemplo esperado:
 
 ```pawn
 new Class:class = RequireClass("zombie");
-new Model:model = create_model("rz_source");
-set_class_var(class, "model", model);
+new ModelsPack:models = get_class_var(class, "models");
+models_pack_add_model(models, create_model("models/player/rz_source/rz_source.mdl"));
 
 new Subclass:subclass = create_subclass("fleshpound", class);
-new Model:subclassModel = create_model("rz_fleshpound");
+new Model:subclassModel = create_model("models/player/rz_fleshpound/rz_fleshpound.mdl");
 set_subclass_var(subclass, "model", subclassModel);
 
 new Props:props = get_subclass_var(subclass, "props");
+new Weapon:melee = get_subclass_var(subclass, "melee");
+set_weapon_var(melee, "view_model", create_model("models/player/rz_fleshpound/hand.mdl"));
 
 set_props_var(props, "health", 700);
 set_props_var(props, "speed", 260);
@@ -159,9 +163,23 @@ set_props_var(props, "gravity", 1.0);
 
 - `rz_source` e o modelo zombie padrao da primeira base.
 - `rz_fleshpound` e o modelo proprio da subclass `fleshpound`.
-- Subclasses podem configurar um modelo proprio quando necessario.
+- `create_model` recebe caminho completo do `.mdl`, como no ReZombie C++.
+- O handle opcional de `create_model` deve ser usado apenas quando o model precisar ser buscado por handle.
+- Classes usam `"models"` com `ModelsPack`, como no ReZombie C++.
+- Classes usam `"melee"` com `Weapon:` para configurar a faca padrao da classe.
+- Subclasses usam `"melee"` com `Weapon:` para sobrescrever a faca padrao da classe.
+- Subclasses podem usar `"model"` para sobrescrever o modelo da classe.
+- `models_pack_add_model` adiciona um `Model:` ao pack de modelos da classe.
+- `set_model_var` altera somente `"body"` e `"skin"`.
+- `"handle"`, `"path"` e `"precache_id"` sao propriedades somente leitura.
+- Subclasses podem configurar modelos proprios quando necessario.
 - Subclasses sem modelo proprio usam o modelo da classe pai.
+- Quando uma subclass esta ativa, o melee dela substitui o melee da classe pai, como no ReZombie C++.
+- O `view_model` e o `player_model` da melee sao aplicados no deploy da faca.
+- O `world_model` fica registrado na `Weapon:` para uso futuro no fluxo de drop/entidade no mundo.
 - A classe zombie deve configurar modelo de forma explicita.
+- O `Weapon:` inicial expõe `"handle"`, `"view_model"`, `"player_model"` e `"world_model"`.
+- `set_weapon_var(melee, "view_model", create_model(...))` define o modelo em primeira pessoa da faca.
 - A classe humana pode usar o modelo padrao do CS enquanto nao existir modelo humano proprio.
 
 ## Ordem de Carregamento
@@ -170,23 +188,24 @@ Ordem inicial esperada dos plugins:
 
 1. `rezombie/api/ApiProps.amxx`
 2. `rezombie/api/ApiModels.amxx`
-3. `rezombie/api/ApiClasses.amxx`
-4. `rezombie/api/ApiSubclasses.amxx`
-5. `rezombie/api/ApiModes.amxx`
-6. `rezombie/api/ApiGameVars.amxx`
-7. `rezombie/api/ApiPlayers.amxx`
-8. Classes em `rezombie/classes`
-9. Modos em `rezombie/gamemodes`
-10. `rezombie/core/GameCvars.amxx`
-11. `rezombie/core/MapObjectives.amxx`
-12. `rezombie/core/SpawnPoints.amxx`
-13. `rezombie/core/PlayerAdmission.amxx`
-14. `rezombie/core/GameRules.amxx`
-15. HUD em `rezombie/hud`
+3. `rezombie/api/ApiWeapons.amxx`
+4. `rezombie/api/ApiClasses.amxx`
+5. `rezombie/api/ApiSubclasses.amxx`
+6. `rezombie/api/ApiModes.amxx`
+7. `rezombie/api/ApiGameVars.amxx`
+8. `rezombie/api/ApiPlayers.amxx`
+9. Classes em `rezombie/classes`
+10. Modos em `rezombie/gamemodes`
+11. `rezombie/core/GameCvars.amxx`
+12. `rezombie/core/MapObjectives.amxx`
+13. `rezombie/core/SpawnPoints.amxx`
+14. `rezombie/core/PlayerAdmission.amxx`
+15. `rezombie/core/GameRules.amxx`
+16. HUD em `rezombie/hud`
 
 As APIs devem carregar antes de qualquer classe, modo ou core que use suas natives.
 Modulos de HUD devem escutar forwards publicos e nao devem colocar regras dentro do core.
-O pacote gerado em `build/cstrike` deve manter os plugins separados por modulo, igual ao `source`.
+O pacote gerado em `build/cstrike` deve manter os plugins separados por modulo, igual ao `src`.
 
 ## Runtime Dev
 
@@ -196,9 +215,13 @@ O pacote gerado em `build/cstrike` deve manter os plugins separados por modulo, 
 - `DevRuntime.amxx` deve carregar com `debug` por padrao na lista dev.
 - Comandos dev devem ser genericos e explicitos.
 - Comandos dev nao devem virar dependencia do gameplay.
+- A IA/Codex pode copiar o pacote gerado em `build/cstrike` para a pasta `cstrike` do servidor local quando for necessario validar runtime.
+- Servidor local de validacao: `D:\ARQUIVOS IMPORTANTES\REPOSITORIOS\CS 1.6\REHLDS-Rezombie`.
+- Script de inicializacao do servidor local: `D:\ARQUIVOS IMPORTANTES\REPOSITORIOS\CS 1.6\REHLDS-Rezombie\start.bat`.
+- A IA/Codex pode parar, iniciar ou reiniciar o servidor local quando isso for necessario para validar alteracoes.
+- Para recarregar plugins `.amxx` atualizados, preferir restart do servidor; e mais rapido e mais previsivel do que depender de reload parcial.
 - `rz_dev_fill_bots` preenche bots em ondas pequenas para validar carga sem burst artificial.
 - `rz_dev_restart_round` aceita delay opcional para validar restart temporizado.
-- Apos copiar `.amxx` novo, usar `changelevel` para recarregar plugins sem fechar o servidor.
 - Para validar somente gameplay, usar restart de round.
 
 Comandos iniciais:
@@ -223,7 +246,7 @@ rz_dev_dump_game_vars
 
 ## HUD
 
-- `RoundFeedback.amxx` fica em `source/hud`.
+- `RoundFeedback.amxx` fica em `src/hud`.
 - O modulo HUD escuta forwards de round e infeccao.
 - O HUD exibe countdown separado para `GameStateWarmup` e `RoundStatePrepare`.
 - O core de round nao deve depender de HUD, chat ou mensagens.

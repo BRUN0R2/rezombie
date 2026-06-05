@@ -1,6 +1,4 @@
-#include <amxmodx>
 #include <rezombie>
-#include <rezombie_stock>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -11,7 +9,8 @@ enum _:ClassData
 {
 	ClassHandle[RZ_MAX_HANDLE_LENGTH],
 	ClassName[RZ_MAX_NAME_LENGTH],
-	Model:ClassModel,
+	ModelsPack:ClassModels,
+	Weapon:ClassMelee,
 	Team:ClassTeam,
 	Props:ClassProps
 };
@@ -21,7 +20,7 @@ new Trie:ClassesByHandle;
 
 public plugin_natives()
 {
-	register_library("rezombie");
+	register_library("ApiClasses");
 
 	Classes = ArrayCreate(ClassData);
 	ClassesByHandle = TrieCreate();
@@ -77,10 +76,19 @@ public Class:NativeCreateClass(plugin, params)
 	if (props == Invalid_Props)
 		return Class:ReportNativeError("Class '%s' props were not created.", handle);
 
+	new ModelsPack:models = create_models_pack(handle);
+	if (models == Invalid_ModelsPack)
+		return Class:ReportNativeError("Class '%s' models pack was not created.", handle);
+
+	new Weapon:melee = create_weapon(handle);
+	if (melee == Invalid_Weapon)
+		return Class:ReportNativeError("Class '%s' melee weapon was not created.", handle);
+
 	new data[ClassData];
 	copy(data[ClassHandle], charsmax(data[ClassHandle]), handle);
 	copy(data[ClassName], charsmax(data[ClassName]), handle);
-	data[ClassModel] = Invalid_Model;
+	data[ClassModels] = models;
+	data[ClassMelee] = melee;
 	data[ClassTeam] = team;
 	data[ClassProps] = props;
 
@@ -161,8 +169,11 @@ public any:NativeGetClassVar(plugin, params)
 	if (equal(key, "props"))
 		return data[ClassProps];
 
-	if (equal(key, "model"))
-		return data[ClassModel];
+	if (equal(key, "models"))
+		return data[ClassModels];
+
+	if (equal(key, "melee"))
+		return data[ClassMelee];
 
 	return ReportNativeError("Invalid class property '%s'.", key);
 }
@@ -210,14 +221,14 @@ public bool:NativeSetClassVar(plugin, params)
 		return true;
 	}
 
-	if (equal(key, "model"))
+	if (equal(key, "melee"))
 	{
-		new Model:model = Model:get_param_byref(SetClassVarParamValue);
+		new Weapon:melee = Weapon:get_param_byref(SetClassVarParamValue);
 
-		if (!IsRegisteredModel(model))
-			return bool:ReportNativeError("Invalid model handle %d.", _:model);
+		if (melee != Invalid_Weapon && !IsRegisteredWeapon(melee))
+			return bool:ReportNativeError("Invalid melee weapon handle %d.", _:melee);
 
-		data[ClassModel] = model;
+		data[ClassMelee] = melee;
 		ArraySetArray(Classes, index, data);
 		return true;
 	}
@@ -258,13 +269,13 @@ stock bool:IsRegisteredProps(Props:props)
 	return bool:get_props_var(props, "handle", handle, charsmax(handle));
 }
 
-stock bool:IsRegisteredModel(Model:model)
+stock bool:IsRegisteredWeapon(Weapon:weapon)
 {
-	if (model == Invalid_Model)
+	if (weapon == Invalid_Weapon)
 		return false;
 
 	new handle[RZ_MAX_HANDLE_LENGTH];
-	return bool:get_model_var(model, "handle", handle, charsmax(handle));
+	return bool:get_weapon_var(weapon, "handle", handle, charsmax(handle));
 }
 
 stock bool:IsPlayableClassTeam(Team:team)

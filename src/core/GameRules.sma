@@ -1,7 +1,6 @@
-#include <amxmodx>
-#include <fakemeta>
-#include <reapi>
 #include <rezombie>
+#include <reapi>
+#include <fakemeta>
 #include <rezombie/core/GameVars>
 
 #pragma semicolon 1

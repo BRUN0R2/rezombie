@@ -1,8 +1,5 @@
-#include <amxmodx>
-#include <reapi>
 #include <rezombie>
-#include <rezombie_stock>
-#include <rezombie/core/PlayerState>
+#include <reapi>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -18,6 +15,16 @@ const WeaponIdType:DEFAULT_HUMAN_SECONDARY_WEAPON_ID = WEAPON_USP;
 const DEFAULT_HUMAN_SECONDARY_CLIP_AMMO = 12;
 const DEFAULT_HUMAN_SECONDARY_BACKPACK_AMMO = 24;
 
+enum _:PlayerRuntimeData
+{
+	bool:PlayerRuntimeConnected,
+	bool:PlayerRuntimeAlive,
+	bool:PlayerRuntimeZombie,
+	Class:PlayerRuntimeClass,
+	Subclass:PlayerRuntimeSubclass,
+	Weapon:PlayerRuntimeMelee
+};
+
 enum _:PlayerForwardData
 {
 	PlayerForwardChangeClassPre,
@@ -27,11 +34,12 @@ enum _:PlayerForwardData
 	PlayerForwardCount
 };
 
+new PlayerRuntime[MAX_PLAYERS + 1][PlayerRuntimeData];
 new PlayerForwards[PlayerForwardCount];
 
 public plugin_natives()
 {
-	register_library("rezombie");
+	register_library("ApiPlayers");
 
 	register_native("get_player_class", "NativeGetPlayerClass");
 	register_native("get_player_subclass", "NativeGetPlayerSubclass");
@@ -44,17 +52,22 @@ public plugin_natives()
 	register_native("IsHuman", "NativeIsHuman");
 }
 
-public plugin_precache()
-{
-	register_plugin("API: Players", "0.1.0", "BRUN0");
-}
-
 public plugin_init()
 {
-	CreatePlayerForwards();
+	register_plugin("API: Players", "0.1.0", "BRUN0");
+
+	for (new index = 0; index < sizeof PlayerForwards; index++)
+		PlayerForwards[index] = PLAYER_FORWARD_INVALID;
+
+	PlayerForwards[PlayerForwardChangeClassPre] = CreateMultiForward("@change_class_pre", ET_CONTINUE, FP_CELL, FP_CELL, FP_CELL);
+	PlayerForwards[PlayerForwardChangeClassPost] = CreateMultiForward("@change_class_post", ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
+	PlayerForwards[PlayerForwardInfectPlayerPre] = CreateMultiForward("@infect_player_pre", ET_CONTINUE, FP_CELL, FP_CELL, FP_CELL);
+	PlayerForwards[PlayerForwardInfectPlayerPost] = CreateMultiForward("@infect_player_post", ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
+
 	RegisterHookChain(RG_CBasePlayer_GiveDefaultItems, "OnGiveDefaultItemsPre", false);
 	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawnPost", true);
 	RegisterHookChain(RG_CBasePlayer_Killed, "OnPlayerKilledPost", true);
+	RegisterHookChain(RG_CBasePlayerWeapon_DefaultDeploy, "OnWeaponDefaultDeployPre", false);
 }
 
 public plugin_end()
@@ -69,31 +82,43 @@ public plugin_end()
 	}
 }
 
+stock ResetPlayerRuntime(id)
+{
+	PlayerRuntime[id][PlayerRuntimeConnected] = false;
+	PlayerRuntime[id][PlayerRuntimeAlive] = false;
+	PlayerRuntime[id][PlayerRuntimeZombie] = false;
+	PlayerRuntime[id][PlayerRuntimeClass] = Invalid_Class;
+	PlayerRuntime[id][PlayerRuntimeSubclass] = Invalid_Subclass;
+	PlayerRuntime[id][PlayerRuntimeMelee] = Invalid_Weapon;
+}
+
 public client_putinserver(id)
 {
-	ConnectPlayerState(id);
+	ResetPlayerRuntime(id);
+	PlayerRuntime[id][PlayerRuntimeConnected] = true;
 }
 
 public client_disconnected(id)
 {
-	DisconnectPlayerState(id);
+	ResetPlayerRuntime(id);
 }
 
 public OnPlayerSpawnPost(id)
 {
 	if (!is_user_alive(id))
 	{
-		KillPlayerState(id);
+		PlayerRuntime[id][PlayerRuntimeAlive] = false;
 		return;
 	}
 
 	if (!IsPlayerOnGameTeam(id))
 	{
-		KillPlayerState(id);
+		PlayerRuntime[id][PlayerRuntimeAlive] = false;
 		return;
 	}
 
-	SpawnPlayerState(id);
+	PlayerRuntime[id][PlayerRuntimeConnected] = true;
+	PlayerRuntime[id][PlayerRuntimeAlive] = true;
 
 	ApplySpawnClass(id);
 }
@@ -110,7 +135,23 @@ public OnPlayerKilledPost(id, attacker, gib)
 	#pragma unused attacker
 	#pragma unused gib
 
-	KillPlayerState(id);
+	PlayerRuntime[id][PlayerRuntimeAlive] = false;
+}
+
+public OnWeaponDefaultDeployPre(const entity, viewModel[], weaponModel[], anim, animExt[], skiplocal)
+{
+	if (is_nullent(entity))
+		return HC_CONTINUE;
+
+	if (WeaponIdType:get_member(entity, m_iId) != WEAPON_KNIFE)
+		return HC_CONTINUE;
+
+	new id = get_member(entity, m_pPlayer);
+	if (!IsValidAlivePlayer(id))
+		return HC_CONTINUE;
+
+	ApplyPlayerMeleeDeployModels(id);
+	return HC_CONTINUE;
 }
 
 public bool:NativeIsZombie(plugin, params)
@@ -128,7 +169,7 @@ public bool:NativeIsZombie(plugin, params)
 	if (!IsValidConnectedPlayer(id, "IsZombie"))
 		return false;
 
-	return IsPlayerZombie(id);
+	return PlayerRuntime[id][PlayerRuntimeZombie];
 }
 
 public bool:NativeIsHuman(plugin, params)
@@ -146,7 +187,7 @@ public bool:NativeIsHuman(plugin, params)
 	if (!IsValidConnectedPlayer(id, "IsHuman"))
 		return false;
 
-	return IsPlayerHuman(id);
+	return !PlayerRuntime[id][PlayerRuntimeZombie];
 }
 
 public any:NativeGetPlayerVar(plugin, params)
@@ -168,19 +209,19 @@ public any:NativeGetPlayerVar(plugin, params)
 	get_string(GetPlayerVarParamKey, key, charsmax(key));
 
 	if (equal(key, "connected"))
-		return IsPlayerConnected(id);
+		return PlayerRuntime[id][PlayerRuntimeConnected];
 
 	if (equal(key, "alive"))
-		return IsPlayerAlive(id);
+		return PlayerRuntime[id][PlayerRuntimeAlive];
 
 	if (equal(key, "zombie"))
-		return IsPlayerZombie(id);
+		return PlayerRuntime[id][PlayerRuntimeZombie];
 
 	if (equal(key, "class"))
-		return GetPlayerClass(id);
+		return PlayerRuntime[id][PlayerRuntimeClass];
 
 	if (equal(key, "subclass"))
-		return GetPlayerSubclass(id);
+		return PlayerRuntime[id][PlayerRuntimeSubclass];
 
 	return ReportNativeError("Invalid player property '%s'.", key);
 }
@@ -244,7 +285,7 @@ public Class:NativeGetPlayerClass(plugin, params)
 	if (!IsValidConnectedPlayer(id, "get_player_class"))
 		return Invalid_Class;
 
-	return GetPlayerClass(id);
+	return PlayerRuntime[id][PlayerRuntimeClass];
 }
 
 public Subclass:NativeGetPlayerSubclass(plugin, params)
@@ -262,7 +303,7 @@ public Subclass:NativeGetPlayerSubclass(plugin, params)
 	if (!IsValidConnectedPlayer(id, "get_player_subclass"))
 		return Invalid_Subclass;
 
-	return GetPlayerSubclass(id);
+	return PlayerRuntime[id][PlayerRuntimeSubclass];
 }
 
 public bool:NativeChangePlayerClass(plugin, params)
@@ -393,9 +434,10 @@ stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass, bool:applyRunti
 	if (!ExecuteChangeClassPreForward(id, class, subclass))
 		return false;
 
-	SetPlayerClass(id, class);
-	SetPlayerSubclass(id, subclass);
-	SetPlayerZombie(id, bool:(team == TEAM_ZOMBIE));
+	PlayerRuntime[id][PlayerRuntimeClass] = class;
+	PlayerRuntime[id][PlayerRuntimeSubclass] = subclass;
+	PlayerRuntime[id][PlayerRuntimeZombie] = bool:(team == TEAM_ZOMBIE);
+	SetPlayerRuntimeMelee(id, class, subclass);
 
 	ApplyPlayerTeam(id, team);
 
@@ -408,23 +450,12 @@ stock bool:ChangePlayerClass(id, Class:class, Subclass:subclass, bool:applyRunti
 
 stock bool:ClearPlayerSubclass(id)
 {
-	new Class:class = GetPlayerClass(id);
+	new Class:class = PlayerRuntime[id][PlayerRuntimeClass];
 
 	if (class == Invalid_Class)
 		return bool:ReportNativeError("Player %d has no class to clear subclass.", id);
 
 	return ChangePlayerClass(id, class, Invalid_Subclass);
-}
-
-stock CreatePlayerForwards()
-{
-	for (new index = 0; index < sizeof PlayerForwards; index++)
-		PlayerForwards[index] = PLAYER_FORWARD_INVALID;
-
-	PlayerForwards[PlayerForwardChangeClassPre] = CreateMultiForward("@change_class_pre", ET_CONTINUE, FP_CELL, FP_CELL, FP_CELL);
-	PlayerForwards[PlayerForwardChangeClassPost] = CreateMultiForward("@change_class_post", ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
-	PlayerForwards[PlayerForwardInfectPlayerPre] = CreateMultiForward("@infect_player_pre", ET_CONTINUE, FP_CELL, FP_CELL, FP_CELL);
-	PlayerForwards[PlayerForwardInfectPlayerPost] = CreateMultiForward("@infect_player_post", ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
 }
 
 stock bool:ExecuteChangeClassPreForward(id, Class:class, Subclass:subclass)
@@ -525,14 +556,24 @@ stock bool:ApplyPlayerModel(id, Class:class, Subclass:subclass)
 		return false;
 	}
 
-	new name[RZ_MAX_HANDLE_LENGTH];
-	if (!get_model_var(model, "name", name, charsmax(name)))
+	new path[RZ_MAX_RESOURCE_PATH_LENGTH];
+	if (!get_model_var(model, "path", path, charsmax(path)))
 	{
 		ReportNativeError("Invalid runtime model for player %d.", id);
 		return false;
 	}
 
+	new name[RZ_MAX_HANDLE_LENGTH];
+	if (!GetModelNameFromPath(path, name, charsmax(name)))
+	{
+		ReportNativeError("Invalid runtime model path for player %d: %s.", id, path);
+		return false;
+	}
+
 	rg_set_user_model(id, name, true);
+	set_entvar(id, var_body, get_model_var(model, "body"));
+	set_entvar(id, var_skin, get_model_var(model, "skin"));
+
 	return true;
 }
 
@@ -552,7 +593,7 @@ stock bool:ApplyPlayerDefaultItems(id, Team:team)
 		}
 		case TEAM_ZOMBIE:
 		{
-			return GivePlayerItem(id, DEFAULT_MELEE_WEAPON);
+			return GiveDefaultZombieItems(id);
 		}
 		default:
 		{
@@ -562,6 +603,101 @@ stock bool:ApplyPlayerDefaultItems(id, Team:team)
 	}
 
 	return false;
+}
+
+stock bool:ApplyPlayerMeleeDeployModels(id)
+{
+	new Weapon:melee = PlayerRuntime[id][PlayerRuntimeMelee];
+	if (melee == Invalid_Weapon)
+		return true;
+
+	new Model:viewModel = Model:get_weapon_var(melee, "view_model");
+	new Model:playerModel = Model:get_weapon_var(melee, "player_model");
+
+	if (viewModel == Invalid_Model && playerModel == Invalid_Model)
+		return true;
+
+	if (viewModel != Invalid_Model && !SetWeaponDeployModelArg(id, 2, viewModel, "view_model"))
+		return false;
+
+	if (playerModel != Invalid_Model)
+	{
+		if (!SetWeaponDeployModelArg(id, 3, playerModel, "player_model"))
+			return false;
+	}
+	else
+	{
+		SetHookChainArg(3, ATYPE_STRING, "");
+	}
+
+	return true;
+}
+
+stock bool:ApplyPlayerActiveMeleeModels(id)
+{
+	new Weapon:melee = PlayerRuntime[id][PlayerRuntimeMelee];
+	if (melee == Invalid_Weapon)
+		return true;
+
+	new Model:viewModel = Model:get_weapon_var(melee, "view_model");
+	new Model:playerModel = Model:get_weapon_var(melee, "player_model");
+
+	if (viewModel == Invalid_Model && playerModel == Invalid_Model)
+		return true;
+
+	new path[RZ_MAX_RESOURCE_PATH_LENGTH];
+	if (viewModel != Invalid_Model)
+	{
+		if (!GetMeleeModelPath(id, viewModel, "view_model", path, charsmax(path)))
+			return false;
+
+		set_entvar(id, var_viewmodel, path);
+	}
+
+	if (playerModel != Invalid_Model)
+	{
+		if (!GetMeleeModelPath(id, playerModel, "player_model", path, charsmax(path)))
+			return false;
+
+		set_entvar(id, var_weaponmodel, path);
+	}
+	else
+	{
+		set_entvar(id, var_weaponmodel, "");
+	}
+
+	return true;
+}
+
+stock bool:SetWeaponDeployModelArg(id, arg, Model:model, const var[])
+{
+	new path[RZ_MAX_RESOURCE_PATH_LENGTH];
+	if (!GetMeleeModelPath(id, model, var, path, charsmax(path)))
+		return false;
+
+	SetHookChainArg(arg, ATYPE_STRING, path);
+	return true;
+}
+
+stock bool:GetMeleeModelPath(id, Model:model, const var[], path[], length)
+{
+	if (!get_model_var(model, "path", path, length))
+	{
+		ReportNativeError("Invalid melee %s for player %d.", var, id);
+		return false;
+	}
+
+	return true;
+}
+
+stock SetPlayerRuntimeMelee(id, Class:class, Subclass:subclass)
+{
+	new Weapon:melee = Weapon:get_class_var(class, "melee");
+
+	if (subclass != Invalid_Subclass)
+		melee = Weapon:get_subclass_var(subclass, "melee");
+
+	PlayerRuntime[id][PlayerRuntimeMelee] = melee;
 }
 
 stock bool:GiveDefaultHumanItems(id)
@@ -574,6 +710,38 @@ stock bool:GiveDefaultHumanItems(id)
 
 	rg_set_user_ammo(id, DEFAULT_HUMAN_SECONDARY_WEAPON_ID, DEFAULT_HUMAN_SECONDARY_CLIP_AMMO);
 	rg_set_user_bpammo(id, DEFAULT_HUMAN_SECONDARY_WEAPON_ID, DEFAULT_HUMAN_SECONDARY_BACKPACK_AMMO);
+
+	return true;
+}
+
+stock bool:GiveDefaultZombieItems(id)
+{
+	if (!GivePlayerItem(id, DEFAULT_MELEE_WEAPON))
+		return false;
+
+	if (!SwitchPlayerDefaultMeleeWeapon(id))
+		return false;
+
+	return ApplyPlayerActiveMeleeModels(id);
+}
+
+stock bool:SwitchPlayerDefaultMeleeWeapon(id)
+{
+	new weapon = get_member(id, m_rgpPlayerItems, KNIFE_SLOT);
+	if (is_nullent(weapon))
+	{
+		ReportNativeError("Missing default melee item for player %d.", id);
+		return false;
+	}
+
+	if (get_member(id, m_pActiveItem) == weapon)
+		return true;
+
+	if (!rg_switch_weapon(id, weapon))
+	{
+		ReportNativeError("Could not switch player %d to default melee.", id);
+		return false;
+	}
 
 	return true;
 }
@@ -599,7 +767,11 @@ stock Model:GetClassRuntimeModel(Class:class, Subclass:subclass)
 			return model;
 	}
 
-	return Model:get_class_var(class, "model");
+	new ModelsPack:models = ModelsPack:get_class_var(class, "models");
+	if (models == Invalid_ModelsPack)
+		return Invalid_Model;
+
+	return models_pack_get_random_model(models);
 }
 
 stock Team:GetClassTeamValue(Class:class)
@@ -655,11 +827,22 @@ stock bool:IsValidConnectedPlayer(id, const nativeName[])
 		return false;
 	}
 
-	if (!IsPlayerConnected(id))
+	if (!PlayerRuntime[id][PlayerRuntimeConnected])
 	{
 		ReportNativeError("%s received disconnected player %d.", nativeName, id);
 		return false;
 	}
 
 	return true;
+}
+
+stock bool:IsValidAlivePlayer(id)
+{
+	if (!IsPlayerIndex(id))
+		return false;
+
+	if (!PlayerRuntime[id][PlayerRuntimeConnected])
+		return false;
+
+	return bool:is_user_alive(id);
 }

@@ -1,6 +1,6 @@
-#include <amxmodx>
-#include <fakemeta>
+#include <rezombie>
 #include <reapi>
+#include <fakemeta>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -900,11 +900,6 @@ stock RequireSpawnStorage()
 
 	if (SpawnReservations == Invalid_Array)
 		set_fail_state("SpawnPoints reservation storage is not initialized.");
-}
-
-stock bool:IsPlayerIndex(id)
-{
-	return 1 <= id <= SPAWN_POINTS_MAX_PLAYERS;
 }
 
 stock bool:CanManagePlayerSpawn(id)

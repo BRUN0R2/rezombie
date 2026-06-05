@@ -21,6 +21,7 @@ The project already has the first functional base:
 
 * Modular APIs.
 * Typed handles for classes, subclasses, props, models and modes.
+* Simple weapon API for class and subclass melee models.
 * Player state, class changes and infection flow.
 * Basic round core.
 * First infection mode.

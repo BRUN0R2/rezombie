@@ -1,7 +1,5 @@
-#include <amxmodx>
-#include <fakemeta>
 #include <rezombie>
-#include <rezombie/core/RoundState>
+#include <fakemeta>
 
 #pragma semicolon 1
 #pragma compress 1

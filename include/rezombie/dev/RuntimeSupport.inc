@@ -26,7 +26,12 @@ stock Model:GetRuntimeModel(Class:class, Subclass:subclass)
 	}
 
 	if (class != Invalid_Class)
-		return Model:get_class_var(class, "model");
+	{
+		new ModelsPack:models = ModelsPack:get_class_var(class, "models");
+
+		if (models != Invalid_ModelsPack)
+			return models_pack_get_random_model(models);
+	}
 
 	return Invalid_Model;
 }
@@ -128,11 +133,6 @@ stock GetModelHandle(Model:model, handle[], length)
 	}
 
 	get_model_var(model, "handle", handle, length);
-}
-
-stock bool:IsPlayerIndex(id)
-{
-	return 1 <= id <= MaxClients;
 }
 
 stock DevInfo(const message[], any:...)
