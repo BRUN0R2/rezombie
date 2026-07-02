@@ -21,13 +21,13 @@
  * Creates a game mode.
  *
  * @param handle         Unique mode handle
- * @param launchForward  Function called when the mode starts, must return non-zero on success
- * @param supportTarget  Pass launch target to the forward
+ * @param launchForward  Function called when the mode starts, receives target and must return non-zero on success.
+ *                       The target is RZ_MODE_NO_TARGET when the mode should choose automatically.
  *
  * @return               Mode handle
  * @error                Fails on empty handle, duplicate mode or missing forward
  */
-native Mode:create_mode(const handle[], const launchForward[], bool:supportTarget = false);
+native Mode:create_mode(const handle[], const launchForward[]);
 
 /**
  * Finds a game mode by handle.
@@ -86,8 +86,7 @@ stock Mode:RequireMode(const handle[])
  *
  * @note                 Supported runtime properties include "name",
  *                       "notice_message", "min_players", "round_time",
- *                       "support_target", "respawn", "default_class"
- *                       and "override_default_class".
+ *                       "respawn", "default_class" and "override_default_class".
  */
 native any:get_mode_var(Mode:mode, const var[], any:...);
 
@@ -106,9 +105,9 @@ native bool:set_mode_var(Mode:mode, const var[], any:...);
  * Launches a game mode.
  *
  * @param mode           Mode handle
- * @param target         Optional target player
+ * @param target         Optional alive player target, or RZ_MODE_NO_TARGET
  *
  * @return               true on success, false otherwise
- * @error                Fails on invalid mode or failed launch forward
+ * @error                Fails on invalid mode, invalid target or failed launch forward
  */
-native bool:launch_mode(Mode:mode, target = 0);
+native bool:launch_mode(Mode:mode, target = RZ_MODE_NO_TARGET);

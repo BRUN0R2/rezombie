@@ -13,7 +13,6 @@
 #pragma compress 1
 
 const GAME_RULES_FORWARD_INVALID = -1;
-const GAME_RULES_NO_TARGET = 0;
 
 const Float:GAME_RULES_WARMUP_SECONDS = 40.0;
 const Float:GAME_RULES_PREPARE_SECONDS = 20.0;
@@ -277,7 +276,7 @@ stock BeginRoundPlaying(Float:now)
 	SetStateWindow(now, duration);
 	CommitGameRulesSnapshot(oldGameState, oldRoundState, oldTimer);
 
-	new bool:launched = launch_mode(mode, GAME_RULES_NO_TARGET);
+	new bool:launched = launch_mode(mode, RZ_MODE_NO_TARGET);
 	GameRulesLaunchingMode = false;
 
 	if (!launched)

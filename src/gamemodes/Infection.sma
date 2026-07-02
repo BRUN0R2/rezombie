@@ -45,12 +45,38 @@ public plugin_end()
 	}
 }
 
-@LaunchInfection()
+@LaunchInfection(target)
 {
 	new players[MAX_PLAYERS];
 	new playersCount;
 	CollectAliveHumans(players, playersCount);
 
+	if (target != RZ_MODE_NO_TARGET && !IsAliveHuman(target))
+	{
+		log_amx("Infection launch target %d must be an alive human.", target);
+		return false;
+	}
+
+	new zombiesCount = GetInitialZombieCount(playersCount);
+	if (zombiesCount <= 0)
+		return false;
+
+	for (new zombieIndex = 0; zombieIndex < zombiesCount; zombieIndex++)
+	{
+		new preferred = zombieIndex == 0 ? target : RZ_MODE_NO_TARGET;
+		new player = PickPlayer(players, playersCount, preferred);
+		if (!player)
+			return false;
+
+		if (change_player_class(player, zombieClass) > RZ_CONTINUE)
+			return false;
+	}
+
+	return bool:zombiesCount;
+}
+
+stock GetInitialZombieCount(playersCount)
+{
 	new zombiesCount = 1;
 	if (playersCount > 30)
 		zombiesCount = 4;
@@ -59,16 +85,7 @@ public plugin_end()
 	else if (playersCount > 10)
 		zombiesCount = 2;
 
-	zombiesCount = min(zombiesCount, playersCount);
-
-	for (new zombieIndex = 0; zombieIndex < zombiesCount; zombieIndex++)
-	{
-		new player = PickPlayer(players, playersCount);
-		if (change_player_class(player, zombieClass) > RZ_CONTINUE)
-			return false;
-	}
-
-	return bool:zombiesCount;
+	return min(zombiesCount, playersCount);
 }
 
 public OnPlayerTakeDamagePre(victim, inflictor, attacker, Float:damage, damageType)

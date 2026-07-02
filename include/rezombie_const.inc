@@ -10,6 +10,7 @@ new const any:null = any:0;
 const RZ_MAX_HANDLE_LENGTH = 32;
 const RZ_MAX_NAME_LENGTH = 64;
 const RZ_MAX_RESOURCE_PATH_LENGTH = 128;
+const RZ_MODE_NO_TARGET = 0;
 
 const Class:Invalid_Class = Class:0;
 const Subclass:Invalid_Subclass = Subclass:0;

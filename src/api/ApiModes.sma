@@ -19,7 +19,6 @@ enum _:ModeData
 	ModeNoticeMessage[RZ_MAX_NAME_LENGTH],
 	ModeLaunchForwardName[RZ_MAX_HANDLE_LENGTH],
 	ModeLaunchForward,
-	bool:ModeSupportTarget,
 	ModeMinPlayers,
 	Float:ModeRoundTime,
 	RespawnType:ModeRespawn,
@@ -83,12 +82,11 @@ public Mode:NativeCreateMode(plugin, params)
 	enum
 	{
 		CreateModeParamHandle = 1,
-		CreateModeParamLaunchForward,
-		CreateModeParamSupportTarget
+		CreateModeParamLaunchForward
 	};
 
-	if (params < CreateModeParamLaunchForward)
-		return Mode:ReportNativeError("create_mode requires handle and launch forward.");
+	if (params != CreateModeParamLaunchForward)
+		return Mode:ReportNativeError("create_mode requires handle and target launch forward.");
 
 	new handle[RZ_MAX_HANDLE_LENGTH];
 	get_string(CreateModeParamHandle, handle, charsmax(handle));
@@ -105,18 +103,10 @@ public Mode:NativeCreateMode(plugin, params)
 	if (IsNullString(launchForward))
 		return Mode:ReportNativeError("Mode '%s' launch forward cannot be empty.", handle);
 
-	new bool:supportTarget;
-	if (params >= CreateModeParamSupportTarget)
-		supportTarget = bool:get_param(CreateModeParamSupportTarget);
-
-	new launchForwardId;
-	if (supportTarget)
-		launchForwardId = CreateOneForward(plugin, launchForward, FP_CELL);
-	else
-		launchForwardId = CreateOneForward(plugin, launchForward);
+	new launchForwardId = CreateOneForward(plugin, launchForward, FP_CELL);
 
 	if (launchForwardId == MODE_FORWARD_INVALID)
-		return Mode:ReportNativeError("Mode '%s' launch forward '%s' was not found.", handle, launchForward);
+		return Mode:ReportNativeError("Mode '%s' target launch forward '%s' was not found.", handle, launchForward);
 
 	new data[ModeData];
 	copy(data[ModeHandle], charsmax(data[ModeHandle]), handle);
@@ -124,7 +114,6 @@ public Mode:NativeCreateMode(plugin, params)
 	data[ModeNoticeMessage][0] = EOS;
 	copy(data[ModeLaunchForwardName], charsmax(data[ModeLaunchForwardName]), launchForward);
 	data[ModeLaunchForward] = launchForwardId;
-	data[ModeSupportTarget] = supportTarget;
 	data[ModeMinPlayers] = MODE_DEFAULT_MIN_PLAYERS;
 	data[ModeRoundTime] = MODE_DEFAULT_ROUND_TIME;
 	data[ModeRespawn] = Respawn_Off;
@@ -248,9 +237,6 @@ public any:NativeGetModeVar(plugin, params)
 		set_string(GetModeVarParamOutput, data[ModeLaunchForwardName], get_param_byref(GetModeVarParamOutputLength));
 		return true;
 	}
-
-	if (equal(key, "support_target"))
-		return data[ModeSupportTarget];
 
 	if (equal(key, "min_players"))
 		return data[ModeMinPlayers];
@@ -395,17 +381,35 @@ stock bool:LaunchMode(Mode:mode, target)
 	new data[ModeData];
 	ArrayGetArray(Modes, index, data);
 
+	if (!ValidateLaunchTarget(target))
+		return false;
+
+	return ExecuteModeLaunch(data, target);
+}
+
+stock bool:ValidateLaunchTarget(target)
+{
+	if (target == RZ_MODE_NO_TARGET)
+		return true;
+
+	if (!IsPlayerIndex(target))
+		return bool:ReportNativeError("Invalid mode launch target %d.", target);
+
+	if (!is_user_connected(target))
+		return bool:ReportNativeError("Mode launch target %d is not connected.", target);
+
+	if (!is_user_alive(target))
+		return bool:ReportNativeError("Mode launch target %d is not alive.", target);
+
+	return true;
+}
+
+stock bool:ExecuteModeLaunch(data[ModeData], target)
+{
 	new forwardResult;
 
-	if (data[ModeSupportTarget])
-	{
-		if (!ExecuteForward(data[ModeLaunchForward], forwardResult, target))
-			return bool:ReportNativeError("Mode '%s' launch forward could not be executed.", data[ModeHandle]);
-	}
-	else if (!ExecuteForward(data[ModeLaunchForward], forwardResult))
-	{
+	if (!ExecuteForward(data[ModeLaunchForward], forwardResult, target))
 		return bool:ReportNativeError("Mode '%s' launch forward could not be executed.", data[ModeHandle]);
-	}
 
 	return bool:forwardResult;
 }
