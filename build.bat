@@ -37,7 +37,7 @@ if not exist "%COMPILER%" (
 	goto :BuildFailed
 )
 
-if not exist "%PROJECT_INCLUDE%\rezombie.inc" (
+if not exist "%PROJECT_INCLUDE%\rezombie_main.inc" (
 	echo ERROR: Project includes were not found: %PROJECT_INCLUDE%
 	goto :BuildFailed
 )

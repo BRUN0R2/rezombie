@@ -1,4 +1,4 @@
-#include <rezombie>
+#include <rezombie_main>
 
 #pragma semicolon 1
 #pragma compress 1

@@ -25,8 +25,8 @@
 
 ### Etapa 1 - Limpeza e Infraestrutura
 
-- [x] Trocar o uso indiscriminado de `#include <rezombie>` por includes minimos nas APIs e modulos internos.
-- [x] Manter o include agregado `<rezombie>` como interface conveniente para classes, modos e extensoes externas.
+- [x] Trocar o uso indiscriminado de `#include <rezombie_main>` por includes minimos nas APIs e modulos internos.
+- [x] Manter o include agregado `<rezombie_main>` como interface conveniente para classes, modos e extensoes externas.
 - [x] Criar fonte unica de metadados para versao e autor dos plugins.
 - [x] Substituir as listas duplicadas do `build.bat` por um manifesto unico de plugins com categoria, fonte, destino, ambiente e ordem de carregamento.
 - [x] Gerar `plugins-rezombie.ini` e `plugins-rezombie-dev.ini` a partir do mesmo manifesto usado na compilacao.

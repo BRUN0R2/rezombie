@@ -1,10 +1,10 @@
-// ReZombie public API aggregate include.
+// ReZombie main public API aggregate include.
 
-#if defined _rezombie_included
+#if defined _rezombie_main_included
 	#endinput
 #endif
 
-#define _rezombie_included
+#define _rezombie_main_included
 
 #include <amxmodx>
 #include <rezombie_version>
