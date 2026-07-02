@@ -1,4 +1,7 @@
-#include <rezombie>
+#include <amxmodx>
+#include <rezombie_version>
+#include <rezombie_const>
+#include <rezombie_stock>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -35,6 +38,18 @@ public plugin_natives()
 	ModelsPacks = ArrayCreate(ModelsPackData);
 	ModelsPacksByHandle = TrieCreate();
 
+	if (Models == Invalid_Array)
+		set_fail_state("ApiModels model storage could not be initialized.");
+
+	if (ModelsByHandle == Invalid_Trie)
+		set_fail_state("ApiModels model handle index could not be initialized.");
+
+	if (ModelsPacks == Invalid_Array)
+		set_fail_state("ApiModels models pack storage could not be initialized.");
+
+	if (ModelsPacksByHandle == Invalid_Trie)
+		set_fail_state("ApiModels models pack handle index could not be initialized.");
+
 	register_native("create_model", "NativeCreateModel");
 	register_native("FindModel", "NativeFindModel");
 	register_native("get_model_var", "NativeGetModelVar");
@@ -46,7 +61,7 @@ public plugin_natives()
 
 public plugin_precache()
 {
-	register_plugin("API: Models", "0.1.0", "BRUN0");
+	register_plugin("API: Models", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
 }
 
 public plugin_end()

@@ -1,5 +1,6 @@
-#include <rezombie>
+#include <amxmodx>
 #include <reapi>
+#include <rezombie_version>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -38,7 +39,7 @@ new HookChain:MapObjectivesHooks[MapObjectivesHookCount];
 
 public plugin_precache()
 {
-	register_plugin("Core: Map Objectives", "0.1.0", "BRUN0");
+	register_plugin("Core: Map Objectives", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
 
 	CreateMapObjectivesHooks();
 }
@@ -86,31 +87,35 @@ stock CreateMapObjectivesHooks()
 		MapObjectivesHooks[index] = INVALID_HOOKCHAIN;
 
 	MapObjectivesHooks[MapObjectivesHookGetEntityInit] = RegisterRequiredMapObjectivesHook(
-		RH_GetEntityInit,
-		"OnGetEntityInitPre",
-		false
+		.functionId = RH_GetEntityInit,
+		.callback = "OnGetEntityInitPre",
+		.post = false
 	);
 
 	MapObjectivesHooks[MapObjectivesHookCheckMapConditions] = RegisterRequiredMapObjectivesHook(
-		RG_CSGameRules_CheckMapConditions,
-		"OnCheckMapConditionsPre",
-		false
+		.functionId = RG_CSGameRules_CheckMapConditions,
+		.callback = "OnCheckMapConditionsPre",
+		.post = false
 	);
 
 	MapObjectivesHooks[MapObjectivesHookGiveC4] = RegisterRequiredMapObjectivesHook(
-		RG_CSGameRules_GiveC4,
-		"OnGiveC4Pre",
-		false
+		.functionId = RG_CSGameRules_GiveC4,
+		.callback = "OnGiveC4Pre",
+		.post = false
 	);
 }
 
 stock HookChain:RegisterRequiredMapObjectivesHook(ReAPIFunc:functionId, const callback[], bool:post)
 {
-	new HookChain:hook = RegisterHookChain(functionId, callback, post);
-	if (hook == INVALID_HOOKCHAIN)
+	new HookChain:hookChain = RegisterHookChain(
+		.function_id = functionId,
+		.callback = callback,
+		.post = post
+	);
+	if (hookChain == INVALID_HOOKCHAIN)
 		set_fail_state("MapObjectives could not register ReAPI hook '%s'.", callback);
 
-	return hook;
+	return hookChain;
 }
 
 stock DisableDefaultMapRules()

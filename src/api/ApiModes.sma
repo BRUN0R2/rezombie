@@ -1,4 +1,8 @@
-#include <rezombie>
+#include <amxmodx>
+#include <rezombie_version>
+#include <rezombie_const>
+#include <rezombie_stock>
+#include <rezombie/api/Classes>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -15,9 +19,12 @@ enum _:ModeData
 	ModeNoticeMessage[RZ_MAX_NAME_LENGTH],
 	ModeLaunchForwardName[RZ_MAX_HANDLE_LENGTH],
 	ModeLaunchForward,
+	bool:ModeSupportTarget,
 	ModeMinPlayers,
 	Float:ModeRoundTime,
-	RespawnType:ModeRespawn
+	RespawnType:ModeRespawn,
+	Class:ModeDefaultClass,
+	bool:ModeOverrideDefaultClass
 };
 
 new Array:Modes;
@@ -30,6 +37,12 @@ public plugin_natives()
 	Modes = ArrayCreate(ModeData);
 	ModesByHandle = TrieCreate();
 
+	if (Modes == Invalid_Array)
+		set_fail_state("ApiModes mode storage could not be initialized.");
+
+	if (ModesByHandle == Invalid_Trie)
+		set_fail_state("ApiModes handle index could not be initialized.");
+
 	register_native("create_mode", "NativeCreateMode");
 	register_native("FindMode", "NativeFindMode");
 	register_native("get_modes_count", "NativeGetModesCount");
@@ -41,7 +54,7 @@ public plugin_natives()
 
 public plugin_precache()
 {
-	register_plugin("API: Modes", "0.1.0", "BRUN0");
+	register_plugin("API: Modes", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
 }
 
 public plugin_end()
@@ -70,7 +83,8 @@ public Mode:NativeCreateMode(plugin, params)
 	enum
 	{
 		CreateModeParamHandle = 1,
-		CreateModeParamLaunchForward
+		CreateModeParamLaunchForward,
+		CreateModeParamSupportTarget
 	};
 
 	if (params < CreateModeParamLaunchForward)
@@ -91,7 +105,16 @@ public Mode:NativeCreateMode(plugin, params)
 	if (IsNullString(launchForward))
 		return Mode:ReportNativeError("Mode '%s' launch forward cannot be empty.", handle);
 
-	new launchForwardId = CreateOneForward(plugin, launchForward, FP_CELL, FP_CELL);
+	new bool:supportTarget;
+	if (params >= CreateModeParamSupportTarget)
+		supportTarget = bool:get_param(CreateModeParamSupportTarget);
+
+	new launchForwardId;
+	if (supportTarget)
+		launchForwardId = CreateOneForward(plugin, launchForward, FP_CELL);
+	else
+		launchForwardId = CreateOneForward(plugin, launchForward);
+
 	if (launchForwardId == MODE_FORWARD_INVALID)
 		return Mode:ReportNativeError("Mode '%s' launch forward '%s' was not found.", handle, launchForward);
 
@@ -101,9 +124,12 @@ public Mode:NativeCreateMode(plugin, params)
 	data[ModeNoticeMessage][0] = EOS;
 	copy(data[ModeLaunchForwardName], charsmax(data[ModeLaunchForwardName]), launchForward);
 	data[ModeLaunchForward] = launchForwardId;
+	data[ModeSupportTarget] = supportTarget;
 	data[ModeMinPlayers] = MODE_DEFAULT_MIN_PLAYERS;
 	data[ModeRoundTime] = MODE_DEFAULT_ROUND_TIME;
 	data[ModeRespawn] = Respawn_Off;
+	data[ModeDefaultClass] = Invalid_Class;
+	data[ModeOverrideDefaultClass] = false;
 
 	new index = ArraySize(Modes);
 	if (!TrieSetCell(ModesByHandle, handle, index, false))
@@ -223,6 +249,9 @@ public any:NativeGetModeVar(plugin, params)
 		return true;
 	}
 
+	if (equal(key, "support_target"))
+		return data[ModeSupportTarget];
+
 	if (equal(key, "min_players"))
 		return data[ModeMinPlayers];
 
@@ -231,6 +260,12 @@ public any:NativeGetModeVar(plugin, params)
 
 	if (equal(key, "respawn"))
 		return data[ModeRespawn];
+
+	if (equal(key, "default_class"))
+		return data[ModeDefaultClass];
+
+	if (equal(key, "override_default_class"))
+		return data[ModeOverrideDefaultClass];
 
 	return ReportNativeError("Invalid mode property '%s'.", key);
 }
@@ -306,6 +341,28 @@ public bool:NativeSetModeVar(plugin, params)
 		return true;
 	}
 
+	if (equal(key, "default_class"))
+	{
+		new Class:class = Class:get_param_byref(SetModeVarParamValue);
+		if (class != Invalid_Class && !IsRegisteredClass(class))
+			return bool:ReportNativeError("Invalid mode default_class handle %d.", _:class);
+
+		data[ModeDefaultClass] = class;
+		ArraySetArray(Modes, index, data);
+		return true;
+	}
+
+	if (equal(key, "override_default_class"))
+	{
+		new bool:overrideDefaultClass = bool:get_param_byref(SetModeVarParamValue);
+		if (overrideDefaultClass && data[ModeDefaultClass] == Invalid_Class)
+			return bool:ReportNativeError("Mode override_default_class requires default_class.");
+
+		data[ModeOverrideDefaultClass] = overrideDefaultClass;
+		ArraySetArray(Modes, index, data);
+		return true;
+	}
+
 	return bool:ReportNativeError("Invalid or readonly mode property '%s'.", key);
 }
 
@@ -338,11 +395,19 @@ stock bool:LaunchMode(Mode:mode, target)
 	new data[ModeData];
 	ArrayGetArray(Modes, index, data);
 
-	new result;
-	if (!ExecuteForward(data[ModeLaunchForward], result, mode, target))
-		return bool:ReportNativeError("Mode '%s' launch forward could not be executed.", data[ModeHandle]);
+	new forwardResult;
 
-	return bool:result;
+	if (data[ModeSupportTarget])
+	{
+		if (!ExecuteForward(data[ModeLaunchForward], forwardResult, target))
+			return bool:ReportNativeError("Mode '%s' launch forward could not be executed.", data[ModeHandle]);
+	}
+	else if (!ExecuteForward(data[ModeLaunchForward], forwardResult))
+	{
+		return bool:ReportNativeError("Mode '%s' launch forward could not be executed.", data[ModeHandle]);
+	}
+
+	return bool:forwardResult;
 }
 
 stock Mode:FindModeByHandle(const handle[])
@@ -364,11 +429,6 @@ stock GetModeIndex(Mode:mode)
 	return _:mode - MODE_HANDLE_OFFSET - 1;
 }
 
-stock bool:IsValidModeHandle(Mode:mode)
-{
-	return IsValidModeIndex(GetModeIndex(mode));
-}
-
 stock bool:IsValidModeIndex(index)
 {
 	return 0 <= index < ArraySize(Modes);
@@ -383,4 +443,13 @@ stock bool:IsValidRespawnType(RespawnType:respawn)
 	}
 
 	return false;
+}
+
+stock bool:IsRegisteredClass(Class:class)
+{
+	if (class == Invalid_Class)
+		return false;
+
+	new Team:team = Team:get_class_var(class, "team");
+	return team == TEAM_HUMAN || team == TEAM_ZOMBIE;
 }

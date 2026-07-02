@@ -5,7 +5,7 @@
 
 public plugin_precache()
 {
-	register_plugin("Zombie: Fleshpound", "0.1.0", "BRUN0");
+	register_plugin("Zombie: Fleshpound", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
 
 	new Class:class = RequireClass("zombie");
 	new Subclass:subclass = create_subclass("fleshpound", class);

@@ -1,4 +1,8 @@
-#include <rezombie>
+#include <amxmodx>
+#include <rezombie_version>
+#include <rezombie_const>
+#include <rezombie_stock>
+#include <rezombie/api/Models>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -23,6 +27,12 @@ public plugin_natives()
 	Weapons = ArrayCreate(WeaponData);
 	WeaponsByHandle = TrieCreate();
 
+	if (Weapons == Invalid_Array)
+		set_fail_state("ApiWeapons weapon storage could not be initialized.");
+
+	if (WeaponsByHandle == Invalid_Trie)
+		set_fail_state("ApiWeapons handle index could not be initialized.");
+
 	register_native("create_weapon", "NativeCreateWeapon");
 	register_native("FindWeapon", "NativeFindWeapon");
 	register_native("get_weapon_var", "NativeGetWeaponVar");
@@ -31,7 +41,7 @@ public plugin_natives()
 
 public plugin_precache()
 {
-	register_plugin("API: Weapons", "0.1.0", "BRUN0");
+	register_plugin("API: Weapons", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
 }
 
 public plugin_end()
@@ -134,6 +144,7 @@ public any:NativeGetWeaponVar(plugin, params)
 			data[WeaponHandle],
 			get_param_byref(GetWeaponVarParamOutputLength)
 		);
+
 		return true;
 	}
 

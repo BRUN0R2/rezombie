@@ -59,6 +59,15 @@ Run:
 build.bat
 ```
 
+Plugin sources, categories, environments and load order are declared once in:
+
+```text
+plugins.manifest
+```
+
+Add new plugins to this manifest instead of duplicating entries in the build
+script and generated plugin lists.
+
 The package is generated in:
 
 ```text

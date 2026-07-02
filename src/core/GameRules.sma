@@ -1,18 +1,27 @@
-#include <rezombie>
+#include <amxmodx>
 #include <reapi>
 #include <fakemeta>
+#include <rezombie_version>
+#include <rezombie_const>
+#include <rezombie/api/Classes>
+#include <rezombie/api/Modes>
+#include <rezombie/api/Players>
 #include <rezombie/core/GameVars>
+#include <rezombie_stock>
 
 #pragma semicolon 1
 #pragma compress 1
 
 const GAME_RULES_FORWARD_INVALID = -1;
 const GAME_RULES_NO_TARGET = 0;
-const GAME_RULES_MIN_PLAYERS = 2;
 
 const Float:GAME_RULES_WARMUP_SECONDS = 40.0;
 const Float:GAME_RULES_PREPARE_SECONDS = 20.0;
+const Float:GAME_RULES_WARMUP_RESTART_SECONDS = 3.0;
 const Float:GAME_RULES_RESTART_SECONDS = 5.0;
+
+new const GAME_RULES_DEFAULT_HUMAN_CLASS[] = "human";
+new const GAME_RULES_DEFAULT_ZOMBIE_CLASS[] = "zombie";
 
 enum _:GameRulesRuntimeData
 {
@@ -21,6 +30,7 @@ enum _:GameRulesRuntimeData
 	Mode:GameRulesMode,
 	Float:GameRulesStateEndsAt,
 	GameRulesTimer,
+	EndRoundEvent:GameRulesTerminateEvent,
 	GameRulesHumanWins,
 	GameRulesZombieWins
 };
@@ -46,14 +56,12 @@ enum _:GameRulesHookData
 new GameRulesRuntime[GameRulesRuntimeData];
 new GameRulesForwards[GameRulesForwardCount];
 new HookChain:GameRulesHooks[GameRulesHookCount];
-
-public plugin_precache()
-{
-	register_plugin("Core: Game Rules", "0.1.0", "BRUN0");
-}
+new bool:GameRulesLaunchingMode;
 
 public plugin_init()
 {
+	register_plugin("Core: Game Rules", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
+
 	CreateGameRulesForwards();
 	CreateGameRulesHooks();
 
@@ -126,7 +134,7 @@ public OnServerFrame()
 			UpdateRoundTimer(now);
 
 			if (now >= GameRulesRuntime[GameRulesStateEndsAt])
-				rg_restart_round();
+				CompleteTerminatedRound(now);
 		}
 	}
 
@@ -140,8 +148,10 @@ stock ResetGameRulesRuntime()
 	GameRulesRuntime[GameRulesMode] = Invalid_Mode;
 	GameRulesRuntime[GameRulesStateEndsAt] = 0.0;
 	GameRulesRuntime[GameRulesTimer] = 0;
+	GameRulesRuntime[GameRulesTerminateEvent] = EndRoundEventNone;
 	GameRulesRuntime[GameRulesHumanWins] = 0;
 	GameRulesRuntime[GameRulesZombieWins] = 0;
+	GameRulesLaunchingMode = false;
 
 	PublishGameVars();
 }
@@ -167,6 +177,9 @@ stock RefreshRoundFlow()
 
 stock EnterWaitingState()
 {
+	new GameState:oldGameState = GameRulesRuntime[GameRulesGameState];
+	new RoundState:oldRoundState = GameRulesRuntime[GameRulesRoundState];
+	new oldTimer = GameRulesRuntime[GameRulesTimer];
 	new bool:changed = false;
 
 	changed = SetGameState(GameStateNeedPlayers) || changed;
@@ -177,7 +190,7 @@ stock EnterWaitingState()
 	GameRulesRuntime[GameRulesStateEndsAt] = 0.0;
 
 	if (changed)
-		PublishGameVars();
+		CommitGameRulesSnapshot(oldGameState, oldRoundState, oldTimer);
 }
 
 stock UpdateWaitingRoundFlow(Float:now)
@@ -201,10 +214,7 @@ stock UpdateWaitingRoundFlow(Float:now)
 			if (now < GameRulesRuntime[GameRulesStateEndsAt])
 				return;
 
-			if (HasEnoughRoundParticipants())
-				BeginRoundPrepare(now);
-			else
-				EnterWaitingState();
+			EndRound(EndRoundEventWarmupEnd, now);
 		}
 		default:
 		{
@@ -218,22 +228,37 @@ stock UpdateWaitingRoundFlow(Float:now)
 
 stock BeginWarmup(Float:now)
 {
+	new GameState:oldGameState = GameRulesRuntime[GameRulesGameState];
+	new RoundState:oldRoundState = GameRulesRuntime[GameRulesRoundState];
+	new oldTimer = GameRulesRuntime[GameRulesTimer];
+
 	SetGameState(GameStateWarmup);
 	SetRoundState(RoundStateNone);
 	SetRoundMode(Invalid_Mode);
+	GameRulesRuntime[GameRulesTerminateEvent] = EndRoundEventNone;
 	SetStateWindow(now, GAME_RULES_WARMUP_SECONDS);
-	PublishGameVars();
+	CommitGameRulesSnapshot(oldGameState, oldRoundState, oldTimer);
 }
 
 stock BeginRoundPrepare(Float:now)
 {
 	new Mode:mode = SelectRoundMode();
+	if (mode == Invalid_Mode)
+	{
+		EnterWaitingState();
+		return;
+	}
+
+	new GameState:oldGameState = GameRulesRuntime[GameRulesGameState];
+	new RoundState:oldRoundState = GameRulesRuntime[GameRulesRoundState];
+	new oldTimer = GameRulesRuntime[GameRulesTimer];
 
 	SetGameState(GameStatePlaying);
 	SetRoundState(RoundStatePrepare);
 	SetRoundMode(mode);
+	GameRulesRuntime[GameRulesTerminateEvent] = EndRoundEventNone;
 	SetStateWindow(now, GAME_RULES_PREPARE_SECONDS);
-	PublishGameVars();
+	CommitGameRulesSnapshot(oldGameState, oldRoundState, oldTimer);
 
 	ExecuteRoundPrepare(mode, GAME_RULES_PREPARE_SECONDS);
 }
@@ -242,13 +267,21 @@ stock BeginRoundPlaying(Float:now)
 {
 	new Mode:mode = GameRulesRuntime[GameRulesMode];
 	new Float:duration = GetModeRoundTime(mode);
+	new GameState:oldGameState = GameRulesRuntime[GameRulesGameState];
+	new RoundState:oldRoundState = GameRulesRuntime[GameRulesRoundState];
+	new oldTimer = GameRulesRuntime[GameRulesTimer];
 
-	if (!launch_mode(mode, GAME_RULES_NO_TARGET))
-		set_fail_state("GameRules could not launch selected mode %d.", _:mode);
-
+	GameRulesLaunchingMode = true;
 	SetRoundState(RoundStatePlaying);
+	GameRulesRuntime[GameRulesTerminateEvent] = EndRoundEventNone;
 	SetStateWindow(now, duration);
-	PublishGameVars();
+	CommitGameRulesSnapshot(oldGameState, oldRoundState, oldTimer);
+
+	new bool:launched = launch_mode(mode, GAME_RULES_NO_TARGET);
+	GameRulesLaunchingMode = false;
+
+	if (!launched)
+		set_fail_state("GameRules could not launch selected mode %d.", _:mode);
 
 	ExecuteRoundStart(mode, duration);
 	EvaluateRoundWinConditions(now);
@@ -259,6 +292,10 @@ stock EndRound(EndRoundEvent:event, Float:now)
 	if (GameRulesRuntime[GameRulesRoundState] == RoundStateTerminate)
 		return;
 
+	new GameState:oldGameState = GameRulesRuntime[GameRulesGameState];
+	new RoundState:oldRoundState = GameRulesRuntime[GameRulesRoundState];
+	new oldTimer = GameRulesRuntime[GameRulesTimer];
+
 	switch (event)
 	{
 		case EndRoundEventHumansWin:
@@ -268,10 +305,50 @@ stock EndRound(EndRoundEvent:event, Float:now)
 	}
 
 	SetRoundState(RoundStateTerminate);
-	SetStateWindow(now, GAME_RULES_RESTART_SECONDS);
-	PublishGameVars();
+	GameRulesRuntime[GameRulesTerminateEvent] = event;
+	SetStateWindow(now, GetEndRoundDelay(event));
+	CommitGameRulesSnapshot(oldGameState, oldRoundState, oldTimer);
 
 	ExecuteRoundEnd(event);
+}
+
+stock Float:GetEndRoundDelay(EndRoundEvent:event)
+{
+	if (event == EndRoundEventWarmupEnd)
+		return GAME_RULES_WARMUP_RESTART_SECONDS;
+
+	return GAME_RULES_RESTART_SECONDS;
+}
+
+stock CompleteTerminatedRound(Float:now)
+{
+	if (GameRulesRuntime[GameRulesTerminateEvent] == EndRoundEventWarmupEnd)
+		CompleteWarmupTermination(now);
+
+	rg_restart_round();
+}
+
+stock CompleteWarmupTermination(Float:now)
+{
+	new GameState:oldGameState = GameRulesRuntime[GameRulesGameState];
+	new RoundState:oldRoundState = GameRulesRuntime[GameRulesRoundState];
+	new oldTimer = GameRulesRuntime[GameRulesTimer];
+	new bool:changed = false;
+
+	if (HasEnoughRoundParticipants())
+		changed = SetGameState(GameStatePlaying) || changed;
+	else
+		changed = SetGameState(GameStateNeedPlayers) || changed;
+
+	changed = SetRoundState(RoundStateNone) || changed;
+	changed = SetRoundMode(Invalid_Mode) || changed;
+	changed = SetRoundTimer(0) || changed;
+
+	GameRulesRuntime[GameRulesTerminateEvent] = EndRoundEventNone;
+	GameRulesRuntime[GameRulesStateEndsAt] = now;
+
+	if (changed)
+		CommitGameRulesSnapshot(oldGameState, oldRoundState, oldTimer);
 }
 
 stock bool:EvaluateRoundWinConditions(Float:now)
@@ -311,7 +388,8 @@ stock bool:EvaluateRoundWinConditions(Float:now)
 
 stock bool:CanEvaluateRoundWinConditions()
 {
-	return GameRulesRuntime[GameRulesGameState] == GameStatePlaying
+	return !GameRulesLaunchingMode
+		&& GameRulesRuntime[GameRulesGameState] == GameStatePlaying
 		&& GameRulesRuntime[GameRulesRoundState] == RoundStatePlaying;
 }
 
@@ -322,23 +400,28 @@ stock Mode:SelectRoundMode()
 		set_fail_state("GameRules could not select a mode because no mode is registered.");
 
 	new players = CountRoundParticipants();
-	new Mode:fallbackMode = Invalid_Mode;
 
 	for (new index = 0; index < modesCount; index++)
 	{
 		new Mode:mode = get_mode(index);
 
-		if (fallbackMode == Invalid_Mode)
-			fallbackMode = mode;
-
-		if (players >= get_mode_var(mode, "min_players"))
+		if (players >= GetModeMinPlayers(mode))
 			return mode;
 	}
 
-	if (fallbackMode == Invalid_Mode)
-		set_fail_state("GameRules could not select a fallback mode.");
+	return Invalid_Mode;
+}
 
-	return fallbackMode;
+stock GetModeMinPlayers(Mode:mode)
+{
+	if (mode == Invalid_Mode)
+		set_fail_state("GameRules received invalid mode for min_players.");
+
+	new minPlayers = get_mode_var(mode, "min_players");
+	if (minPlayers <= 0)
+		set_fail_state("GameRules received invalid min_players %d for mode %d.", minPlayers, _:mode);
+
+	return minPlayers;
 }
 
 stock Float:GetModeRoundTime(Mode:mode)
@@ -351,6 +434,38 @@ stock Float:GetModeRoundTime(Mode:mode)
 		set_fail_state("GameRules received invalid round_time %.2f for mode %d.", roundTime, _:mode);
 
 	return roundTime;
+}
+
+stock RespawnType:GetModeRespawnType(Mode:mode)
+{
+	if (mode == Invalid_Mode)
+		set_fail_state("GameRules received invalid mode for respawn policy.");
+
+	return RespawnType:get_mode_var(mode, "respawn");
+}
+
+stock Class:GetModeDefaultClass(Mode:mode)
+{
+	if (mode == Invalid_Mode)
+		set_fail_state("GameRules received invalid mode for default class.");
+
+	return Class:get_mode_var(mode, "default_class");
+}
+
+stock bool:GetModeOverrideDefaultClass(Mode:mode)
+{
+	if (mode == Invalid_Mode)
+		set_fail_state("GameRules received invalid mode for default class override.");
+
+	return bool:get_mode_var(mode, "override_default_class");
+}
+
+stock Team:GetClassTeam(Class:class)
+{
+	if (class == Invalid_Class)
+		set_fail_state("GameRules received invalid class for team resolution.");
+
+	return Team:get_class_var(class, "team");
 }
 
 stock SetStateWindow(Float:now, Float:duration)
@@ -368,9 +483,12 @@ stock UpdateRoundTimer(Float:now)
 	if (timer == GameRulesRuntime[GameRulesTimer])
 		return;
 
+	new GameState:oldGameState = GameRulesRuntime[GameRulesGameState];
+	new RoundState:oldRoundState = GameRulesRuntime[GameRulesRoundState];
+	new oldTimer = GameRulesRuntime[GameRulesTimer];
+
 	SetRoundTimer(timer);
-	PublishGameVars();
-	ExecuteRoundTimer(timer);
+	CommitGameRulesSnapshot(oldGameState, oldRoundState, oldTimer);
 }
 
 stock GetRemainingSeconds(Float:now)
@@ -387,9 +505,7 @@ stock bool:SetGameState(GameState:gameState)
 	if (GameRulesRuntime[GameRulesGameState] == gameState)
 		return false;
 
-	new GameState:oldState = GameRulesRuntime[GameRulesGameState];
 	GameRulesRuntime[GameRulesGameState] = gameState;
-	ExecuteGameStateChanged(oldState, gameState);
 
 	return true;
 }
@@ -399,9 +515,7 @@ stock bool:SetRoundState(RoundState:roundState)
 	if (GameRulesRuntime[GameRulesRoundState] == roundState)
 		return false;
 
-	new RoundState:oldState = GameRulesRuntime[GameRulesRoundState];
 	GameRulesRuntime[GameRulesRoundState] = roundState;
-	ExecuteRoundStateChanged(oldState, roundState);
 
 	return true;
 }
@@ -427,8 +541,30 @@ stock bool:SetRoundTimer(timer)
 	return true;
 }
 
+stock CommitGameRulesSnapshot(GameState:oldGameState, RoundState:oldRoundState, oldTimer)
+{
+	PublishGameVars();
+
+	new GameState:newGameState = GameRulesRuntime[GameRulesGameState];
+	new RoundState:newRoundState = GameRulesRuntime[GameRulesRoundState];
+	new newTimer = GameRulesRuntime[GameRulesTimer];
+
+	if (oldGameState != newGameState)
+		ExecuteGameStateChanged(oldGameState, newGameState);
+
+	if (oldRoundState != newRoundState)
+		ExecuteRoundStateChanged(oldRoundState, newRoundState);
+
+	if (oldTimer != newTimer)
+		ExecuteRoundTimer(newTimer);
+}
+
 stock PublishGameVars()
 {
+	new Team:respawnTeam = GetRespawnTeam();
+	new Class:defaultClass = GetDefaultClass(respawnTeam);
+	new bool:overrideDefaultClass = IsDefaultClassOverridden();
+
 	if (!sync_game_vars(
 		GameRulesRuntime[GameRulesGameState],
 		GameRulesRuntime[GameRulesRoundState],
@@ -436,26 +572,13 @@ stock PublishGameVars()
 		float(GameRulesRuntime[GameRulesTimer]),
 		GameRulesRuntime[GameRulesHumanWins],
 		GameRulesRuntime[GameRulesZombieWins],
-		CanAdmissionRespawn(),
-		GetRespawnTeam()
+		respawnTeam,
+		defaultClass,
+		overrideDefaultClass
 	))
 	{
 		set_fail_state("GameRules could not publish game vars.");
 	}
-}
-
-stock bool:CanAdmissionRespawn()
-{
-	if (GameRulesRuntime[GameRulesGameState] != GameStatePlaying)
-		return true;
-
-	switch (GameRulesRuntime[GameRulesRoundState])
-	{
-		case RoundStateNone, RoundStatePrepare:
-			return true;
-	}
-
-	return false;
 }
 
 stock Team:GetRespawnTeam()
@@ -470,19 +593,63 @@ stock Team:GetRespawnTeam()
 	if (mode == Invalid_Mode)
 		set_fail_state("GameRules could not resolve respawn team without an active mode.");
 
-	new RespawnType:respawn = get_mode_var(mode, "respawn");
+	new RespawnType:respawn = GetModeRespawnType(mode);
+
 	switch (respawn)
 	{
-		case Respawn_ToZombiesTeam:
-			return TEAM_ZOMBIE;
-		case Respawn_Balance:
-			return GetBalancedRespawnTeam();
-		case Respawn_Off, Respawn_ToHumansTeam:
-			return TEAM_HUMAN;
+		case Respawn_ToZombiesTeam: return TEAM_ZOMBIE;
+		case Respawn_Balance: return GetBalancedRespawnTeam();
+		case Respawn_Off, Respawn_ToHumansTeam: return TEAM_HUMAN;
 	}
 
 	set_fail_state("GameRules received invalid respawn policy %d.", _:respawn);
 	return TEAM_NONE;
+}
+
+stock Class:GetDefaultClass(Team:respawnTeam)
+{
+	if (IsDefaultClassOverridden())
+	{
+		new Mode:mode = GameRulesRuntime[GameRulesMode];
+		new Class:defaultClass = GetModeDefaultClass(mode);
+
+		if (defaultClass == Invalid_Class)
+			set_fail_state("GameRules active mode has override_default_class without default_class.");
+
+		if (GetClassTeam(defaultClass) != respawnTeam)
+			set_fail_state("GameRules mode default_class %d does not match respawn team %d.", _:defaultClass, _:respawnTeam);
+
+		return defaultClass;
+	}
+
+	return GetFallbackDefaultClass(respawnTeam);
+}
+
+stock bool:IsDefaultClassOverridden()
+{
+	if (GameRulesRuntime[GameRulesGameState] != GameStatePlaying)
+		return false;
+
+	if (GameRulesRuntime[GameRulesRoundState] != RoundStatePlaying)
+		return false;
+
+	new Mode:mode = GameRulesRuntime[GameRulesMode];
+	if (mode == Invalid_Mode)
+		return false;
+
+	return GetModeOverrideDefaultClass(mode);
+}
+
+stock Class:GetFallbackDefaultClass(Team:team)
+{
+	switch (team)
+	{
+		case TEAM_HUMAN: return RequireClass(GAME_RULES_DEFAULT_HUMAN_CLASS);
+		case TEAM_ZOMBIE: return RequireClass(GAME_RULES_DEFAULT_ZOMBIE_CLASS);
+	}
+
+	set_fail_state("GameRules could not resolve fallback class for team %d.", _:team);
+	return Invalid_Class;
 }
 
 stock Team:GetBalancedRespawnTeam()
@@ -495,7 +662,7 @@ stock Team:GetBalancedRespawnTeam()
 
 stock bool:HasEnoughRoundParticipants()
 {
-	return CountRoundParticipants() >= GAME_RULES_MIN_PLAYERS;
+	return SelectRoundMode() != Invalid_Mode;
 }
 
 stock CountRoundParticipants()
@@ -505,19 +672,6 @@ stock CountRoundParticipants()
 	for (new id = 1; id <= MaxClients; id++)
 	{
 		if (is_user_connected(id) && !is_user_hltv(id))
-			count++;
-	}
-
-	return count;
-}
-
-stock CountPlayablePlayers()
-{
-	new count;
-
-	for (new id = 1; id <= MaxClients; id++)
-	{
-		if (is_user_connected(id) && IsPlayerOnPlayableTeam(id))
 			count++;
 	}
 
@@ -557,13 +711,15 @@ stock CreateGameRulesHooks()
 	ResetGameRulesHooks();
 
 	GameRulesHooks[GameRulesHookRestartRound] = RegisterRequiredGameRulesHook(
-		RG_CSGameRules_RestartRound,
-		"OnGameDllRestartRoundPre"
+		.functionId = RG_CSGameRules_RestartRound,
+		.callback = "OnGameDllRestartRoundPre",
+		.post = false
 	);
 
 	GameRulesHooks[GameRulesHookCheckWinConditions] = RegisterRequiredGameRulesHook(
-		RG_CSGameRules_CheckWinConditions,
-		"OnGameDllCheckWinConditionsPre"
+		.functionId = RG_CSGameRules_CheckWinConditions,
+		.callback = "OnGameDllCheckWinConditionsPre",
+		.post = false
 	);
 }
 
@@ -573,13 +729,17 @@ stock ResetGameRulesHooks()
 		GameRulesHooks[index] = INVALID_HOOKCHAIN;
 }
 
-stock HookChain:RegisterRequiredGameRulesHook(ReAPIFunc:functionId, const callback[])
+stock HookChain:RegisterRequiredGameRulesHook(ReAPIFunc:functionId, const callback[], bool:post)
 {
-	new HookChain:hook = RegisterHookChain(functionId, callback, false);
-	if (hook == INVALID_HOOKCHAIN)
+	new HookChain:hookChain = RegisterHookChain(
+		.function_id = functionId,
+		.callback = callback,
+		.post = post
+	);
+	if (hookChain == INVALID_HOOKCHAIN)
 		set_fail_state("GameRules could not register ReAPI hook '%s'.", callback);
 
-	return hook;
+	return hookChain;
 }
 
 stock CreateGameRulesForwards()
@@ -593,6 +753,19 @@ stock CreateGameRulesForwards()
 	GameRulesForwards[GameRulesForwardRoundTimer] = CreateMultiForward("@round_timer", ET_IGNORE, FP_CELL);
 	GameRulesForwards[GameRulesForwardGameStateChanged] = CreateMultiForward("@game_state_changed", ET_IGNORE, FP_CELL, FP_CELL);
 	GameRulesForwards[GameRulesForwardRoundStateChanged] = CreateMultiForward("@round_state_changed", ET_IGNORE, FP_CELL, FP_CELL);
+
+	RequireGameRulesForward(GameRulesForwards[GameRulesForwardRoundPrepare], "@round_prepare");
+	RequireGameRulesForward(GameRulesForwards[GameRulesForwardRoundStart], "@round_start");
+	RequireGameRulesForward(GameRulesForwards[GameRulesForwardRoundEnd], "@round_end");
+	RequireGameRulesForward(GameRulesForwards[GameRulesForwardRoundTimer], "@round_timer");
+	RequireGameRulesForward(GameRulesForwards[GameRulesForwardGameStateChanged], "@game_state_changed");
+	RequireGameRulesForward(GameRulesForwards[GameRulesForwardRoundStateChanged], "@round_state_changed");
+}
+
+stock RequireGameRulesForward(forwardId, const forwardName[])
+{
+	if (forwardId == GAME_RULES_FORWARD_INVALID)
+		set_fail_state("GameRules could not create forward '%s'.", forwardName);
 }
 
 stock ExecuteRoundPrepare(Mode:mode, Float:duration)

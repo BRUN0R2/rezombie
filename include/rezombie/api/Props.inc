@@ -28,6 +28,17 @@
 native Props:create_props(const handle[]);
 
 /**
+ * Checks whether a props property was explicitly configured.
+ *
+ * @param props     Props handle
+ * @param var       Property name
+ *
+ * @return          true when the property was set explicitly, false otherwise
+ * @error           Fails on invalid props or property
+ */
+native bool:has_props_var(Props:props, const var[]);
+
+/**
  * Gets a props property.
  *
  * @param props     Props handle

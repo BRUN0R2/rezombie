@@ -2,9 +2,12 @@
 	"amxxpawn.compiler.executablePath": "${workspaceRoot}/../../Compiler/amxxpc.exe",
 	"amxxpawn.compiler.includePaths": [
 		"${workspaceRoot}/include",
-		"${workspaceRoot}/../../Compiler/include"
+		"${workspaceRoot}/../../Compiler/include",
+		"D:/ARQUIVOS IMPORTANTES/REPOSITORIOS/CS 1.6/TODO/AMXX-API-Muzzle-Flash-1.6/include"
+
 	],
-	"amxxpawn.compiler.showInfoMessages": false,
+	"amxxpawn.compiler.showInfoMessages": true,
+	"amxxpawn.compiler.switchToOutput": true,
 	"amxxpawn.compiler.outputType": "path",
 	"amxxpawn.compiler.outputPath": "${workspaceRoot}/build"
 }

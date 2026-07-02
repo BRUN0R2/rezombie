@@ -1,0 +1,22 @@
+; environment|category|source|config flags
+main|api|src\api\ApiProps.sma
+main|api|src\api\ApiModels.sma
+main|api|src\api\ApiWeapons.sma
+main|api|src\api\ApiClasses.sma
+main|api|src\api\ApiSubclasses.sma
+main|api|src\api\ApiModes.sma
+main|api|src\api\ApiGameVars.sma
+main|api|src\api\ApiPlayers.sma
+main|classes|src\class\Human.sma
+main|classes|src\class\Zombie.sma
+main|classes|src\class\ZombieFleshpound.sma
+main|gamemodes|src\gamemodes\Infection.sma
+main|core|src\core\GameCvars.sma
+main|core|src\core\MapObjectives.sma
+main|core|src\core\SpawnPoints.sma
+main|core|src\core\PlayerJoining.sma
+main|core|src\core\GameRules.sma
+main|hud|src\hud\RoundTimer.sma
+main|hud|src\hud\Scoreboard.sma
+main|hud|src\hud\RoundFeedback.sma
+dev|dev|src\dev\DevRuntime.sma|debug

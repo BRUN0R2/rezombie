@@ -6,6 +6,7 @@
 
 #include <rezombie_const>
 #include <rezombie/api/GameVars>
+#include <rezombie/api/Classes>
 #include <rezombie/core/RoundState>
 
 /**
@@ -17,8 +18,9 @@
  * @param timer       Current visible timer in seconds
  * @param humanWins   Human team win count
  * @param zombieWins  Zombie team win count
- * @param admissionRespawn  Whether admitted players may respawn now
- * @param respawnTeam       Team assigned on player respawn
+ * @param respawnTeam Team assigned on player respawn
+ * @param defaultClass Class assigned by default on player spawn
+ * @param overrideDefaultClass Whether the current mode overrides player selection
  *
  * @return            true on success, false otherwise
  * @error             Fails on invalid caller or invalid snapshot data
@@ -32,6 +34,7 @@ native bool:sync_game_vars(
 	Float:timer,
 	humanWins,
 	zombieWins,
-	bool:admissionRespawn,
-	Team:respawnTeam
+	Team:respawnTeam,
+	Class:defaultClass,
+	bool:overrideDefaultClass
 );

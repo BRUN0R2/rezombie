@@ -26,8 +26,12 @@
 ## API
 
 - APIs modulares devem ficar em `src/api`.
-- Includes internos modulares devem ficar em `include/rezombie/<modulo>`.
-- Codigo em `src` deve usar includes padrao, sem caminhos relativos entre pastas.
+- Arquivos `.inc` representam contratos, tipos ou helpers compartilhados entre plugins.
+- Implementacao privada deve ficar no `.sma` do plugin dono do modulo.
+- `.inc` nao deve ser usado como modulo gigante de implementacao privada.
+- Arquivos `.sma` devem representar plugins compilaveis, com lifecycle proprio quando necessario.
+- Somente arquivos listados em `plugins.manifest` devem ser tratados como plugins independentes.
+- Includes de `src` devem ser excecao e conter apenas contratos ou helpers pequenos.
 - Stocks genericos reutilizaveis devem ficar em `include/rezombie_stock.inc`.
 - `rezombie_stock.inc` nao deve receber regras de negocio ou estado de modulo.
 - A API publica deve ser simples, elegante e facil de usar.
