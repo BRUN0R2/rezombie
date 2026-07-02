@@ -1,5 +1,6 @@
 #include <rezombie>
 #include <reapi>
+#include <hamsandwich>
 #include <fakemeta>
 
 #pragma semicolon 1
@@ -18,6 +19,8 @@ const Float:DEV_ROUND_FLOW_CHECK_INTERVAL = 0.25;
 const Float:DEV_ROUND_FLOW_WAIT_TIMEOUT = 20.0;
 const Float:DEV_ROUND_FLOW_RESTART_WAIT = 1.0;
 const Float:DEV_ROUND_FLOW_RESTART_DELAY = 1.0;
+const Float:DEV_MELEE_VALIDATION_ARMOR = 50.0;
+const Float:DEV_MELEE_VALIDATION_DAMAGE = 20.0;
 const DEV_MAX_PLAYER_WEAPONS = 32;
 const DEV_MAX_PLAYERS = 32;
 const DEV_MIN_JOIN_TEAM_SLOT = 1;
@@ -28,6 +31,7 @@ const Float:DEV_MIN_SPAWN_DISTANCE = 96.0;
 new const DEV_PREFIX[] = "[ReZombie Dev]";
 new const DEV_DEFAULT_HUMAN_CLASS[] = "human";
 new const DEV_DEFAULT_ZOMBIE_CLASS[] = "zombie";
+new const DEV_DEFAULT_INFECTION_MODE[] = "infection";
 new const DEV_DEFAULT_ROUND_FLOW_SUBCLASS[] = "fleshpound";
 new const DEV_DEFAULT_MELEE_WEAPON[] = "weapon_knife";
 
@@ -37,6 +41,13 @@ enum DevRoundFlowState
 	DevRoundFlowWaitingPlayers,
 	DevRoundFlowValidatingBaseline,
 	DevRoundFlowValidatingRestart
+};
+
+enum _:DevHookData
+{
+	DevHookRestartRound,
+	DevHookPlayerSpawn,
+	DevHookCount
 };
 
 new DevRoundFlowState:RoundFlowState = DevRoundFlowIdle;
@@ -50,19 +61,18 @@ new RoundFlowSubclassHandle[RZ_MAX_HANDLE_LENGTH];
 new RoundFlowZombieModelPath[RZ_MAX_RESOURCE_PATH_LENGTH];
 new bool:BlockNextChangeClassPre;
 new bool:BlockNextInfectPlayerPre;
+new bool:RoundForwardSnapshotsValid = true;
 new bool:SpawnOriginCaptured[DEV_MAX_PLAYERS + 1];
 new Float:CapturedSpawnOrigins[DEV_MAX_PLAYERS + 1][3];
+new HookChain:DevHooks[DevHookCount];
 new BotFillTarget;
 new Float:BotFillNextCheckAt;
 new Float:BotFillTimeoutAt;
 
-public plugin_precache()
-{
-	register_plugin("Dev: Runtime", "0.1.0", "BRUN0");
-}
-
 public plugin_init()
 {
+	register_plugin("Dev: Runtime", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
+
 	register_srvcmd("rz_dev_add_bots", "CommandAddBots");
 	register_srvcmd("rz_dev_fill_bots", "CommandFillBots");
 	register_srvcmd("rz_dev_respawn_player", "CommandRespawnPlayer");
@@ -77,11 +87,54 @@ public plugin_init()
 	register_srvcmd("rz_dev_validate_spawn_spacing", "CommandValidateSpawnSpacing");
 	register_srvcmd("rz_dev_validate_round_flow", "CommandValidateRoundFlow");
 	register_srvcmd("rz_dev_validate_forward_returns", "CommandValidateForwardReturns");
+	register_srvcmd("rz_dev_validate_infection_melee", "CommandValidateInfectionMelee");
 	register_srvcmd("rz_dev_validate_round_state", "CommandValidateRoundState");
 	register_srvcmd("rz_dev_dump_game_vars", "CommandDumpGameVars");
-	RegisterHookChain(RG_CSGameRules_RestartRound, "OnDevRestartRoundPre", false);
-	RegisterHookChain(RG_CBasePlayer_Spawn, "OnDevPlayerSpawnPost", true);
+	CreateDevHooks();
 	register_forward(FM_StartFrame, "OnDevServerFrame");
+}
+
+public plugin_end()
+{
+	for (new index = 0; index < sizeof DevHooks; index++)
+	{
+		if (DevHooks[index] == INVALID_HOOKCHAIN)
+			continue;
+
+		DisableHookChain(DevHooks[index]);
+		DevHooks[index] = INVALID_HOOKCHAIN;
+	}
+}
+
+stock CreateDevHooks()
+{
+	for (new index = 0; index < sizeof DevHooks; index++)
+		DevHooks[index] = INVALID_HOOKCHAIN;
+
+	DevHooks[DevHookRestartRound] = RegisterRequiredDevHook(
+		.functionId = RG_CSGameRules_RestartRound,
+		.callback = "OnDevRestartRoundPre",
+		.post = false
+	);
+
+	DevHooks[DevHookPlayerSpawn] = RegisterRequiredDevHook(
+		.functionId = RG_CBasePlayer_Spawn,
+		.callback = "OnDevPlayerSpawnPost",
+		.post = true
+	);
+}
+
+stock HookChain:RegisterRequiredDevHook(ReAPIFunc:functionId, const callback[], bool:post)
+{
+	new HookChain:hookChain = RegisterHookChain(
+		.function_id = functionId,
+		.callback = callback,
+		.post = post
+	);
+	if (hookChain == INVALID_HOOKCHAIN)
+		set_fail_state("DevRuntime could not register ReAPI hook '%s'.", callback);
+
+	return hookChain;
 }
 
 public CommandAddBots()
@@ -249,7 +302,7 @@ public CommandChangeClass()
 			return;
 	}
 
-	if (!change_player_class(id, class, subclass))
+	if (change_player_class(id, class, 0, subclass) > RZ_CONTINUE)
 	{
 		DevError("Failed to change player %d to class '%s'.", id, classHandle);
 		return;
@@ -500,7 +553,7 @@ public CommandValidateForwardReturns()
 	new bool:initialZombie = IsZombie(id);
 
 	BlockNextChangeClassPre = true;
-	new bool:blockedChangeClass = !change_player_class(id, class, subclass);
+	new bool:blockedChangeClass = bool:(change_player_class(id, class, 0, subclass) > RZ_CONTINUE);
 	BlockNextChangeClassPre = false;
 
 	if (!blockedChangeClass)
@@ -528,6 +581,66 @@ public CommandValidateForwardReturns()
 	DevInfo("Forward return validation passed for player %d.", id);
 }
 
+public CommandValidateInfectionMelee()
+{
+	if (!RequireInfectionPlayingRound())
+		return;
+
+	new attacker = FindFirstAliveZombie();
+	if (!attacker)
+	{
+		DevError("No alive zombie found for infection melee validation.");
+		return;
+	}
+
+	new victim = FindFirstAliveHuman();
+	if (!victim)
+	{
+		DevError("No alive human found for infection melee validation.");
+		return;
+	}
+
+	if (!SwitchPlayerToKnife(attacker))
+		return;
+
+	set_member(victim, m_LastHitGroup, HITGROUP_CHEST);
+	set_member(victim, m_iKevlar, ARMOR_KEVLAR);
+	set_entvar(victim, var_armorvalue, DEV_MELEE_VALIDATION_ARMOR);
+
+	ExecuteHamB(Ham_TakeDamage, victim, attacker, attacker, DEV_MELEE_VALIDATION_DAMAGE, DMG_SLASH);
+
+	new Float:armorAfterBlock = get_entvar(victim, var_armorvalue);
+	new Float:expectedArmor = DEV_MELEE_VALIDATION_ARMOR - DEV_MELEE_VALIDATION_DAMAGE;
+
+	if (!IsHuman(victim))
+	{
+		DevError("Infection melee validation infected armored victim %d too early.", victim);
+		return;
+	}
+
+	if (floatabs(armorAfterBlock - expectedArmor) > 0.01)
+	{
+		DevError("Infection melee validation expected armor %.2f, got %.2f.", expectedArmor, armorAfterBlock);
+		return;
+	}
+
+	set_member(victim, m_LastHitGroup, HITGROUP_CHEST);
+	set_member(victim, m_iKevlar, ARMOR_NONE);
+	set_entvar(victim, var_armorvalue, 0.0);
+
+	ExecuteHamB(Ham_TakeDamage, victim, attacker, attacker, DEV_MELEE_VALIDATION_DAMAGE, DMG_SLASH);
+
+	if (!ValidateInfectionMeleeZombie(victim))
+		return;
+
+	DevInfo(
+		"Infection melee validation passed: attacker=%d victim=%d armor_after_block=%.2f.",
+		attacker,
+		victim,
+		armorAfterBlock
+	);
+}
+
 public CommandValidateRoundState()
 {
 	if (!ValidateRoundState())
@@ -544,18 +657,16 @@ public CommandDumpGameVars()
 	new Float:timer = get_game_var("timer");
 	new humanWins = get_game_var("human_wins");
 	new zombieWins = get_game_var("zombie_wins");
-	new bool:admissionRespawn = bool:get_game_var("admission_respawn");
 	new Team:respawnTeam = Team:get_game_var("respawn_team");
 
 	DevInfo(
-		"Game vars: game_state=%d round_state=%d mode=%d timer=%.0f human_wins=%d zombie_wins=%d admission_respawn=%d respawn_team=%d connected=%d bots=%d alive_playable=%d alive_humans=%d alive_zombies=%d.",
+		"Game vars: game_state=%d round_state=%d mode=%d timer=%.0f human_wins=%d zombie_wins=%d respawn_team=%d connected=%d bots=%d alive_playable=%d alive_humans=%d alive_zombies=%d.",
 		_:gameState,
 		_:roundState,
 		_:mode,
 		timer,
 		humanWins,
 		zombieWins,
-		admissionRespawn,
 		_:respawnTeam,
 		CountConnectedPlayers(),
 		CountConnectedBots(),
@@ -565,11 +676,11 @@ public CommandDumpGameVars()
 	);
 }
 
-RzReturn:@change_class_pre(id, Class:class, Subclass:subclass)
+RzReturn:@change_class_pre(id, Class:class, attacker)
 {
 	#pragma unused id
 	#pragma unused class
-	#pragma unused subclass
+	#pragma unused attacker
 
 	if (!BlockNextChangeClassPre)
 		return RZ_CONTINUE;
@@ -589,6 +700,93 @@ RzReturn:@infect_player_pre(id, attacker, Subclass:subclass)
 
 	BlockNextInfectPlayerPre = false;
 	return RZ_SUPERCEDE;
+}
+
+public @game_state_changed(GameState:oldState, GameState:newState)
+{
+	#pragma unused oldState
+
+	new GameState:publishedState = get_game_var("game_state");
+	if (publishedState == newState)
+		return;
+
+	RoundForwardSnapshotsValid = false;
+	DevError(
+		"@game_state_changed received new state %d while GameVars published %d.",
+		_:newState,
+		_:publishedState
+	);
+}
+
+public @round_state_changed(RoundState:oldState, RoundState:newState)
+{
+	#pragma unused oldState
+
+	new RoundState:publishedState = get_game_var("round_state");
+	if (publishedState == newState)
+		return;
+
+	RoundForwardSnapshotsValid = false;
+	DevError(
+		"@round_state_changed received new state %d while GameVars published %d.",
+		_:newState,
+		_:publishedState
+	);
+}
+
+public @round_timer(timer)
+{
+	new publishedTimer = floatround(Float:get_game_var("timer"));
+	if (publishedTimer == timer)
+		return;
+
+	RoundForwardSnapshotsValid = false;
+	DevError(
+		"@round_timer received timer %d while GameVars published %d.",
+		timer,
+		publishedTimer
+	);
+}
+
+public @round_prepare(Mode:mode, Float:duration)
+{
+	#pragma unused duration
+
+	if (GameState:get_game_var("game_state") == GameStatePlaying
+		&& RoundState:get_game_var("round_state") == RoundStatePrepare
+		&& Mode:get_game_var("mode") == mode)
+	{
+		return;
+	}
+
+	RoundForwardSnapshotsValid = false;
+	DevError("@round_prepare observed an inconsistent public snapshot.");
+}
+
+public @round_start(Mode:mode, Float:duration)
+{
+	#pragma unused duration
+
+	if (GameState:get_game_var("game_state") == GameStatePlaying
+		&& RoundState:get_game_var("round_state") == RoundStatePlaying
+		&& Mode:get_game_var("mode") == mode)
+	{
+		return;
+	}
+
+	RoundForwardSnapshotsValid = false;
+	DevError("@round_start observed an inconsistent public snapshot.");
+}
+
+public @round_end(EndRoundEvent:event)
+{
+	#pragma unused event
+
+	if (RoundState:get_game_var("round_state") == RoundStateTerminate)
+		return;
+
+	RoundForwardSnapshotsValid = false;
+	DevError("@round_end observed round state outside terminate.");
 }
 
 public OnDevRestartRoundPre()
@@ -849,6 +1047,9 @@ stock bool:ValidatePlayerTeam(id)
 
 stock bool:ValidateRoundState()
 {
+	if (!RoundForwardSnapshotsValid)
+		return DevError("A round forward observed an inconsistent GameVars snapshot.");
+
 	new RoundState:roundState = get_game_var("round_state");
 	if (!IsValidRoundState(roundState))
 		return DevError("Round state native returned invalid state %d.", _:roundState);
@@ -880,6 +1081,66 @@ stock bool:IsValidRoundState(RoundState:roundState)
 	}
 
 	return false;
+}
+
+stock bool:RequireInfectionPlayingRound()
+{
+	new Mode:infectionMode = FindMode(DEV_DEFAULT_INFECTION_MODE);
+	if (infectionMode == Invalid_Mode)
+		return DevError("Infection mode is not registered.");
+
+	if (GameState:get_game_var("game_state") != GameStatePlaying)
+		return DevError("Infection melee validation requires GameStatePlaying.");
+
+	if (RoundState:get_game_var("round_state") != RoundStatePlaying)
+		return DevError("Infection melee validation requires RoundStatePlaying.");
+
+	if (Mode:get_game_var("mode") != infectionMode)
+		return DevError("Infection melee validation requires active infection mode.");
+
+	return true;
+}
+
+stock bool:SwitchPlayerToKnife(id)
+{
+	new weapon = get_member(id, m_rgpPlayerItems, KNIFE_SLOT);
+	if (is_nullent(weapon))
+		weapon = rg_give_item(id, DEV_DEFAULT_MELEE_WEAPON, GT_REPLACE);
+
+	if (is_nullent(weapon))
+		return DevError("Could not give melee weapon to player %d.", id);
+
+	if (get_member(id, m_pActiveItem) == weapon)
+		return true;
+
+	if (!rg_switch_weapon(id, weapon))
+		return DevError("Could not switch player %d to melee weapon.", id);
+
+	return true;
+}
+
+stock bool:ValidateInfectionMeleeZombie(id)
+{
+	new Class:class = FindRequiredClass(DEV_DEFAULT_ZOMBIE_CLASS);
+	if (class == Invalid_Class)
+		return false;
+
+	if (!is_user_alive(id))
+		return DevError("Infection melee validation expected player %d alive.", id);
+
+	if (!IsZombie(id))
+		return DevError("Infection melee validation expected player %d zombie.", id);
+
+	if (get_member(id, m_iTeam) != TEAM_TERRORIST)
+		return DevError("Infection melee validation expected player %d on Terrorist team.", id);
+
+	if (get_player_class(id) != class)
+		return DevError("Infection melee validation expected player %d class zombie.", id);
+
+	if (get_player_subclass(id) != Invalid_Subclass)
+		return DevError("Infection melee validation expected player %d without subclass.", id);
+
+	return ValidatePlayer(id);
 }
 
 stock bool:ValidatePlayerDefaultItems(id)
@@ -1173,6 +1434,17 @@ stock FindFirstAliveZombie()
 	for (new id = 1; id <= MaxClients; id++)
 	{
 		if (IsAlivePlayablePlayer(id) && IsZombie(id))
+			return id;
+	}
+
+	return 0;
+}
+
+stock FindFirstAliveHuman()
+{
+	for (new id = 1; id <= MaxClients; id++)
+	{
+		if (IsAlivePlayablePlayer(id) && IsHuman(id))
 			return id;
 	}
 

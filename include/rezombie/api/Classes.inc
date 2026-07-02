@@ -37,26 +37,6 @@ native Class:create_class(const handle[], Team:team);
 native Class:FindClass(const handle[]);
 
 /**
- * Requires a player class by handle.
- *
- * @param handle    Class handle
- *
- * @return          Class handle
- * @error           Fails when the class is not registered
- */
-stock Class:RequireClass(const handle[])
-{
-	new Class:class = FindClass(handle);
-
-	if (class == Invalid_Class)
-	{
-		set_fail_state("Required class '%s' was not registered.", handle);
-	}
-
-	return class;
-}
-
-/**
  * Gets a class property.
  *
  * @param class     Class handle

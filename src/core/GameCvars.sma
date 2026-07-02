@@ -1,4 +1,5 @@
-#include <rezombie>
+#include <amxmodx>
+#include <rezombie_version>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -26,13 +27,10 @@ new const GameCvarDefinitions[][GameCvarDefinition] =
 new GameCvarPointers[sizeof GameCvarDefinitions];
 new cvarhook:GameCvarHooks[sizeof GameCvarDefinitions];
 
-public plugin_precache()
-{
-	register_plugin("Core: Game Cvars", "0.1.0", "BRUN0");
-}
-
 public plugin_init()
 {
+	register_plugin("Core: Game Cvars", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
+
 	InitializeGameCvars();
 }
 

@@ -45,6 +45,9 @@ native Subclass:get_player_subclass(id);
  *
  * @return          Property value
  * @error           Fails on invalid player or property
+ *
+ * @note            Supported properties: "zombie", "class", "subclass",
+ *                  "selected_human_class" and "selected_zombie_class".
  */
 native any:get_player_var(id, const var[], any:...);
 
@@ -56,6 +59,9 @@ native any:get_player_var(id, const var[], any:...);
  *
  * @return          true on success, false otherwise
  * @error           Fails on invalid player, readonly property or value
+ *
+ * @note            "class" and "subclass" apply runtime immediately.
+ *                  "selected_class" stores a future spawn preference.
  */
 native bool:set_player_var(id, const var[], any:...);
 
@@ -64,13 +70,14 @@ native bool:set_player_var(id, const var[], any:...);
  *
  * @param id            Player index
  * @param class         Class handle
+ * @param attacker      Optional attacker index
  * @param subclass      Optional subclass handle
  * @param applyRuntime  Apply props, model and default items immediately when alive
  *
- * @return              true on success, false otherwise
+ * @return              RZ_CONTINUE on success, higher value when blocked
  * @error               Fails on invalid player, class or subclass
  */
-native bool:change_player_class(id, Class:class, Subclass:subclass = Invalid_Subclass, bool:applyRuntime = true);
+native RzReturn:change_player_class(id, Class:class, attacker = 0, Subclass:subclass = Invalid_Subclass, bool:applyRuntime = true);
 
 /**
  * Infects a player using the registered zombie class.
@@ -107,20 +114,20 @@ native bool:IsHuman(id);
  *
  * @param id        Player index
  * @param class     New class handle
- * @param subclass  New subclass handle, or null
+ * @param attacker  Attacker index, or 0
  *
  * @return          RZ_CONTINUE to allow, RZ_SUPERCEDE to block
  */
-forward RzReturn:@change_class_pre(id, Class:class, Subclass:subclass);
+forward RzReturn:@change_class_pre(id, Class:class, attacker);
 
 /**
  * Called after a player class is changed.
  *
  * @param id        Player index
  * @param class     Applied class handle
- * @param subclass  Applied subclass handle, or null
+ * @param attacker  Attacker index, or 0
  */
-forward @change_class_post(id, Class:class, Subclass:subclass);
+forward @change_class_post(id, Class:class, attacker);
 
 /**
  * Called before a player is infected.

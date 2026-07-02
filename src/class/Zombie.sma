@@ -5,7 +5,7 @@
 
 public plugin_precache()
 {
-	register_plugin("Class: Zombie", "0.1.0", "BRUN0");
+	register_plugin("Class: Zombie", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
 
 	new Class:class = create_class("zombie", TEAM_ZOMBIE);
 	set_class_var(class, "name", "Zombie");
@@ -14,7 +14,7 @@ public plugin_precache()
 	models_pack_add_model(models, create_model("models/player/rz_source/rz_source.mdl"));
 
 	new Props:props = get_class_var(class, "props");
-	set_props_var(props, "health", 500);
+	set_props_var(props, "health", 2500);
 	set_props_var(props, "speed", 250);
 	set_props_var(props, "gravity", 1.0);
 	//set_props_var(props, "weapons_interaction", false);

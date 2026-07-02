@@ -29,6 +29,9 @@ As bases estudadas servem apenas como referencia:
 ## Direcao da API
 
 - APIs modulares ficam em `src/api`.
+- Implementacoes internas ficam no `.sma` do plugin dono do modulo.
+- `.inc` fica reservado para contratos, tipos publicos e helpers pequenos compartilhados entre plugins.
+- `.sma` nao deve incluir outro `.sma`; se precisa ser compilado, é plugin, se precisa ser compartilhado, é contrato/helper pequeno em `.inc`.
 - A API deve ser simples, bonita, tipada e facil de manter.
 - Criar novas classes, subclasses e modos deve ser muito facil.
 - Usar handles tipados como `Class:`, `Subclass:`, `Props:`, `Mode:` e `Model:`.
@@ -41,7 +44,8 @@ As bases estudadas servem apenas como referencia:
 - Manter natives de humano junto da categoria Human.
 - `get_player_var` expõe apenas estado real do jogador.
 - `set_player_var` deve usar o fluxo oficial para aplicar classe/subclasse.
-- `connected`, `alive` e `zombie` são variáveis de jogador somente leitura.
+- `zombie` e uma variavel de jogador somente leitura.
+- Estado de conexao e vida deve vir diretamente de AMX Mod X/ReAPI, sem copia paralela no runtime da API.
 - Troca de classe aplica props, modelo, time e itens padrão.
 - `ApiGameVars` expoe o estado publico do jogo somente com `get_game_var`.
 - `ApiGameVars` guarda seu estado interno em `GameVarsRuntime`.
@@ -49,6 +53,10 @@ As bases estudadas servem apenas como referencia:
 - A escrita do estado publico usa `sync_game_vars` em `include/rezombie/core/GameVars.inc`.
 - `sync_game_vars` publica um snapshot tipado e deve rejeitar qualquer escritor que nao seja o `GameRules`.
 - O `GameRules` organiza estado interno em `GameRulesRuntime` e forwards explicitos.
+- Transicoes do `GameRules` devem publicar o snapshot completo antes de emitir forwards publicos.
+- Callbacks de game state, round state, timer, prepare, start e end devem observar `GameVars` coerentes com seus argumentos.
+- O callback de launch do modo deve enxergar `RoundStatePlaying`.
+- Checks de vitoria ficam suspensos somente durante a execucao sincronica do launch do modo.
 - O `GameRules` organiza hooks ReAPI internos com enum `GameRulesHookCount`.
 - O `GameRules` bloqueia `RG_CSGameRules_CheckWinConditions` para impedir `Game Commencing` e vitorias padrao do CS.
 - `RG_CSGameRules_CheckWinConditions` funciona apenas como gatilho para `EvaluateRoundWinConditions`.
@@ -56,19 +64,18 @@ As bases estudadas servem apenas como referencia:
 - `GameStateWarmup` representa a sala de espera antes da contagem real do round.
 - `RoundStatePrepare` representa a contagem real antes do modo ativo.
 - O tempo padrao inicial segue a referencia do ReZombie C++: 40 segundos de warmup e 20 segundos de prepare.
-- O timer de `GameRules` deve usar participantes conectados como gatilho de fluxo, nao esperar todos terminarem a admissao.
-- `PlayerAdmission` processa cada jogador em paralelo ao timer global, sem bloquear warmup ou prepare.
-- `get_game_var("admission_respawn")` informa se jogadores admitidos podem receber respawn automatico.
+- O timer de `GameRules` deve usar participantes conectados como gatilho de fluxo, nao esperar todos terminarem o joining.
+- `PlayerJoining` resolve o join automatico sem bloquear warmup ou prepare.
 - `get_game_var("respawn_team")` informa qual time deve ser aplicado no proximo spawn.
 - `get_game_var("human_wins")` e `get_game_var("zombie_wins")` expõem placar direto para diagnostico e HUD.
-- O `GameRules` e o dono das politicas de admissao e respawn.
+- O `GameRules` e o dono das politicas de joining e respawn.
 - Grupos internos de forwards devem usar enum com item `Count` como tamanho do array, como `GameRulesForwardCount`.
 - Handles de forward em array devem ser inicializados por loop com o valor invalido do modulo.
 - Quando a criacao do grupo for pequena e direta, manter o loop de inicializacao dentro de `Create*Forwards` em vez de criar um `Reset*Forwards` separado sem responsabilidade real.
 - Quando a destruicao de forwards ou hooks em array for pequena e usada apenas em `plugin_end`, manter o loop de destruicao direto no `plugin_end`.
 - O retorno bruto de `ExecuteForward` deve usar nome semantico, como `forwardResult`, em vez de `result`.
 - A selecao inicial de modos permanece deterministica e escolhe o primeiro modo elegivel.
-- Variaveis iniciais de jogo: `"game_state"`, `"round_state"`, `"mode"`, `"timer"`, `"team_wins"`, `"human_wins"`, `"zombie_wins"`, `"admission_respawn"` e `"respawn_team"`.
+- Variaveis iniciais de jogo: `"game_state"`, `"round_state"`, `"mode"`, `"timer"`, `"team_wins"`, `"human_wins"`, `"zombie_wins"` e `"respawn_team"`.
 - O tempo configurado do round pertence ao modo via `"round_time"`.
 - `timer` representa somente o tempo visivel sincronizado pelo `GameRules`.
 - `GameCvars` e o dono das cvars criticas do jogo.
@@ -90,31 +97,34 @@ As bases estudadas servem apenas como referencia:
 - `GameRules` reinicia o round quando `RoundStateTerminate` expira.
 - `mp_freezetime` deve ficar em `0` para o fluxo do mod começar direto.
 - O delay de fim de round continua separado do freeze inicial.
-- `mp_limitteams`, `mp_autoteambalance` e `mp_autokick` ficam em `0` para o CS padrão não quebrar times, admissao e fluxo de round do mod.
+- `mp_limitteams`, `mp_autoteambalance` e `mp_autokick` ficam em `0` para o CS padrão não quebrar times, joining e fluxo de round do mod.
 - `sv_filetransfercompression` fica em `0` para impedir cache `.ztmp` gerado por downloads do servidor.
 - Cvar critica inexistente deve falhar explicitamente com `set_fail_state`.
 - O core de round nao deve acumular responsabilidade de cvars.
-- `PlayerAdmission` e o dono da admissao automatica, bloqueio de menus padrao e reset de camera de join.
+- `PlayerJoining` e o dono do joining automatico e do bloqueio de menus padrao de time/aparencia.
 - O core deve manter o fluxo proprio de round desde `RoundStateNone`.
 - Antes da infecção, qualquer jogador jogável que nascer deve ser humano/CT.
 - Menus padrão de time e personagem do CS ficam bloqueados.
-- Jogadores sem time são admitidos pelo core em CT sem depender do menu padrão.
-- `PlayerAdmission` usa fila e state machine por jogador para processar admissao de forma gradual.
-- Hooks de menu e join apenas enfileiram admissao; a aplicacao real acontece no pump controlado do modulo.
-- A admissao controlada finaliza o estado interno de join do CS para evitar cameras de selecao.
-- A admissao controlada tambem reseta intro camera, observer vars e view para o proprio jogador.
-- `PlayerAdmission` só acessa member vars quando o ReAPI reconhece a entidade do jogador como valida.
-- `PlayerAdmission` nao aplica reset de camera/view em bots ou HLTV.
-- Jogadores admitidos antes da infeccao podem receber respawn imediato.
+- Jogadores sem time entram pelo core em CT via `rg_join_team`, sem depender do menu padrão.
+- Hooks de menu e `JoiningThink` chamam diretamente o join sem fila ou pump paralelo.
+- `PlayerJoining` delega finalizacao de estado interno de join ao ReAPI/GameDLL em vez de escrever member vars manualmente.
+- `PlayerJoining` só acessa member vars quando o ReAPI reconhece a entidade do jogador como valida.
+- Jogadores em joining antes da infeccao podem receber respawn imediato.
 - A politica `respawn` do modo define a equipe aplicada em spawns durante `GameStatePlaying` + `RoundStatePlaying`.
 - Fora do round ativo, todo spawn jogavel volta para humano/CT.
 - `Respawn_ToZombiesTeam` deve ser usado por modos onde mortos retornam como zombies durante o round.
 - Durante `RoundStatePlaying` e `RoundStateTerminate`, respawn automatico fica bloqueado.
-- Durante `RoundStatePlaying` e `RoundStateTerminate`, jogadores ja admitidos nao podem trocar de time.
-- Durante `RoundStatePlaying` e `RoundStateTerminate`, jogador novo pode ser admitido sem respawn automatico.
+- Durante `RoundStatePlaying` e `RoundStateTerminate`, jogadores ja em jogo nao podem trocar de time.
+- Durante `RoundStatePlaying` e `RoundStateTerminate`, jogador novo pode entrar sem respawn automatico.
 - A API de players só aplica classe, modelo e itens quando o jogador está vivo e em T/CT.
 - `ApiPlayers` é o único dono de props, modelo e itens no pós-spawn.
-- O runtime interno de jogador (`connected`, `alive`, `zombie`, `class`, `subclass`) pertence ao `ApiPlayers` e nao deve ficar em include compartilhado.
+- O runtime interno de jogador (`zombie`, `class`, `subclass`, `model`, `melee`) pertence ao `ApiPlayers` e nao deve ficar em include compartilhado.
+- `ApiPlayers.sma` concentra lifecycle do plugin, registro das natives publicas, estado, forwards, hooks e ciclo interno do runtime de jogadores.
+- As secoes internas de `ApiPlayers.sma` cobrem estruturas privadas, scoreboard, resolucao de classe, entrega de itens, commit/rollback de runtime e decisao de classe no spawn.
+- Troca de classe deve construir e validar um plano completo antes de aplicar efeitos de engine.
+- O commit de classe deve manter snapshot do estado anterior enquanto a aplicacao estiver em andamento.
+- Falha durante o commit deve restaurar estado interno, time, props, modelo, inventario, municao e arma ativa.
+- Forwards `post` de classe e infeccao so podem executar depois do commit completo.
 - `ApiPlayers` bloqueia a entrega padrão de itens do GameDLL e entrega apenas itens próprios do ReZombie.
 - Seleção futura de classes deve usar HUD próprio do ReZombie.
 
@@ -184,6 +194,10 @@ set_props_var(props, "gravity", 1.0);
 
 ## Ordem de Carregamento
 
+- `plugins.manifest` e a fonte unica da ordem de compilacao, categoria, ambiente e ordem de carregamento.
+- `build.bat` deve gerar as listas principal e dev a partir desse manifesto.
+- Novos plugins nao devem ser adicionados manualmente em multiplas listas do build.
+
 Ordem inicial esperada dos plugins:
 
 1. `rezombie/api/ApiProps.amxx`
@@ -199,7 +213,7 @@ Ordem inicial esperada dos plugins:
 11. `rezombie/core/GameCvars.amxx`
 12. `rezombie/core/MapObjectives.amxx`
 13. `rezombie/core/SpawnPoints.amxx`
-14. `rezombie/core/PlayerAdmission.amxx`
+14. `rezombie/core/PlayerJoining.amxx`
 15. `rezombie/core/GameRules.amxx`
 16. HUD em `rezombie/hud`
 
@@ -240,6 +254,8 @@ rz_dev_restart_round [delay]
 rz_dev_validate_spawn_spacing
 rz_dev_validate_round_flow [subclass] [required_players]
 rz_dev_validate_forward_returns [player] [subclass]
+rz_dev_validate_class_rollback [player]
+rz_dev_validate_infection_melee
 rz_dev_validate_round_state
 rz_dev_dump_game_vars
 ```
@@ -255,8 +271,8 @@ rz_dev_dump_game_vars
 
 ## Forward Callbacks
 
-- `@change_class_pre(id, Class:class, Subclass:subclass)`
-- `@change_class_post(id, Class:class, Subclass:subclass)`
+- `@change_class_pre(id, Class:class, attacker)`
+- `@change_class_post(id, Class:class, attacker)`
 - `@infect_player_pre(id, attacker, Subclass:subclass)`
 - `@infect_player_post(id, attacker, Subclass:subclass)`
 - `@round_prepare(Mode:mode, Float:duration)`

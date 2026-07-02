@@ -1,0 +1,1662 @@
+#include <amxmodx>
+#include <reapi>
+#include <rezombie_version>
+#include <rezombie_const>
+#include <rezombie_stock>
+#include <rezombie/api/Props>
+#include <rezombie/api/Models>
+#include <rezombie/api/Weapons>
+#include <rezombie/api/Classes>
+#include <rezombie/api/Subclasses>
+#include <rezombie/api/GameVars>
+
+#pragma semicolon 1
+#pragma compress 1
+
+new const PLAYER_RUNTIME_DEBUG_PLUGIN[] = "DevRuntime.amxx";
+
+new const DEFAULT_HUMAN_CLASS[] = "human";
+new const DEFAULT_ZOMBIE_CLASS[] = "zombie";
+
+new const PLAYER_PROP_HEALTH[] = "health";
+new const PLAYER_PROP_ARMOR[] = "armor";
+new const PLAYER_PROP_SPEED[] = "speed";
+new const PLAYER_PROP_GRAVITY[] = "gravity";
+
+new const PLAYER_MODEL_PATH_VAR[] = "path";
+new const PLAYER_WEAPON_VIEW_MODEL_VAR[] = "view_model";
+new const PLAYER_WEAPON_PLAYER_MODEL_VAR[] = "player_model";
+new const PLAYER_WEAPON_WORLD_MODEL_VAR[] = "world_model";
+
+const PLAYER_RUNTIME_MAX_WEAPONS = 32;
+const PLAYER_RUNTIME_INVALID_WEAPON_ID = 0;
+
+enum _:PlayerRuntimeData
+{
+	bool:PlayerRuntimeZombie,
+	Class:PlayerRuntimeClass,
+	Subclass:PlayerRuntimeSubclass,
+	Class:PlayerRuntimeSelectedHumanClass,
+	Class:PlayerRuntimeSelectedZombieClass,
+	Model:PlayerRuntimeModel,
+	Weapon:PlayerRuntimeMelee
+};
+
+enum _:PlayerClassRuntimePlanData
+{
+	Class:PlayerClassPlanClass,
+	Subclass:PlayerClassPlanSubclass,
+	Team:PlayerClassPlanTeam,
+	TeamName:PlayerClassPlanGameTeam,
+	bool:PlayerClassPlanZombie,
+	bool:PlayerClassPlanApplyEngineState,
+	PlayerClassPlanHealth,
+	PlayerClassPlanArmor,
+	PlayerClassPlanSpeed,
+	Float:PlayerClassPlanGravity,
+	Model:PlayerClassPlanModel,
+	PlayerClassPlanModelName[RZ_MAX_HANDLE_LENGTH],
+	PlayerClassPlanModelBody,
+	PlayerClassPlanModelSkin,
+	Weapon:PlayerClassPlanMelee,
+	PlayerClassPlanMeleeViewModel[RZ_MAX_RESOURCE_PATH_LENGTH],
+	PlayerClassPlanMeleePlayerModel[RZ_MAX_RESOURCE_PATH_LENGTH]
+};
+
+enum _:PlayerRuntimeSnapshotData
+{
+	Class:PlayerSnapshotClass,
+	Subclass:PlayerSnapshotSubclass,
+	bool:PlayerSnapshotZombie,
+	Model:PlayerSnapshotModel,
+	Weapon:PlayerSnapshotMelee,
+	TeamName:PlayerSnapshotGameTeam,
+	Float:PlayerSnapshotHealth,
+	Float:PlayerSnapshotArmor,
+	Float:PlayerSnapshotSpeed,
+	Float:PlayerSnapshotGravity,
+	PlayerSnapshotModelBody,
+	PlayerSnapshotModelSkin,
+	PlayerSnapshotWeaponsCount,
+	PlayerSnapshotActiveWeapon,
+	PlayerSnapshotWeaponIds[PLAYER_RUNTIME_MAX_WEAPONS],
+	PlayerSnapshotWeaponClipAmmo[PLAYER_RUNTIME_MAX_WEAPONS],
+	PlayerSnapshotWeaponBackpackAmmo[PLAYER_RUNTIME_MAX_WEAPONS]
+};
+
+enum PlayerRuntimeDebugFailure
+{
+	PlayerRuntimeDebugFailureNone = 0,
+	PlayerRuntimeDebugFailureAfterProps,
+	PlayerRuntimeDebugFailureAfterModel,
+	PlayerRuntimeDebugFailureAfterItems
+};
+
+
+const PLAYER_FORWARD_INVALID = -1;
+
+enum _:PlayerForwardData
+{
+	PlayerForwardChangeClassPre,
+	PlayerForwardChangeClassPost,
+	PlayerForwardInfectPlayerPre,
+	PlayerForwardInfectPlayerPost,
+	PlayerForwardCount
+};
+
+enum _:PlayerHookData
+{
+	PlayerHookGiveDefaultItems,
+	PlayerHookSpawn,
+	PlayerHookWeaponDefaultDeploy,
+	PlayerHookCount
+};
+
+new PlayerRuntime[MAX_PLAYERS + 1][PlayerRuntimeData];
+new PlayerForwards[PlayerForwardCount];
+new HookChain:PlayerHooks[PlayerHookCount];
+new DebugFailurePlayer;
+new PlayerRuntimeDebugFailure:DebugFailureStage;
+
+const PLAYER_SCOREINFO_CLASS_ID = 0;
+
+enum _:PlayerScoreInfoArg
+{
+	PlayerScoreInfoArgPlayer = 1,
+	PlayerScoreInfoArgFrags,
+	PlayerScoreInfoArgDeaths,
+	PlayerScoreInfoArgClass,
+	PlayerScoreInfoArgTeam
+};
+
+enum _:PlayerScoreInfoClientTeam
+{
+	PlayerScoreInfoClientTeamUnassigned = 0,
+	PlayerScoreInfoClientTeamCounterTerrorist,
+	PlayerScoreInfoClientTeamTerrorist,
+	PlayerScoreInfoClientTeamSpectator
+};
+
+new PlayerScoreInfoMessageId;
+new bool:PlayerScoreInfoSyncing;
+
+stock InitializePlayerScoreboard()
+{
+	PlayerScoreInfoMessageId = get_user_msgid("ScoreInfo");
+	if (!PlayerScoreInfoMessageId)
+		set_fail_state("ApiPlayers could not find ScoreInfo user message.");
+
+	register_message(PlayerScoreInfoMessageId, "OnScoreInfo");
+}
+
+public OnScoreInfo(messageId, destination, receiver)
+{
+	#pragma unused messageId, destination, receiver
+
+	if (PlayerScoreInfoSyncing)
+		return PLUGIN_CONTINUE;
+
+	new TeamName:gameTeam = TeamName:get_msg_arg_int(PlayerScoreInfoArgTeam);
+	set_msg_arg_int(PlayerScoreInfoArgTeam, ARG_SHORT, GetScoreInfoClientTeam(gameTeam));
+
+	return PLUGIN_CONTINUE;
+}
+
+stock SyncPlayerScoreInfo(id, TeamName:team)
+{
+	PlayerScoreInfoSyncing = true;
+	message_begin(MSG_ALL, PlayerScoreInfoMessageId);
+	write_byte(id);
+	write_short(get_user_frags(id));
+	write_short(get_member(id, m_iDeaths));
+	write_short(PLAYER_SCOREINFO_CLASS_ID);
+	write_short(GetScoreInfoClientTeam(team));
+	message_end();
+	PlayerScoreInfoSyncing = false;
+}
+
+stock GetScoreInfoClientTeam(TeamName:gameTeam)
+{
+	switch (gameTeam)
+	{
+		case TEAM_TERRORIST:
+			return PlayerScoreInfoClientTeamTerrorist;
+		case TEAM_CT:
+			return PlayerScoreInfoClientTeamCounterTerrorist;
+		case TEAM_SPECTATOR:
+			return PlayerScoreInfoClientTeamSpectator;
+	}
+
+	return PlayerScoreInfoClientTeamUnassigned;
+}
+
+stock ResolvePlayerClassHealth(Class:class, Subclass:subclass)
+{
+	return get_props_var(
+		ResolvePlayerClassPropsSource(class, subclass, PLAYER_PROP_HEALTH),
+		PLAYER_PROP_HEALTH
+	);
+}
+
+stock ResolvePlayerClassArmor(Class:class, Subclass:subclass)
+{
+	return get_props_var(
+		ResolvePlayerClassPropsSource(class, subclass, PLAYER_PROP_ARMOR),
+		PLAYER_PROP_ARMOR
+	);
+}
+
+stock ResolvePlayerClassSpeed(Class:class, Subclass:subclass)
+{
+	return get_props_var(
+		ResolvePlayerClassPropsSource(class, subclass, PLAYER_PROP_SPEED),
+		PLAYER_PROP_SPEED
+	);
+}
+
+stock Float:ResolvePlayerClassGravity(Class:class, Subclass:subclass)
+{
+	return Float:get_props_var(
+		ResolvePlayerClassPropsSource(class, subclass, PLAYER_PROP_GRAVITY),
+		PLAYER_PROP_GRAVITY
+	);
+}
+
+stock Props:ResolvePlayerClassPropsSource(Class:class, Subclass:subclass, const prop[])
+{
+	if (subclass == Invalid_Subclass)
+		return GetClassProps(class);
+
+	new Props:subclassProps = GetSubclassProps(subclass);
+	if (has_props_var(subclassProps, prop))
+		return subclassProps;
+
+	return GetClassProps(class);
+}
+
+stock Weapon:ResolvePlayerClassMelee(Class:class, Subclass:subclass)
+{
+	new Weapon:melee = GetClassMelee(class);
+
+	if (subclass != Invalid_Subclass)
+	{
+		new Weapon:subclassMelee = GetSubclassMelee(subclass);
+		if (!IsEmptyWeapon(subclassMelee))
+			melee = subclassMelee;
+	}
+
+	return melee;
+}
+
+stock Model:ResolvePlayerClassModel(Class:class, Subclass:subclass)
+{
+	if (subclass != Invalid_Subclass)
+	{
+		new Model:model = GetSubclassModel(subclass);
+
+		if (model != Invalid_Model)
+			return model;
+	}
+
+	new ModelsPack:models = GetClassModels(class);
+	if (models == Invalid_ModelsPack)
+		return Invalid_Model;
+
+	return models_pack_get_random_model(models);
+}
+
+stock Team:GetClassTeamValue(Class:class)
+{
+	return GetClassTeam(class);
+}
+
+stock bool:IsRegisteredClass(Class:class)
+{
+	if (class == Invalid_Class)
+		return false;
+
+	return IsPlayablePlayerTeam(GetClassTeamValue(class));
+}
+
+stock bool:IsRegisteredSubclassForClass(Subclass:subclass, Class:class)
+{
+	new Class:parentClass = GetSubclassParentClass(subclass);
+
+	return parentClass == class;
+}
+
+stock Class:ResolvePlayerSpawnClass(id, Team:team)
+{
+	new Class:defaultClass = Class:get_game_var("default_class");
+
+	if (bool:get_game_var("override_default_class"))
+		return RequireResolvedDefaultClass(defaultClass, team);
+
+	new Class:selectedClass = GetPlayerSelectedClassForTeam(id, team);
+	if (selectedClass != Invalid_Class)
+		return selectedClass;
+
+	return RequireResolvedDefaultClass(defaultClass, team);
+}
+
+stock Team:GetRespawnTeam()
+{
+	new Team:team = get_game_var("respawn_team");
+	if (!IsPlayablePlayerTeam(team))
+		set_fail_state("ApiPlayers received invalid respawn team %d.", _:team);
+
+	return team;
+}
+
+stock Class:GetFallbackClassForTeam(Team:team)
+{
+	switch (team)
+	{
+		case TEAM_HUMAN:
+			return RequireDefaultClass(DEFAULT_HUMAN_CLASS);
+		case TEAM_ZOMBIE:
+			return RequireDefaultClass(DEFAULT_ZOMBIE_CLASS);
+	}
+
+	set_fail_state("ApiPlayers received invalid default class team %d.", _:team);
+	return Invalid_Class;
+}
+
+stock Class:RequireDefaultClass(const handle[])
+{
+	new Class:class = FindClass(handle);
+	if (class == Invalid_Class)
+		set_fail_state("Required class '%s' was not registered.", handle);
+
+	return class;
+}
+
+stock Class:RequireResolvedDefaultClass(Class:class, Team:team)
+{
+	if (class != Invalid_Class && GetClassTeam(class) == team)
+		return class;
+
+	return GetFallbackClassForTeam(team);
+}
+
+stock Class:GetPlayerSelectedClassForTeam(id, Team:team)
+{
+	switch (team)
+	{
+		case TEAM_HUMAN:
+			return PlayerRuntime[id][PlayerRuntimeSelectedHumanClass];
+		case TEAM_ZOMBIE:
+			return PlayerRuntime[id][PlayerRuntimeSelectedZombieClass];
+	}
+
+	return Invalid_Class;
+}
+
+stock bool:CorePlayersSetSelectedClass(id, Class:class)
+{
+	if (!IsRegisteredClass(class))
+		return bool:ReportNativeError("Invalid selected class handle %d.", _:class);
+
+	new Team:team = GetClassTeam(class);
+	switch (team)
+	{
+		case TEAM_HUMAN:
+			PlayerRuntime[id][PlayerRuntimeSelectedHumanClass] = class;
+		case TEAM_ZOMBIE:
+			PlayerRuntime[id][PlayerRuntimeSelectedZombieClass] = class;
+		default:
+			return bool:ReportNativeError("Invalid selected class team %d.", _:team);
+	}
+
+	return true;
+}
+
+stock Props:GetClassProps(Class:class)
+{
+	return Props:get_class_var(class, "props");
+}
+
+stock ModelsPack:GetClassModels(Class:class)
+{
+	return ModelsPack:get_class_var(class, "models");
+}
+
+stock Weapon:GetClassMelee(Class:class)
+{
+	return Weapon:get_class_var(class, "melee");
+}
+
+stock Team:GetClassTeam(Class:class)
+{
+	return Team:get_class_var(class, "team");
+}
+
+stock Class:GetSubclassParentClass(Subclass:subclass)
+{
+	return Class:get_subclass_var(subclass, "class");
+}
+
+stock Props:GetSubclassProps(Subclass:subclass)
+{
+	return Props:get_subclass_var(subclass, "props");
+}
+
+stock Model:GetSubclassModel(Subclass:subclass)
+{
+	return Model:get_subclass_var(subclass, "model");
+}
+
+stock Weapon:GetSubclassMelee(Subclass:subclass)
+{
+	return Weapon:get_subclass_var(subclass, "melee");
+}
+
+stock bool:IsEmptyWeapon(Weapon:weapon)
+{
+	if (weapon == Invalid_Weapon)
+		return true;
+
+	return GetWeaponViewModel(weapon) == Invalid_Model
+		&& GetWeaponPlayerModel(weapon) == Invalid_Model
+		&& GetWeaponWorldModel(weapon) == Invalid_Model;
+}
+
+stock Model:GetWeaponViewModel(Weapon:weapon)
+{
+	return Model:get_weapon_var(weapon, PLAYER_WEAPON_VIEW_MODEL_VAR);
+}
+
+stock Model:GetWeaponPlayerModel(Weapon:weapon)
+{
+	return Model:get_weapon_var(weapon, PLAYER_WEAPON_PLAYER_MODEL_VAR);
+}
+
+stock Model:GetWeaponWorldModel(Weapon:weapon)
+{
+	return Model:get_weapon_var(weapon, PLAYER_WEAPON_WORLD_MODEL_VAR);
+}
+
+stock bool:IsPlayablePlayerTeam(Team:team)
+{
+	return team == TEAM_HUMAN || team == TEAM_ZOMBIE;
+}
+
+stock TeamName:GetGameTeam(Team:team)
+{
+	switch (team)
+	{
+		case TEAM_HUMAN: return TEAM_CT;
+		case TEAM_ZOMBIE: return TEAM_TERRORIST;
+	}
+
+	return TEAM_UNASSIGNED;
+}
+
+stock bool:IsPlayerOnGameTeam(id)
+{
+	new TeamName:team = get_member(id, m_iTeam);
+	return team == TEAM_TERRORIST || team == TEAM_CT;
+}
+
+new const DEFAULT_MELEE_WEAPON[] = "weapon_knife";
+new const DEFAULT_HUMAN_SECONDARY_WEAPON[] = "weapon_usp";
+
+const WeaponIdType:DEFAULT_HUMAN_SECONDARY_WEAPON_ID = WEAPON_USP;
+const DEFAULT_HUMAN_SECONDARY_CLIP_AMMO = 12;
+const DEFAULT_HUMAN_SECONDARY_BACKPACK_AMMO = 24;
+
+enum _:WeaponDefaultDeployArg
+{
+	WeaponDefaultDeployArgEntity = 1,
+	WeaponDefaultDeployArgViewModel,
+	WeaponDefaultDeployArgWeaponModel
+};
+
+public OnGiveDefaultItemsPre(id)
+{
+	#pragma unused id
+
+	return HC_SUPERCEDE;
+}
+
+public OnWeaponDefaultDeployPre(const entity, viewModel[], weaponModel[], anim, animExt[], skiplocal)
+{
+	if (is_nullent(entity))
+		return HC_CONTINUE;
+
+	if (WeaponIdType:get_member(entity, m_iId) != WEAPON_KNIFE)
+		return HC_CONTINUE;
+
+	new id = get_member(entity, m_pPlayer);
+	if (!IsValidAlivePlayer(id))
+		return HC_CONTINUE;
+
+	ApplyPlayerMeleeDeployModels(id);
+	return HC_CONTINUE;
+}
+
+stock bool:ApplyPlayerDefaultItemsPlan(id, plan[PlayerClassRuntimePlanData])
+{
+	if (!rg_remove_all_items(id))
+		return bool:ReportNativeError("Could not remove player %d items.", id);
+
+	switch (plan[PlayerClassPlanTeam])
+	{
+		case TEAM_HUMAN:
+		{
+			return GiveDefaultHumanItems(id);
+		}
+		case TEAM_ZOMBIE:
+		{
+			return GiveDefaultZombieItems(
+				id,
+				plan[PlayerClassPlanMeleeViewModel],
+				plan[PlayerClassPlanMeleePlayerModel]
+			);
+		}
+	}
+
+	return bool:ReportNativeError(
+		"Invalid default item team %d for player %d.",
+		_:plan[PlayerClassPlanTeam],
+		id
+	);
+}
+
+stock bool:RestorePlayerInventorySnapshot(id, snapshot[PlayerRuntimeSnapshotData])
+{
+	if (!rg_remove_all_items(id))
+		return bool:ReportNativeError("Could not clear player %d items during rollback.", id);
+
+	for (new index = 0; index < snapshot[PlayerSnapshotWeaponsCount]; index++)
+	{
+		new WeaponIdType:weapon = WeaponIdType:snapshot[PlayerSnapshotWeaponIds + index];
+		new weaponName[32];
+		rg_get_weapon_info(weapon, WI_NAME, weaponName, charsmax(weaponName));
+
+		if (IsNullString(weaponName))
+			return bool:ReportNativeError("Could not resolve weapon id %d during player %d rollback.", _:weapon, id);
+
+		if (!GivePlayerItem(id, weaponName))
+			return false;
+
+		if (rg_get_weapon_info(weapon, WI_GUN_CLIP_SIZE) > 0)
+			rg_set_user_ammo(
+				id,
+				weapon,
+				snapshot[PlayerSnapshotWeaponClipAmmo + index]
+			);
+
+		if (rg_get_weapon_info(weapon, WI_MAX_ROUNDS) > 0)
+			rg_set_user_bpammo(
+				id,
+				weapon,
+				snapshot[PlayerSnapshotWeaponBackpackAmmo + index]
+			);
+	}
+
+	return RestorePlayerActiveWeaponSnapshot(id, snapshot[PlayerSnapshotActiveWeapon]);
+}
+
+stock bool:RestorePlayerActiveWeaponSnapshot(id, weaponId)
+{
+	if (weaponId == PLAYER_RUNTIME_INVALID_WEAPON_ID)
+		return true;
+
+	new weaponName[32];
+	rg_get_weapon_info(WeaponIdType:weaponId, WI_NAME, weaponName, charsmax(weaponName));
+
+	if (IsNullString(weaponName))
+		return bool:ReportNativeError("Could not resolve active weapon id %d for player %d.", weaponId, id);
+
+	new weapon = rg_find_weapon_bpack_by_name(id, weaponName);
+	if (is_nullent(weapon))
+		return bool:ReportNativeError("Could not find active weapon '%s' for player %d.", weaponName, id);
+
+	if (!rg_switch_weapon(id, weapon))
+		return bool:ReportNativeError("Could not restore active weapon '%s' for player %d.", weaponName, id);
+
+	return true;
+}
+
+stock bool:ApplyPlayerMeleeDeployModels(id)
+{
+	new Weapon:melee = PlayerRuntime[id][PlayerRuntimeMelee];
+	if (melee == Invalid_Weapon)
+		return true;
+
+	new Model:viewModel = GetWeaponViewModel(melee);
+	new Model:playerModel = GetWeaponPlayerModel(melee);
+
+	if (viewModel == Invalid_Model && playerModel == Invalid_Model)
+		return true;
+
+	if (viewModel != Invalid_Model && !SetWeaponDeployModelArg(id, WeaponDefaultDeployArgViewModel, viewModel, PLAYER_WEAPON_VIEW_MODEL_VAR))
+		return false;
+
+	if (playerModel != Invalid_Model)
+	{
+		if (!SetWeaponDeployModelArg(id, WeaponDefaultDeployArgWeaponModel, playerModel, PLAYER_WEAPON_PLAYER_MODEL_VAR))
+			return false;
+	}
+	else
+	{
+		SetHookChainArg(WeaponDefaultDeployArgWeaponModel, ATYPE_STRING, "");
+	}
+
+	return true;
+}
+
+stock ApplyPlayerActiveMeleeModelPaths(
+	id,
+	const viewModel[],
+	const playerModel[]
+)
+{
+	if (!IsNullString(viewModel))
+		set_entvar(id, var_viewmodel, viewModel);
+
+	if (!IsNullString(playerModel))
+		set_entvar(id, var_weaponmodel, playerModel);
+	else
+		set_entvar(id, var_weaponmodel, "");
+}
+
+stock bool:SetWeaponDeployModelArg(id, arg, Model:model, const var[])
+{
+	new path[RZ_MAX_RESOURCE_PATH_LENGTH];
+	if (!GetMeleeModelPath(id, model, var, path, charsmax(path)))
+		return false;
+
+	SetHookChainArg(arg, ATYPE_STRING, path);
+	return true;
+}
+
+stock bool:GetMeleeModelPath(id, Model:model, const var[], path[], length)
+{
+	if (!get_model_var(model, PLAYER_MODEL_PATH_VAR, path, length))
+	{
+		ReportNativeError("Invalid melee %s for player %d.", var, id);
+		return false;
+	}
+
+	return true;
+}
+
+stock bool:GiveDefaultHumanItems(id)
+{
+	if (!GivePlayerItem(id, DEFAULT_MELEE_WEAPON))
+		return false;
+
+	if (!GivePlayerItem(id, DEFAULT_HUMAN_SECONDARY_WEAPON))
+		return false;
+
+	rg_set_user_ammo(id, DEFAULT_HUMAN_SECONDARY_WEAPON_ID, DEFAULT_HUMAN_SECONDARY_CLIP_AMMO);
+	rg_set_user_bpammo(id, DEFAULT_HUMAN_SECONDARY_WEAPON_ID, DEFAULT_HUMAN_SECONDARY_BACKPACK_AMMO);
+
+	return true;
+}
+
+stock bool:GiveDefaultZombieItems(
+	id,
+	const viewModel[],
+	const playerModel[]
+)
+{
+	if (!GivePlayerItem(id, DEFAULT_MELEE_WEAPON))
+		return false;
+
+	if (!SwitchPlayerDefaultMeleeWeapon(id))
+		return false;
+
+	ApplyPlayerActiveMeleeModelPaths(id, viewModel, playerModel);
+	return true;
+}
+
+stock bool:SwitchPlayerDefaultMeleeWeapon(id)
+{
+	new weapon = get_member(id, m_rgpPlayerItems, KNIFE_SLOT);
+	if (is_nullent(weapon))
+	{
+		ReportNativeError("Missing default melee item for player %d.", id);
+		return false;
+	}
+
+	if (get_member(id, m_pActiveItem) == weapon)
+		return true;
+
+	if (!rg_switch_weapon(id, weapon))
+	{
+		ReportNativeError("Could not switch player %d to default melee.", id);
+		return false;
+	}
+
+	return true;
+}
+
+stock bool:GivePlayerItem(id, const item[])
+{
+	if (rg_give_item(id, item, GT_REPLACE) == NULLENT)
+	{
+		ReportNativeError("Could not give item '%s' to player %d.", item, id);
+		return false;
+	}
+
+	return true;
+}
+
+stock RzReturn:CorePlayersChangeClass(id, Class:class, attacker = 0, Subclass:subclass = Invalid_Subclass, bool:applyRuntime = true)
+{
+	if (!IsRegisteredClass(class))
+	{
+		ReportNativeError("Invalid class handle %d.", _:class);
+		return RZ_SUPERCEDE;
+	}
+
+	if (subclass != Invalid_Subclass && !IsRegisteredSubclassForClass(subclass, class))
+	{
+		ReportNativeError("Invalid subclass handle %d for class %d.", _:subclass, _:class);
+		return RZ_SUPERCEDE;
+	}
+
+	new Team:team = GetClassTeamValue(class);
+	if (!IsPlayablePlayerTeam(team))
+	{
+		ReportNativeError("Invalid class team %d.", _:team);
+		return RZ_SUPERCEDE;
+	}
+
+	new RzReturn:changeClassResult = ExecuteChangeClassPreForward(id, class, attacker);
+	if (changeClassResult > RZ_CONTINUE)
+		return changeClassResult;
+
+	new bool:shouldApplyRuntime = bool:(applyRuntime && is_user_alive(id));
+	new plan[PlayerClassRuntimePlanData];
+	if (!BuildPlayerClassRuntimePlan(id, class, subclass, team, shouldApplyRuntime, plan))
+		return RZ_SUPERCEDE;
+
+	new snapshot[PlayerRuntimeSnapshotData];
+	CapturePlayerRuntimeSnapshot(id, snapshot);
+
+	if (!CommitPlayerClassRuntime(id, plan))
+	{
+		if (!RestorePlayerRuntimeSnapshot(id, snapshot))
+			set_fail_state("ApiPlayers could not restore player %d after a failed class change.", id);
+
+		return RZ_SUPERCEDE;
+	}
+
+	SyncPlayerScoreInfo(id, plan[PlayerClassPlanGameTeam]);
+	ExecuteChangeClassPostForward(id, class, attacker);
+	return RZ_CONTINUE;
+}
+
+stock bool:CorePlayersClearSubclass(id)
+{
+	new Class:class = PlayerRuntime[id][PlayerRuntimeClass];
+
+	if (class == Invalid_Class)
+		return bool:ReportNativeError("Player %d has no class to clear subclass.", id);
+
+	return bool:(CorePlayersChangeClass(id, class) == RZ_CONTINUE);
+}
+
+stock SetPlayerRuntimeState(
+	id,
+	Class:class,
+	Subclass:subclass,
+	bool:zombie,
+	Model:model,
+	Weapon:melee
+)
+{
+	PlayerRuntime[id][PlayerRuntimeClass] = class;
+	PlayerRuntime[id][PlayerRuntimeSubclass] = subclass;
+	PlayerRuntime[id][PlayerRuntimeZombie] = zombie;
+	PlayerRuntime[id][PlayerRuntimeModel] = model;
+	PlayerRuntime[id][PlayerRuntimeMelee] = melee;
+}
+
+stock SetPlayerGameTeam(id, TeamName:team)
+{
+	rg_set_user_team(id, team, MODEL_AUTO, true, false);
+}
+
+stock bool:BuildPlayerClassRuntimePlan(
+	id,
+	Class:class,
+	Subclass:subclass,
+	Team:team,
+	bool:applyEngineState,
+	plan[PlayerClassRuntimePlanData]
+)
+{
+	plan[PlayerClassPlanClass] = class;
+	plan[PlayerClassPlanSubclass] = subclass;
+	plan[PlayerClassPlanTeam] = team;
+	plan[PlayerClassPlanGameTeam] = GetGameTeam(team);
+	plan[PlayerClassPlanZombie] = bool:(team == TEAM_ZOMBIE);
+	plan[PlayerClassPlanApplyEngineState] = applyEngineState;
+	plan[PlayerClassPlanModel] = ResolvePlayerClassModel(class, subclass);
+	plan[PlayerClassPlanMelee] = ResolvePlayerClassMelee(class, subclass);
+	plan[PlayerClassPlanModelName][0] = EOS;
+	plan[PlayerClassPlanMeleeViewModel][0] = EOS;
+	plan[PlayerClassPlanMeleePlayerModel][0] = EOS;
+
+	if (!applyEngineState)
+		return true;
+
+	plan[PlayerClassPlanHealth] = ResolvePlayerClassHealth(class, subclass);
+	plan[PlayerClassPlanArmor] = ResolvePlayerClassArmor(class, subclass);
+	plan[PlayerClassPlanSpeed] = ResolvePlayerClassSpeed(class, subclass);
+	plan[PlayerClassPlanGravity] = ResolvePlayerClassGravity(class, subclass);
+
+	if (plan[PlayerClassPlanHealth] <= 0
+		|| plan[PlayerClassPlanArmor] < 0
+		|| plan[PlayerClassPlanSpeed] <= 0
+		|| plan[PlayerClassPlanGravity] <= 0.0)
+	{
+		return bool:ReportNativeError("Invalid runtime props values for player %d.", id);
+	}
+
+	if (!ResolvePlayerModelPlan(id, class, subclass, team, plan))
+		return false;
+
+	return ResolvePlayerMeleePlan(id, team, plan);
+}
+
+stock bool:ResolvePlayerModelPlan(
+	id,
+	Class:class,
+	Subclass:subclass,
+	Team:team,
+	plan[PlayerClassRuntimePlanData]
+)
+{
+	new Model:model = plan[PlayerClassPlanModel];
+	if (model == Invalid_Model)
+	{
+		if (team == TEAM_HUMAN)
+			return true;
+
+		return bool:ReportNativeError(
+			"Missing runtime model for player %d, class %d, subclass %d.",
+			id,
+			_:class,
+			_:subclass
+		);
+	}
+
+	new path[RZ_MAX_RESOURCE_PATH_LENGTH];
+	if (!get_model_var(model, PLAYER_MODEL_PATH_VAR, path, charsmax(path)))
+		return bool:ReportNativeError("Invalid runtime model for player %d.", id);
+
+	if (!GetModelNameFromPath(
+		path,
+		plan[PlayerClassPlanModelName],
+		charsmax(plan[PlayerClassPlanModelName])
+	))
+	{
+		return bool:ReportNativeError("Invalid runtime model path for player %d: %s.", id, path);
+	}
+
+	plan[PlayerClassPlanModelBody] = get_model_var(model, "body");
+	plan[PlayerClassPlanModelSkin] = get_model_var(model, "skin");
+	return true;
+}
+
+stock bool:ResolvePlayerMeleePlan(
+	id,
+	Team:team,
+	plan[PlayerClassRuntimePlanData]
+)
+{
+	if (team != TEAM_ZOMBIE)
+		return true;
+
+	new Weapon:melee = plan[PlayerClassPlanMelee];
+	if (melee == Invalid_Weapon)
+		return bool:ReportNativeError("Missing runtime melee for zombie player %d.", id);
+
+	new Model:viewModel = GetWeaponViewModel(melee);
+	if (viewModel != Invalid_Model
+		&& !GetMeleeModelPath(
+			id,
+			viewModel,
+			PLAYER_WEAPON_VIEW_MODEL_VAR,
+			plan[PlayerClassPlanMeleeViewModel],
+			charsmax(plan[PlayerClassPlanMeleeViewModel])
+		))
+	{
+		return false;
+	}
+
+	new Model:playerModel = GetWeaponPlayerModel(melee);
+	if (playerModel != Invalid_Model
+		&& !GetMeleeModelPath(
+			id,
+			playerModel,
+			PLAYER_WEAPON_PLAYER_MODEL_VAR,
+			plan[PlayerClassPlanMeleePlayerModel],
+			charsmax(plan[PlayerClassPlanMeleePlayerModel])
+		))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+stock CapturePlayerRuntimeSnapshot(id, snapshot[PlayerRuntimeSnapshotData])
+{
+	snapshot[PlayerSnapshotClass] = PlayerRuntime[id][PlayerRuntimeClass];
+	snapshot[PlayerSnapshotSubclass] = PlayerRuntime[id][PlayerRuntimeSubclass];
+	snapshot[PlayerSnapshotZombie] = PlayerRuntime[id][PlayerRuntimeZombie];
+	snapshot[PlayerSnapshotModel] = PlayerRuntime[id][PlayerRuntimeModel];
+	snapshot[PlayerSnapshotMelee] = PlayerRuntime[id][PlayerRuntimeMelee];
+	snapshot[PlayerSnapshotGameTeam] = get_member(id, m_iTeam);
+	snapshot[PlayerSnapshotHealth] = get_entvar(id, var_health);
+	snapshot[PlayerSnapshotArmor] = get_entvar(id, var_armorvalue);
+	snapshot[PlayerSnapshotSpeed] = get_entvar(id, var_maxspeed);
+	snapshot[PlayerSnapshotGravity] = get_entvar(id, var_gravity);
+	snapshot[PlayerSnapshotModelBody] = get_entvar(id, var_body);
+	snapshot[PlayerSnapshotModelSkin] = get_entvar(id, var_skin);
+	snapshot[PlayerSnapshotActiveWeapon] = get_user_weapon(id);
+
+	new weapons[PLAYER_RUNTIME_MAX_WEAPONS];
+	get_user_weapons(id, weapons, snapshot[PlayerSnapshotWeaponsCount]);
+
+	for (new index = 0; index < snapshot[PlayerSnapshotWeaponsCount]; index++)
+	{
+		new WeaponIdType:weapon = WeaponIdType:weapons[index];
+		snapshot[PlayerSnapshotWeaponIds + index] = _:weapon;
+		snapshot[PlayerSnapshotWeaponClipAmmo + index] = rg_get_user_ammo(id, weapon);
+		snapshot[PlayerSnapshotWeaponBackpackAmmo + index] = rg_get_user_bpammo(id, weapon);
+	}
+}
+
+stock bool:CommitPlayerClassRuntime(id, plan[PlayerClassRuntimePlanData])
+{
+	SetPlayerRuntimeState(
+		id,
+		plan[PlayerClassPlanClass],
+		plan[PlayerClassPlanSubclass],
+		plan[PlayerClassPlanZombie],
+		plan[PlayerClassPlanModel],
+		plan[PlayerClassPlanMelee]
+	);
+
+	if (TeamName:get_member(id, m_iTeam) != plan[PlayerClassPlanGameTeam])
+		SetPlayerGameTeam(id, plan[PlayerClassPlanGameTeam]);
+
+	if (!plan[PlayerClassPlanApplyEngineState])
+		return true;
+
+	ApplyPlayerPropsPlan(id, plan);
+	if (ConsumePlayerRuntimeDebugFailure(id, PlayerRuntimeDebugFailureAfterProps))
+		return false;
+
+	ApplyPlayerModelPlan(id, plan);
+	if (ConsumePlayerRuntimeDebugFailure(id, PlayerRuntimeDebugFailureAfterModel))
+		return false;
+
+	if (!ApplyPlayerDefaultItemsPlan(id, plan))
+		return false;
+
+	return !ConsumePlayerRuntimeDebugFailure(id, PlayerRuntimeDebugFailureAfterItems);
+}
+
+stock ApplyPlayerPropsPlan(id, plan[PlayerClassRuntimePlanData])
+{
+	ApplyPlayerEngineProps(
+		id,
+		float(plan[PlayerClassPlanHealth]),
+		float(plan[PlayerClassPlanArmor]),
+		float(plan[PlayerClassPlanSpeed]),
+		plan[PlayerClassPlanGravity]
+	);
+}
+
+stock ApplyPlayerModelPlan(id, plan[PlayerClassRuntimePlanData])
+{
+	if (plan[PlayerClassPlanModel] == Invalid_Model)
+	{
+		rg_reset_user_model(id, true);
+		return;
+	}
+
+	ApplyPlayerModelIdentity(
+		id,
+		plan[PlayerClassPlanModelName],
+		plan[PlayerClassPlanModelBody],
+		plan[PlayerClassPlanModelSkin]
+	);
+}
+
+stock bool:RestorePlayerRuntimeSnapshot(id, snapshot[PlayerRuntimeSnapshotData])
+{
+	SetPlayerRuntimeState(
+		id,
+		snapshot[PlayerSnapshotClass],
+		snapshot[PlayerSnapshotSubclass],
+		snapshot[PlayerSnapshotZombie],
+		snapshot[PlayerSnapshotModel],
+		snapshot[PlayerSnapshotMelee]
+	);
+
+	if (TeamName:get_member(id, m_iTeam) != snapshot[PlayerSnapshotGameTeam])
+		SetPlayerGameTeam(id, snapshot[PlayerSnapshotGameTeam]);
+
+	if (is_user_alive(id))
+	{
+		ApplyPlayerEngineProps(
+			id,
+			snapshot[PlayerSnapshotHealth],
+			snapshot[PlayerSnapshotArmor],
+			snapshot[PlayerSnapshotSpeed],
+			snapshot[PlayerSnapshotGravity]
+		);
+
+		if (!RestorePlayerModelSnapshot(id, snapshot))
+			return false;
+
+		if (!RestorePlayerInventorySnapshot(id, snapshot))
+			return false;
+	}
+
+	SyncPlayerScoreInfo(id, snapshot[PlayerSnapshotGameTeam]);
+	return true;
+}
+
+stock bool:RestorePlayerModelSnapshot(id, snapshot[PlayerRuntimeSnapshotData])
+{
+	new Model:model = snapshot[PlayerSnapshotModel];
+	if (model == Invalid_Model)
+	{
+		rg_reset_user_model(id, true);
+		return true;
+	}
+
+	new path[RZ_MAX_RESOURCE_PATH_LENGTH];
+	if (!get_model_var(model, PLAYER_MODEL_PATH_VAR, path, charsmax(path)))
+		return bool:ReportNativeError("Could not restore player %d model handle %d.", id, _:model);
+
+	new name[RZ_MAX_HANDLE_LENGTH];
+	if (!GetModelNameFromPath(path, name, charsmax(name)))
+		return bool:ReportNativeError("Could not restore player %d model path '%s'.", id, path);
+
+	ApplyPlayerModelIdentity(
+		id,
+		name,
+		snapshot[PlayerSnapshotModelBody],
+		snapshot[PlayerSnapshotModelSkin]
+	);
+
+	return true;
+}
+
+stock ApplyPlayerEngineProps(
+	id,
+	Float:health,
+	Float:armor,
+	Float:speed,
+	Float:gravity
+)
+{
+	set_entvar(id, var_health, health);
+	set_entvar(id, var_armorvalue, armor);
+	set_entvar(id, var_maxspeed, speed);
+	set_entvar(id, var_gravity, gravity);
+}
+
+stock ApplyPlayerModelIdentity(
+	id,
+	const name[],
+	body,
+	skin
+)
+{
+	rg_set_user_model(id, name, true);
+	set_entvar(id, var_body, body);
+	set_entvar(id, var_skin, skin);
+}
+
+stock bool:ConsumePlayerRuntimeDebugFailure(
+	id,
+	PlayerRuntimeDebugFailure:stage
+)
+{
+	if (DebugFailurePlayer != id || DebugFailureStage != stage)
+		return false;
+
+	ResetPlayerRuntimeDebugFailure();
+	return true;
+}
+
+public OnPlayerSpawnPost(id)
+{
+	if (!is_user_alive(id) || !IsPlayerOnGameTeam(id))
+		return;
+
+	ApplySpawnClass(id);
+}
+
+stock ApplySpawnClass(id)
+{
+	new Team:team = GetRespawnTeam();
+	new Class:class = ResolvePlayerSpawnClass(id, team);
+
+	if (CorePlayersChangeClass(id, class, id) > RZ_CONTINUE)
+		set_fail_state("ApiPlayers could not apply spawn class %d to player %d.", _:class, id);
+}
+
+
+stock CorePlayersInitialize()
+{
+	InitializePlayerScoreboard();
+	CreatePlayerForwards();
+	CreatePlayerHooks();
+}
+
+stock CorePlayersShutdown()
+{
+	for (new index = 0; index < sizeof PlayerHooks; index++)
+	{
+		if (PlayerHooks[index] == INVALID_HOOKCHAIN)
+			continue;
+
+		DisableHookChain(PlayerHooks[index]);
+		PlayerHooks[index] = INVALID_HOOKCHAIN;
+	}
+
+	for (new index = 0; index < sizeof PlayerForwards; index++)
+	{
+		if (PlayerForwards[index] == PLAYER_FORWARD_INVALID)
+			continue;
+
+		DestroyForward(PlayerForwards[index]);
+		PlayerForwards[index] = PLAYER_FORWARD_INVALID;
+	}
+}
+
+stock CorePlayersOnClientDisconnected(id)
+{
+	ResetPlayerRuntime(id);
+
+	if (DebugFailurePlayer == id)
+		ResetPlayerRuntimeDebugFailure();
+}
+
+stock bool:CorePlayersIsZombie(id)
+{
+	return PlayerRuntime[id][PlayerRuntimeZombie];
+}
+
+stock bool:CorePlayersIsHuman(id)
+{
+	new Class:class = CorePlayersGetClass(id);
+
+	return class != Invalid_Class
+		&& !CorePlayersIsZombie(id)
+		&& GetClassTeamValue(class) == TEAM_HUMAN;
+}
+
+stock Class:CorePlayersGetClass(id)
+{
+	return PlayerRuntime[id][PlayerRuntimeClass];
+}
+
+stock Subclass:CorePlayersGetSubclass(id)
+{
+	return PlayerRuntime[id][PlayerRuntimeSubclass];
+}
+
+stock Class:CorePlayersGetSelectedHumanClass(id)
+{
+	return PlayerRuntime[id][PlayerRuntimeSelectedHumanClass];
+}
+
+stock Class:CorePlayersGetSelectedZombieClass(id)
+{
+	return PlayerRuntime[id][PlayerRuntimeSelectedZombieClass];
+}
+
+stock bool:CorePlayersInfectPlayer(id, attacker = 0, Subclass:subclass = Invalid_Subclass)
+{
+	new Class:class = FindClass(DEFAULT_ZOMBIE_CLASS);
+	if (class == Invalid_Class)
+		return bool:ReportNativeError("Required class 'zombie' was not registered.");
+
+	if (!ExecuteInfectPlayerPreForward(id, attacker, subclass))
+		return false;
+
+	if (CorePlayersChangeClass(id, class, attacker, subclass) > RZ_CONTINUE)
+		return false;
+
+	ExecuteInfectPlayerPostForward(id, attacker, subclass);
+	return true;
+}
+
+stock bool:CorePlayersArmRuntimeDebugFailure(
+	id,
+	PlayerRuntimeDebugFailure:stage
+)
+{
+	if (stage <= PlayerRuntimeDebugFailureNone || stage > PlayerRuntimeDebugFailureAfterItems)
+		return bool:ReportNativeError("Invalid player runtime debug failure stage %d.", _:stage);
+
+	DebugFailurePlayer = id;
+	DebugFailureStage = stage;
+	return true;
+}
+
+stock ResetPlayerRuntimeDebugFailure()
+{
+	DebugFailurePlayer = 0;
+	DebugFailureStage = PlayerRuntimeDebugFailureNone;
+}
+
+stock CreatePlayerForwards()
+{
+	for (new index = 0; index < sizeof PlayerForwards; index++)
+		PlayerForwards[index] = PLAYER_FORWARD_INVALID;
+
+	PlayerForwards[PlayerForwardChangeClassPre] = CreateRequiredPlayerForward("@change_class_pre", ET_CONTINUE);
+	PlayerForwards[PlayerForwardChangeClassPost] = CreateRequiredPlayerForward("@change_class_post", ET_IGNORE);
+	PlayerForwards[PlayerForwardInfectPlayerPre] = CreateRequiredPlayerForward("@infect_player_pre", ET_CONTINUE);
+	PlayerForwards[PlayerForwardInfectPlayerPost] = CreateRequiredPlayerForward("@infect_player_post", ET_IGNORE);
+}
+
+stock CreateRequiredPlayerForward(const forwardName[], executionType)
+{
+	new forwardId = CreateMultiForward(forwardName, executionType, FP_CELL, FP_CELL, FP_CELL);
+	if (forwardId == PLAYER_FORWARD_INVALID)
+		set_fail_state("ApiPlayers could not create forward '%s'.", forwardName);
+
+	return forwardId;
+}
+
+stock CreatePlayerHooks()
+{
+	for (new index = 0; index < sizeof PlayerHooks; index++)
+		PlayerHooks[index] = INVALID_HOOKCHAIN;
+
+	PlayerHooks[PlayerHookGiveDefaultItems] = RegisterRequiredPlayerHook(
+		.functionId = RG_CBasePlayer_GiveDefaultItems,
+		.callback = "OnGiveDefaultItemsPre",
+		.post = false
+	);
+
+	PlayerHooks[PlayerHookSpawn] = RegisterRequiredPlayerHook(
+		.functionId = RG_CBasePlayer_Spawn,
+		.callback = "OnPlayerSpawnPost",
+		.post = true
+	);
+
+	PlayerHooks[PlayerHookWeaponDefaultDeploy] = RegisterRequiredPlayerHook(
+		.functionId = RG_CBasePlayerWeapon_DefaultDeploy,
+		.callback = "OnWeaponDefaultDeployPre",
+		.post = false
+	);
+}
+
+stock HookChain:RegisterRequiredPlayerHook(ReAPIFunc:functionId, const callback[], bool:post)
+{
+	new HookChain:hookChain = RegisterHookChain(
+		.function_id = functionId,
+		.callback = callback,
+		.post = post
+	);
+
+	if (hookChain == INVALID_HOOKCHAIN)
+		set_fail_state("ApiPlayers could not register ReAPI hook '%s'.", callback);
+
+	return hookChain;
+}
+
+stock ResetPlayerRuntime(id)
+{
+	PlayerRuntime[id][PlayerRuntimeZombie] = false;
+	PlayerRuntime[id][PlayerRuntimeClass] = Invalid_Class;
+	PlayerRuntime[id][PlayerRuntimeSubclass] = Invalid_Subclass;
+	PlayerRuntime[id][PlayerRuntimeSelectedHumanClass] = Invalid_Class;
+	PlayerRuntime[id][PlayerRuntimeSelectedZombieClass] = Invalid_Class;
+	PlayerRuntime[id][PlayerRuntimeModel] = Invalid_Model;
+	PlayerRuntime[id][PlayerRuntimeMelee] = Invalid_Weapon;
+}
+
+stock RzReturn:ExecuteChangeClassPreForward(id, Class:class, attacker)
+{
+	new forwardResult;
+	if (!ExecuteForward(PlayerForwards[PlayerForwardChangeClassPre], forwardResult, id, class, attacker))
+	{
+		ReportNativeError("Could not execute @change_class_pre.");
+		return RZ_SUPERCEDE;
+	}
+
+	return RzReturn:forwardResult;
+}
+
+stock ExecuteChangeClassPostForward(id, Class:class, attacker)
+{
+	new forwardResult;
+	if (!ExecuteForward(PlayerForwards[PlayerForwardChangeClassPost], forwardResult, id, class, attacker))
+		ReportNativeError("Could not execute @change_class_post.");
+}
+
+stock bool:ExecuteInfectPlayerPreForward(id, attacker, Subclass:subclass)
+{
+	new forwardResult;
+	if (!ExecuteForward(PlayerForwards[PlayerForwardInfectPlayerPre], forwardResult, id, attacker, subclass))
+		return bool:ReportNativeError("Could not execute @infect_player_pre.");
+
+	return RzReturn:forwardResult < RZ_SUPERCEDE;
+}
+
+stock ExecuteInfectPlayerPostForward(id, attacker, Subclass:subclass)
+{
+	new forwardResult;
+	if (!ExecuteForward(PlayerForwards[PlayerForwardInfectPlayerPost], forwardResult, id, attacker, subclass))
+		ReportNativeError("Could not execute @infect_player_post.");
+}
+
+stock bool:IsValidConnectedPlayer(id, const nativeName[])
+{
+	if (!IsPlayerIndex(id))
+	{
+		ReportNativeError("%s received invalid player index %d.", nativeName, id);
+		return false;
+	}
+
+	if (!is_user_connected(id))
+	{
+		ReportNativeError("%s received disconnected player %d.", nativeName, id);
+		return false;
+	}
+
+	return true;
+}
+
+stock bool:IsValidAlivePlayer(id)
+{
+	if (!IsPlayerIndex(id))
+		return false;
+
+	if (!is_user_connected(id))
+		return false;
+
+	return bool:is_user_alive(id);
+}
+
+public plugin_natives()
+{
+	register_library("ApiPlayers");
+
+	register_native("get_player_class", "NativeGetPlayerClass");
+	register_native("get_player_subclass", "NativeGetPlayerSubclass");
+	register_native("get_player_var", "NativeGetPlayerVar");
+	register_native("set_player_var", "NativeSetPlayerVar");
+	register_native("change_player_class", "NativeChangePlayerClass");
+
+	register_native("infect_player", "NativeInfectPlayer");
+	register_native("IsZombie", "NativeIsZombie");
+	register_native("IsHuman", "NativeIsHuman");
+	register_native("debug_fail_next_player_runtime", "NativeDebugFailNextPlayerRuntime");
+}
+
+public plugin_init()
+{
+	register_plugin("API: Players", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
+	CorePlayersInitialize();
+}
+
+public plugin_end()
+{
+	CorePlayersShutdown();
+}
+
+public client_putinserver(id)
+{
+	ResetPlayerRuntime(id);
+}
+
+public client_disconnected(id)
+{
+	CorePlayersOnClientDisconnected(id);
+}
+
+public bool:NativeIsZombie(plugin, params)
+{
+	enum
+	{
+		IsZombieParamPlayer = 1
+	};
+
+	if (params < IsZombieParamPlayer)
+		return bool:ReportNativeError("IsZombie requires player index.");
+
+	new id = get_param(IsZombieParamPlayer);
+
+	if (!IsValidConnectedPlayer(id, "IsZombie"))
+		return false;
+
+	return CorePlayersIsZombie(id);
+}
+
+public bool:NativeIsHuman(plugin, params)
+{
+	enum
+	{
+		IsHumanParamPlayer = 1
+	};
+
+	if (params < IsHumanParamPlayer)
+		return bool:ReportNativeError("IsHuman requires player index.");
+
+	new id = get_param(IsHumanParamPlayer);
+
+	if (!IsValidConnectedPlayer(id, "IsHuman"))
+		return false;
+
+	return CorePlayersIsHuman(id);
+}
+
+public any:NativeGetPlayerVar(plugin, params)
+{
+	enum
+	{
+		GetPlayerVarParamPlayer = 1,
+		GetPlayerVarParamKey
+	};
+
+	if (params < GetPlayerVarParamKey)
+		return ReportNativeError("get_player_var requires player and property name.");
+
+	new id = get_param(GetPlayerVarParamPlayer);
+	if (!IsValidConnectedPlayer(id, "get_player_var"))
+		return null;
+
+	new key[RZ_MAX_HANDLE_LENGTH];
+	get_string(GetPlayerVarParamKey, key, charsmax(key));
+
+	if (equal(key, "zombie"))
+		return CorePlayersIsZombie(id);
+
+	if (equal(key, "class"))
+		return CorePlayersGetClass(id);
+
+	if (equal(key, "subclass"))
+		return CorePlayersGetSubclass(id);
+
+	if (equal(key, "selected_human_class"))
+		return CorePlayersGetSelectedHumanClass(id);
+
+	if (equal(key, "selected_zombie_class"))
+		return CorePlayersGetSelectedZombieClass(id);
+
+	return ReportNativeError("Invalid player property '%s'.", key);
+}
+
+public bool:NativeSetPlayerVar(plugin, params)
+{
+	enum
+	{
+		SetPlayerVarParamPlayer = 1,
+		SetPlayerVarParamKey,
+		SetPlayerVarParamValue
+	};
+
+	if (params < SetPlayerVarParamValue)
+		return bool:ReportNativeError("set_player_var requires player, property name and value.");
+
+	new id = get_param(SetPlayerVarParamPlayer);
+	if (!IsValidConnectedPlayer(id, "set_player_var"))
+		return false;
+
+	new key[RZ_MAX_HANDLE_LENGTH];
+	get_string(SetPlayerVarParamKey, key, charsmax(key));
+
+	if (equal(key, "class"))
+	{
+		new Class:class = Class:get_param_byref(SetPlayerVarParamValue);
+
+		return bool:(CorePlayersChangeClass(id, class) == RZ_CONTINUE);
+	}
+
+	if (equal(key, "subclass"))
+	{
+		new Subclass:subclass = Subclass:get_param_byref(SetPlayerVarParamValue);
+
+		if (subclass == Invalid_Subclass)
+			return CorePlayersClearSubclass(id);
+
+		new Class:class = Class:get_subclass_var(subclass, "class");
+
+		return bool:(CorePlayersChangeClass(id, class, 0, subclass) == RZ_CONTINUE);
+	}
+
+	if (equal(key, "selected_class"))
+	{
+		new Class:class = Class:get_param_byref(SetPlayerVarParamValue);
+		return CorePlayersSetSelectedClass(id, class);
+	}
+
+	if (equal(key, "connected") || equal(key, "alive") || equal(key, "zombie"))
+		return bool:ReportNativeError("Player property '%s' is readonly.", key);
+
+	return bool:ReportNativeError("Invalid player property '%s'.", key);
+}
+
+public Class:NativeGetPlayerClass(plugin, params)
+{
+	enum
+	{
+		GetPlayerClassParamPlayer = 1
+	};
+
+	if (params < GetPlayerClassParamPlayer)
+		return Class:ReportNativeError("get_player_class requires player index.");
+
+	new id = get_param(GetPlayerClassParamPlayer);
+
+	if (!IsValidConnectedPlayer(id, "get_player_class"))
+		return Invalid_Class;
+
+	return CorePlayersGetClass(id);
+}
+
+public Subclass:NativeGetPlayerSubclass(plugin, params)
+{
+	enum
+	{
+		GetPlayerSubclassParamPlayer = 1
+	};
+
+	if (params < GetPlayerSubclassParamPlayer)
+		return Subclass:ReportNativeError("get_player_subclass requires player index.");
+
+	new id = get_param(GetPlayerSubclassParamPlayer);
+
+	if (!IsValidConnectedPlayer(id, "get_player_subclass"))
+		return Invalid_Subclass;
+
+	return CorePlayersGetSubclass(id);
+}
+
+public RzReturn:NativeChangePlayerClass(plugin, params)
+{
+	enum
+	{
+		ChangePlayerClassParamPlayer = 1,
+		ChangePlayerClassParamClass,
+		ChangePlayerClassParamAttacker,
+		ChangePlayerClassParamSubclass,
+		ChangePlayerClassParamApplyRuntime
+	};
+
+	if (params < ChangePlayerClassParamClass)
+	{
+		ReportNativeError("change_player_class requires player and class.");
+		return RZ_SUPERCEDE;
+	}
+
+	new id = get_param(ChangePlayerClassParamPlayer);
+	if (!IsValidConnectedPlayer(id, "change_player_class"))
+		return RZ_SUPERCEDE;
+
+	new Class:class = Class:get_param(ChangePlayerClassParamClass);
+	new attacker = 0;
+	new Subclass:subclass = Invalid_Subclass;
+	new bool:applyRuntime = true;
+
+	if (params >= ChangePlayerClassParamAttacker)
+	{
+		attacker = get_param(ChangePlayerClassParamAttacker);
+		if (attacker && !IsValidConnectedPlayer(attacker, "change_player_class"))
+			return RZ_SUPERCEDE;
+	}
+
+	if (params >= ChangePlayerClassParamSubclass)
+		subclass = Subclass:get_param(ChangePlayerClassParamSubclass);
+
+	if (params >= ChangePlayerClassParamApplyRuntime)
+		applyRuntime = bool:get_param(ChangePlayerClassParamApplyRuntime);
+
+	return CorePlayersChangeClass(id, class, attacker, subclass, applyRuntime);
+}
+
+public bool:NativeInfectPlayer(plugin, params)
+{
+	enum
+	{
+		InfectPlayerParamPlayer = 1,
+		InfectPlayerParamAttacker,
+		InfectPlayerParamSubclass
+	};
+
+	if (params < InfectPlayerParamPlayer)
+		return bool:ReportNativeError("infect_player requires player index.");
+
+	new id = get_param(InfectPlayerParamPlayer);
+	if (!IsValidConnectedPlayer(id, "infect_player"))
+		return false;
+
+	new attacker = 0;
+	if (params >= InfectPlayerParamAttacker)
+	{
+		attacker = get_param(InfectPlayerParamAttacker);
+		if (attacker && !IsValidConnectedPlayer(attacker, "infect_player"))
+			return false;
+	}
+
+	new Subclass:subclass = Invalid_Subclass;
+	if (params >= InfectPlayerParamSubclass)
+		subclass = Subclass:get_param(InfectPlayerParamSubclass);
+
+	return CorePlayersInfectPlayer(id, attacker, subclass);
+}
+
+public bool:NativeDebugFailNextPlayerRuntime(plugin, params)
+{
+	enum
+	{
+		DebugFailParamPlayer = 1,
+		DebugFailParamStage
+	};
+
+	if (!IsPlayerRuntimeDebugCaller(plugin))
+		return bool:ReportNativeError("debug_fail_next_player_runtime is restricted to DevRuntime.");
+
+	if (params < DebugFailParamStage)
+		return bool:ReportNativeError("debug_fail_next_player_runtime requires player and stage.");
+
+	new id = get_param(DebugFailParamPlayer);
+	if (!IsValidAlivePlayer(id))
+		return bool:ReportNativeError("debug_fail_next_player_runtime requires an alive player.");
+
+	new PlayerRuntimeDebugFailure:stage = PlayerRuntimeDebugFailure:get_param(DebugFailParamStage);
+	return CorePlayersArmRuntimeDebugFailure(id, stage);
+}
+
+stock bool:IsPlayerRuntimeDebugCaller(plugin)
+{
+	new filename[64];
+	get_plugin(plugin, filename, charsmax(filename));
+
+	new basename[64];
+	GetPlayerRuntimePluginBasename(filename, basename, charsmax(basename));
+
+	return bool:equal(basename, PLAYER_RUNTIME_DEBUG_PLUGIN);
+}
+
+stock GetPlayerRuntimePluginBasename(const filename[], basename[], length)
+{
+	new start;
+	for (new index = 0; filename[index] != EOS; index++)
+	{
+		if (filename[index] == '/' || filename[index] == 92)
+			start = index + 1;
+	}
+
+	copy(basename, length, filename[start]);
+}

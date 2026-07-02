@@ -7,6 +7,7 @@
 #define _rezombie_api_gamevars_included
 
 #include <rezombie_const>
+#include <rezombie/api/Classes>
 #include <rezombie/core/RoundState>
 
 #if AMXX_VERSION_NUM >= 175
@@ -25,5 +26,10 @@
  *
  * @return          Property value
  * @error           Fails on invalid property
+ *
+ * @note            Supported properties include "game_state", "round_state",
+ *                  "mode", "timer", "human_wins", "zombie_wins",
+ *                  "team_wins", "respawn_team", "default_class" and
+ *                  "override_default_class".
  */
 native any:get_game_var(const var[], any:...);

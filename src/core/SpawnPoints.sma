@@ -1,6 +1,9 @@
-#include <rezombie>
+#include <amxmodx>
 #include <reapi>
 #include <fakemeta>
+#include <rezombie_version>
+#include <rezombie_const>
+#include <rezombie_stock>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -103,6 +106,14 @@ enum _:SpawnReservationData
 	Float:SpawnReservationOriginZ
 };
 
+enum _:SpawnPointsHookData
+{
+	SpawnPointsHookRestartRound,
+	SpawnPointsHookGetPlayerSpawnSpot,
+	SpawnPointsHookPlayerSpawn,
+	SpawnPointsHookCount
+};
+
 new const SpawnPointClassDefinitions[][SpawnPointClassDefinition] =
 {
 	{ "info_player_start", SpawnSourceCounterTerrorist },
@@ -113,28 +124,77 @@ new Array:SpawnAnchors = Invalid_Array;
 new Array:SpawnClusters = Invalid_Array;
 new Array:SpawnSlots = Invalid_Array;
 new Array:SpawnReservations = Invalid_Array;
+new HookChain:SpawnPointsHooks[SpawnPointsHookCount];
 new SpawnSelectionOrder;
 new bool:PlayerSpawnAssigned[SPAWN_POINTS_MAX_PLAYERS + 1];
 new PlayerSpawnAssignments[SPAWN_POINTS_MAX_PLAYERS + 1][SpawnSlotData];
 
 public plugin_precache()
 {
-	register_plugin("Core: Spawn Points", "0.1.0", "BRUN0");
+	register_plugin("Core: Spawn Points", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
 
 	InitializeSpawnStorage();
 }
 
 public plugin_init()
 {
-	RegisterHookChain(RG_CSGameRules_RestartRound, "OnRestartRoundPost", true);
-	RegisterHookChain(RG_CSGameRules_GetPlayerSpawnSpot, "OnGetPlayerSpawnSpotPre", false);
-	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawnPost", true);
+	CreateSpawnPointsHooks();
 	InitializeSpawnPoints();
 }
 
 public plugin_end()
 {
+	DestroySpawnPointsHooks();
 	DestroySpawnStorage();
+}
+
+stock CreateSpawnPointsHooks()
+{
+	for (new index = 0; index < sizeof SpawnPointsHooks; index++)
+		SpawnPointsHooks[index] = INVALID_HOOKCHAIN;
+
+	SpawnPointsHooks[SpawnPointsHookRestartRound] = RegisterRequiredSpawnPointsHook(
+		.functionId = RG_CSGameRules_RestartRound,
+		.callback = "OnRestartRoundPost",
+		.post = true
+	);
+
+	SpawnPointsHooks[SpawnPointsHookGetPlayerSpawnSpot] = RegisterRequiredSpawnPointsHook(
+		.functionId = RG_CSGameRules_GetPlayerSpawnSpot,
+		.callback = "OnGetPlayerSpawnSpotPre",
+		.post = false
+	);
+
+	SpawnPointsHooks[SpawnPointsHookPlayerSpawn] = RegisterRequiredSpawnPointsHook(
+		.functionId = RG_CBasePlayer_Spawn,
+		.callback = "OnPlayerSpawnPost",
+		.post = true
+	);
+}
+
+stock DestroySpawnPointsHooks()
+{
+	for (new index = 0; index < sizeof SpawnPointsHooks; index++)
+	{
+		if (SpawnPointsHooks[index] == INVALID_HOOKCHAIN)
+			continue;
+
+		DisableHookChain(SpawnPointsHooks[index]);
+		SpawnPointsHooks[index] = INVALID_HOOKCHAIN;
+	}
+}
+
+stock HookChain:RegisterRequiredSpawnPointsHook(ReAPIFunc:functionId, const callback[], bool:post)
+{
+	new HookChain:hookChain = RegisterHookChain(
+		.function_id = functionId,
+		.callback = callback,
+		.post = post
+	);
+	if (hookChain == INVALID_HOOKCHAIN)
+		set_fail_state("SpawnPoints could not register ReAPI hook '%s'.", callback);
+
+	return hookChain;
 }
 
 public OnRestartRoundPost()

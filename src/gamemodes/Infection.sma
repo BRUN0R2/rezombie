@@ -1,74 +1,127 @@
 #include <rezombie>
+#include <reapi>
 
 #pragma semicolon 1
 #pragma compress 1
 
-const INFECTION_NO_TARGET = 0;
-const INFECTION_NO_ATTACKER = 0;
-const INFECTION_MIN_PLAYERS = 2;
-const Float:INFECTION_ROUND_TIME = 180.0;
-
-new Mode:InfectionMode = Invalid_Mode;
-new Class:ZombieClass = Invalid_Class;
-new Subclass:ZombieSubclass = Invalid_Subclass;
+new Mode:infectionMode = Invalid_Mode;
+new Class:zombieClass = Invalid_Class;
+new HookChain:InfectionTakeDamageHook = INVALID_HOOKCHAIN;
 
 public plugin_precache()
 {
-	register_plugin("Mode: Infection", "0.1.0", "BRUN0");
+	register_plugin("Mode: Infection", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
 
-	ZombieClass = RequireClass("zombie");
-	ZombieSubclass = RequireSubclass("fleshpound");
+	zombieClass = RequireClass("zombie");
 
-	InfectionMode = create_mode("infection", "@LaunchInfection");
-	set_mode_var(InfectionMode, "name", "Infection");
-	set_mode_var(InfectionMode, "notice_message", "Infection");
-	set_mode_var(InfectionMode, "min_players", INFECTION_MIN_PLAYERS);
-	set_mode_var(InfectionMode, "round_time", INFECTION_ROUND_TIME);
-	set_mode_var(InfectionMode, "respawn", Respawn_ToZombiesTeam);
+	new Mode:mode = infectionMode = create_mode("infection", "@LaunchInfection");
+	set_mode_var(mode, "name", "Infection");
+	set_mode_var(mode, "notice_message", "Infection");
+	set_mode_var(mode, "min_players", 2);
+	set_mode_var(mode, "round_time", 360.0);
+	set_mode_var(mode, "respawn", Respawn_ToZombiesTeam);
+	set_mode_var(mode, "default_class", zombieClass);
+	set_mode_var(mode, "override_default_class", true);
 }
 
-@LaunchInfection(Mode:mode, target)
+public plugin_init()
 {
-	if (mode != InfectionMode)
-		return false;
+	InfectionTakeDamageHook = RegisterHookChain(
+		.function_id = RG_CBasePlayer_TakeDamage,
+		.callback = "OnPlayerTakeDamagePre",
+		.post = false
+	);
 
-	if (ZombieClass == Invalid_Class)
-		return false;
-
-	if (ZombieSubclass == Invalid_Subclass)
-		return false;
-
-	new player = SelectFirstZombie(target);
-	if (player == INFECTION_NO_TARGET)
-		return false;
-
-	return infect_player(player, INFECTION_NO_ATTACKER, ZombieSubclass);
+	if (InfectionTakeDamageHook == INVALID_HOOKCHAIN)
+		set_fail_state("Infection could not register player damage hook.");
 }
 
-stock SelectFirstZombie(target)
+public plugin_end()
 {
-	if (IsEligible(target))
-		return target;
+	if (InfectionTakeDamageHook != INVALID_HOOKCHAIN)
+	{
+		DisableHookChain(InfectionTakeDamageHook);
+		InfectionTakeDamageHook = INVALID_HOOKCHAIN;
+	}
+}
 
+@LaunchInfection()
+{
 	new players[MAX_PLAYERS];
 	new playersCount;
+	CollectAliveHumans(players, playersCount);
 
-	for (new id = 1; id <= MaxClients; id++)
+	new zombiesCount = 1;
+	if (playersCount > 30)
+		zombiesCount = 4;
+	else if (playersCount > 20)
+		zombiesCount = 3;
+	else if (playersCount > 10)
+		zombiesCount = 2;
+
+	zombiesCount = min(zombiesCount, playersCount);
+
+	for (new zombieIndex = 0; zombieIndex < zombiesCount; zombieIndex++)
 	{
-		if (!IsEligible(id))
-			continue;
-
-		players[playersCount] = id;
-		playersCount++;
+		new player = PickPlayer(players, playersCount);
+		if (change_player_class(player, zombieClass) > RZ_CONTINUE)
+			return false;
 	}
 
-	if (!playersCount)
-		return INFECTION_NO_TARGET;
-
-	return players[random(playersCount)];
+	return bool:zombiesCount;
 }
 
-stock bool:IsEligible(id)
+public OnPlayerTakeDamagePre(victim, inflictor, attacker, Float:damage, damageType)
 {
-	return is_user_connected(id) && is_user_alive(id) && IsHuman(id);
+	if (!IsAliveHuman(victim) || !IsAliveZombie(attacker)) {
+		return HC_CONTINUE;
+	}
+
+	if (Mode:get_game_var("mode") != infectionMode) {
+		return HC_CONTINUE;
+	}
+
+	if (Class:get_player_var(attacker, "class") != zombieClass) {
+		return HC_CONTINUE;
+	}
+
+	/*new Weapon:weapon = get_entvar(inflictor, var_impulse);
+	if (!is_weapon(weapon)) {
+		return HC_CONTINUE;
+	}
+
+	if (get_weapon_var(weapon, "type") != weapon_type_melee) {
+		return HC_CONTINUE;
+	}*/
+
+	// Temporary fix.
+	if (get_user_weapon(attacker) != CSW_KNIFE) {
+		return HC_CONTINUE;
+	}
+
+	if (AbsorbInfectionDamageWithArmor(victim, damage))
+		return HC_CONTINUE;
+
+	if (!infect_player(victim, attacker))
+		return HC_CONTINUE;
+
+	SetHookChainArg(4, ATYPE_FLOAT, 0.0);
+	return HC_CONTINUE;
+}
+
+stock bool:AbsorbInfectionDamageWithArmor(victim, Float:damage)
+{
+	new Float:armor = get_entvar(
+		victim,
+		var_armorvalue
+	);
+
+	if (armor <= 0.0)
+		return false;
+
+	armor = floatmax(armor - damage, 0.0);
+	set_entvar(victim, var_armorvalue, armor);
+	SetHookChainArg(4, ATYPE_FLOAT, 0.0);
+
+	return armor > 0.0;
 }

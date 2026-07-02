@@ -1,5 +1,11 @@
-#include <rezombie>
+#include <amxmodx>
 #include <fakemeta>
+#include <rezombie_version>
+#include <rezombie_const>
+#include <rezombie/core/RoundState>
+#include <rezombie/api/Modes>
+#include <rezombie/api/GameVars>
+#include <rezombie/api/Players>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -28,13 +34,10 @@ new Float:CountdownEndsAt;
 new Float:NextCountdownAt;
 new LastCountdownSeconds;
 
-public plugin_precache()
-{
-	register_plugin("HUD: Round Feedback", "0.1.0", "BRUN0");
-}
-
 public plugin_init()
 {
+	register_plugin("HUD: Round Feedback", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
+
 	register_forward(FM_StartFrame, "OnServerFrame");
 }
 
@@ -102,19 +105,16 @@ public @infect_player_post(id, attacker, Subclass:subclass)
 {
 	#pragma unused subclass
 
+	if (!attacker || !is_user_connected(attacker))
+		return;
+
 	new victimName[MAX_NAME_LENGTH];
 	get_user_name(id, victimName, charsmax(victimName));
 
-	if (attacker && is_user_connected(attacker))
-	{
-		new attackerName[MAX_NAME_LENGTH];
-		get_user_name(attacker, attackerName, charsmax(attackerName));
+	new attackerName[MAX_NAME_LENGTH];
+	get_user_name(attacker, attackerName, charsmax(attackerName));
 
-		client_print(0, print_chat, "[ReZombie] %s infected %s.", attackerName, victimName);
-		return;
-	}
-
-	client_print(0, print_chat, "[ReZombie] %s became the first zombie.", victimName);
+	client_print(0, print_chat, "[ReZombie] %s infected %s.", attackerName, victimName);
 }
 
 stock RefreshCountdownFromGameVars()
@@ -211,6 +211,10 @@ stock GetRoundEndMessage(EndRoundEvent:event, output[], length)
 {
 	switch (event)
 	{
+		case EndRoundEventWarmupEnd:
+		{
+			copy(output, length, "Warmup ended");
+		}
 		case EndRoundEventHumansWin:
 		{
 			copy(output, length, "Humans win");

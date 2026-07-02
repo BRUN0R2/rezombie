@@ -4,7 +4,7 @@
 
 #define _rezombie_const_included
 
-new const any:null = 0;
+new const any:null = any:0;
 #pragma unused null
 
 const RZ_MAX_HANDLE_LENGTH = 32;
@@ -22,14 +22,16 @@ const Weapon:Invalid_Weapon = Weapon:0;
 enum RzReturn
 {
 	RZ_CONTINUE = 0,
-	RZ_SUPERCEDE
+	RZ_SUPERCEDE,
+	RZ_BREAK
 }
 
 enum Team
 {
 	TEAM_NONE = 0,
+	TEAM_ZOMBIE,
 	TEAM_HUMAN,
-	TEAM_ZOMBIE
+	TEAM_SPECTATOR
 }
 
 enum RespawnType
@@ -41,5 +43,6 @@ enum RespawnType
 }
 
 #define IsAlive(%1) (1 <= %1 <= MaxClients && is_user_alive(%1) && is_user_connected(%1))
+#define IsConnected(%1) (1 <= %1 <= MaxClients && is_user_connected(%1))
 #define IsInvalidArray(%0) (%0 == Invalid_Array || !ArraySize(%0))
 #define IsNullString(%0) bool:(%0[0] == EOS)

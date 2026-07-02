@@ -1,4 +1,10 @@
-#include <rezombie>
+#include <amxmodx>
+#include <rezombie_version>
+#include <rezombie_const>
+#include <rezombie_stock>
+#include <rezombie/api/Props>
+#include <rezombie/api/Models>
+#include <rezombie/api/Weapons>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -25,6 +31,12 @@ public plugin_natives()
 	Classes = ArrayCreate(ClassData);
 	ClassesByHandle = TrieCreate();
 
+	if (Classes == Invalid_Array)
+		set_fail_state("ApiClasses class storage could not be initialized.");
+
+	if (ClassesByHandle == Invalid_Trie)
+		set_fail_state("ApiClasses handle index could not be initialized.");
+
 	register_native("create_class", "NativeCreateClass");
 	register_native("FindClass", "NativeFindClass");
 	register_native("get_class_var", "NativeGetClassVar");
@@ -33,7 +45,7 @@ public plugin_natives()
 
 public plugin_precache()
 {
-	register_plugin("API: Classes", "0.1.0", "BRUN0");
+	register_plugin("API: Classes", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
 }
 
 public plugin_end()

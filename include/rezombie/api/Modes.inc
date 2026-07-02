@@ -22,11 +22,12 @@
  *
  * @param handle         Unique mode handle
  * @param launchForward  Function called when the mode starts, must return non-zero on success
+ * @param supportTarget  Pass launch target to the forward
  *
  * @return               Mode handle
  * @error                Fails on empty handle, duplicate mode or missing forward
  */
-native Mode:create_mode(const handle[], const launchForward[]);
+native Mode:create_mode(const handle[], const launchForward[], bool:supportTarget = false);
 
 /**
  * Finds a game mode by handle.
@@ -82,6 +83,11 @@ stock Mode:RequireMode(const handle[])
  *
  * @return               Property value
  * @error                Fails on invalid mode or property
+ *
+ * @note                 Supported runtime properties include "name",
+ *                       "notice_message", "min_players", "round_time",
+ *                       "support_target", "respawn", "default_class"
+ *                       and "override_default_class".
  */
 native any:get_mode_var(Mode:mode, const var[], any:...);
 

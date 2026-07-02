@@ -1,4 +1,11 @@
-#include <rezombie>
+#include <amxmodx>
+#include <rezombie_version>
+#include <rezombie_const>
+#include <rezombie_stock>
+#include <rezombie/api/Props>
+#include <rezombie/api/Models>
+#include <rezombie/api/Weapons>
+#include <rezombie/api/Classes>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -25,6 +32,12 @@ public plugin_natives()
 	Subclasses = ArrayCreate(SubclassData);
 	SubclassesByHandle = TrieCreate();
 
+	if (Subclasses == Invalid_Array)
+		set_fail_state("ApiSubclasses subclass storage could not be initialized.");
+
+	if (SubclassesByHandle == Invalid_Trie)
+		set_fail_state("ApiSubclasses handle index could not be initialized.");
+
 	register_native("create_subclass", "NativeCreateSubclass");
 	register_native("FindSubclass", "NativeFindSubclass");
 	register_native("get_subclass_var", "NativeGetSubclassVar");
@@ -33,7 +46,7 @@ public plugin_natives()
 
 public plugin_precache()
 {
-	register_plugin("API: Subclasses", "0.1.0", "BRUN0");
+	register_plugin("API: Subclasses", REZOMBIE_VERSION, REZOMBIE_AUTHOR);
 }
 
 public plugin_end()
@@ -146,7 +159,12 @@ public any:NativeGetSubclassVar(plugin, params)
 		if (params < GetSubclassVarParamOutputLength)
 			return ReportNativeError("get_subclass_var 'handle' requires output buffer and length.");
 
-		set_string(GetSubclassVarParamOutput, data[SubclassHandle], get_param_byref(GetSubclassVarParamOutputLength));
+		set_string(
+			GetSubclassVarParamOutput,
+			data[SubclassHandle],
+			get_param_byref(GetSubclassVarParamOutputLength)
+		);
+
 		return true;
 	}
 
@@ -155,7 +173,12 @@ public any:NativeGetSubclassVar(plugin, params)
 		if (params < GetSubclassVarParamOutputLength)
 			return ReportNativeError("get_subclass_var 'name' requires output buffer and length.");
 
-		set_string(GetSubclassVarParamOutput, data[SubclassName], get_param_byref(GetSubclassVarParamOutputLength));
+		set_string(
+			GetSubclassVarParamOutput,
+			data[SubclassName],
+			get_param_byref(GetSubclassVarParamOutputLength)
+		);
+
 		return true;
 	}
 
@@ -233,7 +256,7 @@ public bool:NativeSetSubclassVar(plugin, params)
 	{
 		new Weapon:melee = Weapon:get_param_byref(SetSubclassVarParamValue);
 
-		if (melee != Invalid_Weapon && !IsRegisteredWeapon(melee))
+		if (!IsRegisteredWeapon(melee))
 			return bool:ReportNativeError("Invalid melee weapon handle %d.", _:melee);
 
 		data[SubclassMelee] = melee;

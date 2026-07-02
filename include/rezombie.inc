@@ -7,8 +7,8 @@
 #define _rezombie_included
 
 #include <amxmodx>
+#include <rezombie_version>
 #include <rezombie_const>
-#include <rezombie_stock>
 #include <rezombie/core/RoundState>
 
 #include <rezombie/api/Props>
@@ -19,6 +19,8 @@
 #include <rezombie/api/Modes>
 #include <rezombie/api/GameVars>
 #include <rezombie/api/Players>
+
+#include <rezombie_stock>
 
 /**
  * Called when the round enters prepare state.
